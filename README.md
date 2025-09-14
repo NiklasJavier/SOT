@@ -1,4 +1,4 @@
-# SOT
+# SOT (ServerOperationToolkit)
 
 ## Overview
 
