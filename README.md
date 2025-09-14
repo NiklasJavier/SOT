@@ -1,8 +1,8 @@
-# DOT
+# SOT
 
 ## Overview
 
-The **DOT** repository provides a collection of scripts and configurations to quickly and easily set up a development, staging, or production environment. It is flexible and allows configuration based on user-defined settings or the use of default values.
+The **SOT** repository provides a collection of scripts and configurations to quickly and easily set up a development, staging, or production environment. It is flexible and allows configuration based on user-defined settings or the use of default values.
 
 ## Table of Contents
 
@@ -18,14 +18,14 @@ The **DOT** repository provides a collection of scripts and configurations to qu
 
 ## Installation
 
-The DOT can be initialized and installed using various commands. Here is an example for a quick setup.
+The SOT can be initialized and installed using various commands. Here is an example for a quick setup.
 
 ### Example for a Quick Setup:
 
 This command installs the toolkit and immediately executes a setup script, enabling a smooth and quick setup.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev -port "22" && devops setup
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev -port "22" && devops setup
 ```
 
 - **curl -fsSL**: Fetches the setup script from the specified GitHub repository.
@@ -41,7 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/s
   This command sets `USE_DEFAULTS=true` and configures a production environment.
 
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch production
+  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch production
   ```
 
 - **Set up a Staging Environment**:
@@ -49,7 +49,7 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/s
   This command sets `USE_DEFAULTS=true` and configures a staging environment.
 
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch staging 
+  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch staging 
   ```
 
 - **Set up a Development Environment**:
@@ -57,7 +57,7 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/s
   This command sets `USE_DEFAULTS=true` and configures a development environment.
 
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev
+  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev
   ```
 
 - **Set up a Development Environment with SSH Key**:
@@ -65,7 +65,7 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/s
   This command sets `USE_DEFAULTS=true`, configures a development environment, and enables the SSH key function with the provided public key.
 
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev -key "ssh-pub-key"
+  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev -key "ssh-pub-key"
   ```
 
 ### Available Flags:
@@ -93,7 +93,7 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/DOT/dev/environments/s
 
 ## DevOps CLI Tool
 
-The DevOps CLI Tool is a core component of the DOT that facilitates the execution of automation scripts. After installation and initialization, the tool is available via the `devops` command, eliminating the need to call `./devops_cli.sh`.
+The DevOps CLI Tool is a core component of the SOT that facilitates the execution of automation scripts. After installation and initialization, the tool is available via the `devops` command, eliminating the need to call `./devops_cli.sh`.
 
 ### Usage:
 
@@ -127,7 +127,7 @@ If a command is not found or fails to execute, the tool displays an error messag
 
 ## Using the Ansible Vault
 
-The DOT uses an encrypted Ansible Vault to securely store and manage sensitive and dynamically configurable parameters. When the `devops setup` command is executed, a Vault file is created in the `${opt_data_dir}` directory, containing sensitive data such as credentials and configuration parameters.
+The SOT uses an encrypted Ansible Vault to securely store and manage sensitive and dynamically configurable parameters. When the `devops setup` command is executed, a Vault file is created in the `${opt_data_dir}` directory, containing sensitive data such as credentials and configuration parameters.
 
 ### Managing the Vault:
 
@@ -151,7 +151,7 @@ The DOT uses an encrypted Ansible Vault to securely store and manage sensitive a
 
 ## Debugging and Updates
 
-The DOT includes features for debugging and updating. Using the `devops update` command, the latest changes to the scripts can be retrieved, while retaining any custom changes or additions.
+The SOT includes features for debugging and updating. Using the `devops update` command, the latest changes to the scripts can be retrieved, while retaining any custom changes or additions.
 
 ### Features of Debugging and Updates:
 
