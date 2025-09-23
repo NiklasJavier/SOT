@@ -2,24 +2,24 @@
 
 - name: Gebe den Pfad der Vault-Datei aus
   debug:
-    msg: "Der Pfad zur Vault-Datei ist: {{ vault_file }}"
+    msg: "Der Pfad zur Vault-Datei ist: {{ sot_config.vault_file }}"
 
 - name: Prüfe, ob die Vault-Datei existiert
   stat:
-    path: "{{ vault_file }}"
+    path: "{{ sot_config.vault_file }}"
   register: vault_file_stat
 
 - name: Erstellung der Vault-Datei
   block:
     - name: Schreibe Passwort in eine temporäre Datei
       copy:
-        content: "{{ vault_secret }}"
+        content: "{{ sot_config.vault_secret }}"
         dest: /tmp/vault_pass.txt
         mode: '0600'
 
     - name: Erstelle eine temporäre Datei für den Vault-Inhalt
       template:
-        src: "{{ vault_content }}"
+        src: "{{ sot_config.vault_content }}"
         dest: /tmp/temp_vault_content.yml
       when: not vault_file_stat.stat.exists
 
@@ -36,7 +36,7 @@
       shell: >
         ansible-vault encrypt /tmp/temp_vault_content.yml
         --vault-password-file=/tmp/vault_pass.txt
-        --output {{ vault_file }}
+        --output {{ sot_config.vault_file }}
       args:
         executable: /bin/bash
 

@@ -14,51 +14,120 @@ GREY='\033[1;90m'
 NC='\033[0m' # Keine Farbe
 
 ############# PARAMETER VOR FLAGS ##############
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../tools/ansible/config/default_config.yml}"
+
+ORIGINAL_ARGS=("$@")
+for ((i = 0; i < ${#ORIGINAL_ARGS[@]}; i++)); do
+    if [[ "${ORIGINAL_ARGS[$i]}" == "-config" ]]; then
+        next_index=$((i + 1))
+        if (( next_index < ${#ORIGINAL_ARGS[@]} )) && [[ -n "${ORIGINAL_ARGS[$next_index]}" && "${ORIGINAL_ARGS[$next_index]}" != -* ]]; then
+            DEFAULT_CONFIG_FILE="${ORIGINAL_ARGS[$next_index]}"
+        else
+            echo -e "${RED}No configuration file specified with -config.${NC}"
+            exit 1
+        fi
+        break
+    fi
+done
+set -- "${ORIGINAL_ARGS[@]}"
+
+declare -A CONFIG_DEFAULTS
+
+load_default_config() {
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        echo -e "${RED}Default configuration missing: ${YELLOW}$file${NC}"
+        exit 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%%#*}"
+        line="${line%%$'\r'}"
+        if [[ -z "${line//[[:space:]]/}" ]]; then
+            continue
+        fi
+
+        if [[ "$line" =~ ^([a-zA-Z0-9_]+):[[:space:]]*(.*)$ ]]; then
+            local key="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[2]}"
+            value="${value%\"}"
+            value="${value#\"}"
+            CONFIG_DEFAULTS["$key"]="$value"
+        fi
+    done < "$file"
+}
+
+apply_config_defaults() {
+    for key in "${!CONFIG_DEFAULTS[@]}"; do
+        local var_name="${key^^}"
+        var_name="${var_name//-/_}"
+        local value="${CONFIG_DEFAULTS[$key]}"
+        printf -v "$var_name" '%s' "$value"
+    done
+}
+
+generate_dynamic_defaults() {
+    if [[ -z "$USERNAME" || "$USERNAME" == "__GENERATE_USERNAME__" ]]; then
+        USERNAME="$(< /dev/urandom tr -dc 'A-Z' | head -c 11)"
+    fi
+
+    if [[ -z "$SYSTEM_NAME" || "$SYSTEM_NAME" == "__GENERATE_SYSTEM_NAME__" ]]; then
+        SYSTEM_NAME="SRV-$USERNAME"
+    fi
+
+    if [[ -z "$CLONE_DIR" ]]; then
+        CLONE_DIR="/etc/DevOpsToolkit"
+    fi
+
+    ENV_DIR="$CLONE_DIR/environments"
+    DEVOPS_CLI_FILE="$ENV_DIR/sot_cli.sh"
+
+    if [[ -z "$TOOLS_DIR" || "$TOOLS_DIR" == "__GENERATE_TOOLS_DIR__" ]]; then
+        TOOLS_DIR="$CLONE_DIR/tools"
+    fi
+
+    if [[ -z "$SCRIPTS_DIR" || "$SCRIPTS_DIR" == "__GENERATE_SCRIPTS_DIR__" ]]; then
+        SCRIPTS_DIR="$CLONE_DIR/scripts"
+    fi
+
+    if [[ -z "$PIPELINES_DIR" || "$PIPELINES_DIR" == "__GENERATE_PIPELINES_DIR__" ]]; then
+        PIPELINES_DIR="$CLONE_DIR/pipelines"
+    fi
+
+    if [[ -z "$OPT_DATA_DIR" || "$OPT_DATA_DIR" == "__GENERATE_OPT_DATA_DIR__" ]]; then
+        OPT_DATA_DIR="/opt/$SYSTEM_NAME"
+    fi
+
+    if [[ -z "$VAULT_FILE" || "$VAULT_FILE" == "__GENERATE_VAULT_FILE__" ]]; then
+        VAULT_FILE="$OPT_DATA_DIR/vault.yml"
+    fi
+
+    if [[ -z "$VAULT_SECRET" || "$VAULT_SECRET" == "__GENERATE_VAULT_SECRET__" ]]; then
+        VAULT_SECRET="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 60)"
+    fi
+
+    if [[ -z "$VAULT_CONTENT" || "$VAULT_CONTENT" == "__GENERATE_VAULT_CONTENT__" ]]; then
+        VAULT_CONTENT="$ENV_DIR/vault_content.j2"
+    fi
+
+    if [[ -z "$VAULT_MAIL" || "$VAULT_MAIL" == "__GENERATE_VAULT_MAIL__" ]]; then
+        VAULT_MAIL="$USERNAME@"
+    fi
+
+    if [[ -z "$SYSTEMLINK_PATH" || "$SYSTEMLINK_PATH" == "__GENERATE_SYSTEMLINK_PATH__" ]]; then
+        SYSTEMLINK_PATH="/usr/sbin/SOT"
+    fi
+}
+
+load_default_config "$DEFAULT_CONFIG_FILE"
+apply_config_defaults
+
 REPO_URL="https://github.com/NiklasJavier/DevOpsToolkit.git" # Name des Repositories
 BRANCH="" # Variable zur Speicherung des Branch-Namens
 BRANCH_DIR="" # Variable zur Speicherung des Branch-Verzeichnisses wird dynamisch festgelegt
 
-USE_DEFAULTS=false # Möchten immer mit default werten arbeiten (true) oder nicht (false) Bspw. true wenn -t dev angegeben wurde
-
-USERNAME="$(< /dev/urandom tr -dc 'A-Z' | head -c 11)" # Benutzername (zufällig generiert)
-SYSTEM_NAME="SRV-$USERNAME" # Systemname (ehemals Hostname)
-SSH_PORT="282" # Port für SSH-Verbindung
-SSH_KEY_FUNCTION_ENABLED=false # SSH-Key-Funktion aktivieren
-SSH_KEY_PUBLIC="none" # Öffentlicher SSH-Schlüssel
-
-CLONE_DIR="/etc/DevOpsToolkit"
-ENV_DIR="$CLONE_DIR/environments"
-TOOLS_DIR="$CLONE_DIR/tools"
-SCRIPTS_DIR="$CLONE_DIR/scripts" 
-PIPELINES_DIR="$CLONE_DIR/pipelines" 
-OPT_DATA_DIR="/opt/$SYSTEM_NAME" # Datenverzeichnis, in dem Anwendungsdaten gespeichert werden
-
-SETTINGS_DIR="" 
-CONFIG_FILE="" # Konfigurationsdatei für das Setup in Settings-Verzeichnis
-DEVOPS_CLI_FILE="$ENV_DIR/sot_cli.sh"
-
-VAULT_FILE="$OPT_DATA_DIR/vault.yml" # Vault-Datei für sensible Daten (Ansible)
-VAULT_SECRET="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 60)" # Geheimer Schlüssel für die Vault-Datei
-VAULT_CONTENT="$ENV_DIR/vault_content.j2" # Vorlage für den Inhalt der Vault-Datei
-VAULT_MAIL="$USERNAME@" # E-Mail-Adresse für die Vault-Datei
-
-SYSLINK_PATH="/usr/sbin/SOT" # Pfad für den Symlink
-LOG_LEVEL="info" # Log-Level für die Protokollierung debug, info, warn, error
-LOG_FILE="/var/log/devops_commands.log"
-
-TOOLS="" # Liste der Tools, die installiert werden sollen
-TOOLS+="ansible docker" # Standard-Tools, die installiert werden sollen
 AVAILABLE_TOOLS="" # optional: Liste der verfügbaren Tools
-
-# AAT (Ansible Automation Tools) Integration Defaults
-AAT_REPO_URL="https://github.com/NiklasJavier/AAT.git"
-AAT_DIR="/opt/AAT"
-AAT_ENABLED=true
-
-# TID (Terraform Infrastructure Deployment) Integration Defaults
-TID_REPO_URL="https://github.com/NiklasJavier/TID.git"
-TID_DIR="/opt/TID"
-TID_ENABLED=true
 
 ############# ANFANG DER PARAMETER FLAGS #############
 while [[ "$#" -gt 0 ]]; do
@@ -185,6 +254,15 @@ while [[ "$#" -gt 0 ]]; do
         exit 1
       fi
       ;;
+    -config)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        DEFAULT_CONFIG_FILE="$1"
+      else
+        echo -e "${RED}No configuration file specified with -config.${NC}"
+        exit 1
+      fi
+      ;;
     *)
       echo -e "${RED}Invalid option: $1${NC}" >&2
       exit 1
@@ -198,6 +276,9 @@ if [ -z "$BRANCH" ]; then
       USE_DEFAULTS=true # Immer mit Standardwerten arbeiten
       BRANCH="production"
 fi
+
+# Recalculate dependent defaults in case CLI flags adjusted key values.
+generate_dynamic_defaults
 
 ############# PARAMETER NACH FLAGS ##############
 BRANCH_DIR="$ENV_DIR/$BRANCH" # Branch-Verzeichnis festlegen
@@ -226,8 +307,8 @@ echo -e "${PINK}                                    "
 # Debugging-Ausgabe (kann entfernt werden) 
 echo -e "${GREY}Branch: ${YELLOW}$BRANCH ${NC}"
 echo -e "${GREY}Full HostSetup: ${YELLOW}$FULL ${NC}"
-echo -e "${GREY}Verwendete Tools: ${YELLOW}${TOOLS[*]} ${NC}"
-echo -e "${GREY}Port: ${YELLOW}$PORT ${NC}"
+echo -e "${GREY}Verwendete Tools: ${YELLOW}$TOOLS ${NC}"
+echo -e "${GREY}Port: ${YELLOW}$SSH_PORT ${NC}"
 echo -e "${GREY}Benutzername: ${YELLOW}$USERNAME ${NC}"
 echo -e "${GREY}Systemname: ${YELLOW}$SYSTEM_NAME ${NC}"
 echo -e "${GREY}SSH Key aktiviert: ${YELLOW}$SSH_KEY_FUNCTION_ENABLED ${NC}"
@@ -237,6 +318,7 @@ echo -e "${GREY}Einstellungsverzeichnis: ${YELLOW}$SETTINGS_DIR ${NC}"
 echo -e "${GREY}Konfigurationsdatei: ${YELLOW}$CONFIG_FILE ${NC}"
 echo -e "${GREY}Skriptverzeichnis: ${YELLOW}$SCRIPTS_DIR ${NC}"
 echo -e "${GREY}Pipeline-Verzeichnis: ${YELLOW}$PIPELINES_DIR ${NC}"
+echo -e "${GREY}Systemlink: ${YELLOW}$SYSTEMLINK_PATH ${NC}"
 ### show AAT/TID
 echo -e "${GREY}AAT URL: ${YELLOW}$AAT_REPO_URL ${NC}"
 echo -e "${GREY}AAT DIR: ${YELLOW}$AAT_DIR ${NC}"
@@ -324,18 +406,18 @@ echo -e "${GREY}Zeile wurde in $DEVOPS_CLI_FILE an Position 5 eingefügt.${NC}"
 
 createCliWrapperSbinLink() {
 # Überprüfen, ob der Symlink bereits existiert
-if [ -L "$SYSLINK_PATH" ]; then
+if [ -L "$SYSTEMLINK_PATH" ]; then
     # Wenn der Symlink existiert, überprüfen, ob er auf die richtige Datei zeigt
-    if [ "$(readlink "$SYSLINK_PATH")" != "$DEVOPS_CLI_FILE" ]; then
-        echo -e "${GREY}Symlink $SYSLINK_PATH existiert und zeigt auf einen anderen Pfad. Aktualisierung...${NC}"
-        sudo ln -sf "$DEVOPS_CLI_FILE" "$SYSLINK_PATH"
+    if [ "$(readlink "$SYSTEMLINK_PATH")" != "$DEVOPS_CLI_FILE" ]; then
+        echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert und zeigt auf einen anderen Pfad. Aktualisierung...${NC}"
+        sudo ln -sf "$DEVOPS_CLI_FILE" "$SYSTEMLINK_PATH"
     else
-        echo -e "${GREY}Symlink $SYSLINK_PATH existiert bereits und zeigt auf das richtige Ziel.${NC}"
+        echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert bereits und zeigt auf das richtige Ziel.${NC}"
     fi
 else
     # Wenn der Symlink nicht existiert, erstelle ihn
-    echo -e "${GREY}Symlink $SYSLINK_PATH existiert nicht. Erstellen...${NC}"
-    sudo ln -s "$DEVOPS_CLI_FILE" "$SYSLINK_PATH"
+    echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert nicht. Erstellen...${NC}"
+    sudo ln -s "$DEVOPS_CLI_FILE" "$SYSTEMLINK_PATH"
 fi
 }
 
@@ -461,7 +543,7 @@ log_file: "$LOG_FILE"
 
 # Der Pfad zum System-Symlink, der auf eine bestimmte Datei oder ein Verzeichnis verweist, wird durch die Umgebungsvariable festgelegt.
 # Der Wert kann z.B. auf "/usr/local/bin/myapp" gesetzt sein, um auf eine ausführbare Datei zu verweisen.
-systemlink_path: "$SYSLINK_PATH"
+systemlink_path: "$SYSTEMLINK_PATH"
 
 vault_file: "$VAULT_FILE"
 
