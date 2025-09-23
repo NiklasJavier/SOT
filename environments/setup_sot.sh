@@ -116,7 +116,7 @@ ensure_sdkman_default() {
 
 generate_dynamic_defaults() {
     if [[ -z "$USERNAME" || "$USERNAME" == "__GENERATE_USERNAME__" ]]; then
-        USERNAME="$(< /dev/urandom tr -dc 'A-Z' | head -c 11)"
+        USERNAME="$(< /dev/urandom tr -dc '[:upper:]' | head -c 11)"
     fi
 
     if [[ -z "$SYSTEM_NAME" || "$SYSTEM_NAME" == "__GENERATE_SYSTEM_NAME__" ]]; then
@@ -513,7 +513,7 @@ fi
 # Prüfen, ob das Repository bereits geklont wurde
 if [ -d "$CLONE_DIR/.git" ]; then
     echo -e "${GREY}Repository already exists. Pulling latest changes..."
-    cd "$CLONE_DIR"
+    cd "$CLONE_DIR" || exit
     sudo git pull
 else
     echo -e "${GREY}Cloning the repository into $CLONE_DIR with branch $BRANCH..."
@@ -811,7 +811,7 @@ initalScriptOverview
 show_loading() {
     local pid=$1
     local delay=0.01
-    local spinstr='|/-\'
+    local spinstr="|/-\\"
     local nc='\033[0m'
 
     while kill -0 $pid 2>/dev/null; do
