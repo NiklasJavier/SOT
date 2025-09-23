@@ -84,6 +84,36 @@ apply_config_defaults() {
     done
 }
 
+ensure_sdkman_default() {
+    local has_sdkman="false"
+    for token in $TOOLS; do
+        if [[ $token == sdkman* ]]; then
+            has_sdkman="true"
+            break
+        fi
+    done
+
+    if [[ "$has_sdkman" == "false" ]]; then
+        TOOLS="$TOOLS sdkman"
+    fi
+
+    declare -A seen_tools=()
+    local normalized=""
+    for token in $TOOLS; do
+        [[ -z "$token" ]] && continue
+        if [[ -n "${seen_tools[$token]:-}" ]]; then
+            continue
+        fi
+        seen_tools[$token]=1
+        if [[ -z "$normalized" ]]; then
+            normalized="$token"
+        else
+            normalized+=" $token"
+        fi
+    done
+    TOOLS="$normalized"
+}
+
 generate_dynamic_defaults() {
     if [[ -z "$USERNAME" || "$USERNAME" == "__GENERATE_USERNAME__" ]]; then
         USERNAME="$(< /dev/urandom tr -dc 'A-Z' | head -c 11)"
@@ -379,6 +409,8 @@ while [[ "$#" -gt 0 ]]; do
   esac
   shift
 done
+
+ensure_sdkman_default
 
 ############# BRANCH FLAGS WENN NULL ############
 if [ -z "$BRANCH" ]; then
