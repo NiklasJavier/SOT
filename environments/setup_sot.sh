@@ -16,6 +16,7 @@ NC='\033[0m' # Keine Farbe
 ############# PARAMETER VOR FLAGS ##############
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../tools/ansible/config/default_config.yml}"
+DEFAULT_BRANCH_HINT="production"
 
 ORIGINAL_ARGS=("$@")
 for ((i = 0; i < ${#ORIGINAL_ARGS[@]}; i++)); do
@@ -29,6 +30,12 @@ for ((i = 0; i < ${#ORIGINAL_ARGS[@]}; i++)); do
         fi
         break
     fi
+    if [[ "${ORIGINAL_ARGS[$i]}" == "-branch" ]]; then
+        next_index=$((i + 1))
+        if (( next_index < ${#ORIGINAL_ARGS[@]} )) && [[ -n "${ORIGINAL_ARGS[$next_index]}" && "${ORIGINAL_ARGS[$next_index]}" != -* ]]; then
+            DEFAULT_BRANCH_HINT="${ORIGINAL_ARGS[$next_index]}"
+        fi
+    fi
 done
 set -- "${ORIGINAL_ARGS[@]}"
 
@@ -37,8 +44,18 @@ declare -A CONFIG_DEFAULTS
 load_default_config() {
     local file="$1"
     if [[ ! -f "$file" ]]; then
-        echo -e "${RED}Default configuration missing: ${YELLOW}$file${NC}"
-        exit 1
+        local tmp_file=""
+        local source_url="${SOT_DEFAULT_CONFIG_URL:-https://raw.githubusercontent.com/NiklasJavier/SOT/${DEFAULT_BRANCH_HINT}/tools/ansible/config/default_config.yml}"
+        tmp_file="$(mktemp)"
+        if curl -fsSL "$source_url" -o "$tmp_file"; then
+            echo -e "${GREY}Default configuration not found locally. Downloaded from ${YELLOW}$source_url${NC}"
+            file="$tmp_file"
+            DEFAULT_CONFIG_FILE="$tmp_file"
+        else
+            echo -e "${RED}Default configuration missing: ${YELLOW}$1${NC}"
+            echo -e "${RED}Additionally failed to download configuration from: ${YELLOW}$source_url${NC}"
+            exit 1
+        fi
     fi
 
     while IFS= read -r line || [[ -n "$line" ]]; do
