@@ -18,7 +18,7 @@ jobs:
       - name: Prepare CI environment
         run: ci/setup-env.sh
       - name: CLI help command
-        run: bash environments/sot_cli.sh help
+        run: bash setup/cli_wrapper.sh help
         env:
           CONFIG_FILE: ${{ env.CONFIG_FILE }}
       - name: Run CLI smoke suite
