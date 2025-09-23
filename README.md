@@ -113,11 +113,11 @@ flowchart TD
 ### Einzeiler
 
 ```bash
-BRANCH=${BRANCH:-production}
-curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${BRANCH}/setup/setup_sot.sh" \
-  | bash -s -- -branch "$BRANCH" -port "22" && \
-  SOT integrations aat_sync --branch "$BRANCH" && \
-  SOT integrations tid_sync --branch "$BRANCH" && \
+SOTBRANCH=${SOTBRANCH:-production} && AATBRANCH=${AATBRANCH:-production} && TIDBRANCH=${TIDBRANCH:-production}
+curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${SOTBRANCH}/setup/setup_sot.sh" \
+  | bash -s -- -branch "$SOTBRANCH" -port "22" && \
+  SOT integrations aat_sync --branch "$AATBRANCH" && \
+  SOT integrations tid_sync --branch "$TIDBRANCH" && \
   SOT integrations validate_sync && \
   SOT setup
 ```
