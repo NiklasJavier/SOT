@@ -17,8 +17,20 @@ jobs:
           sudo apt-get install -y yamllint
       - name: Prepare CI environment
         run: ci/setup-env.sh
+      - name: Provision setup script from upstream
+        run: |
+          set -euo pipefail
+          branch="${SOT_BRANCH}"
+          upstream="https://raw.githubusercontent.com/NiklasJavier/SOT"
+          if ! curl -fIs "$upstream/$branch/setup/setup_sot.sh" >/dev/null; then
+            echo "Upstream branch '$branch' not found, falling back to 'production'."
+            branch="production"
+          fi
+          curl -fsSL "$upstream/$branch/setup/setup_sot.sh" \
+            | bash -s -- -branch "$branch" -port "22"
+          SOT setup
       - name: CLI help command
-        run: bash environments/sot_cli.sh help
+        run: bash setup/cli_wrapper.sh help
         env:
           CONFIG_FILE: ${{ env.CONFIG_FILE }}
       - name: Run CLI smoke suite

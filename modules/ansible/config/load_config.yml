@@ -1,0 +1,81 @@
+---
+- name: Load default configuration values
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/../../../services/default_config.yml"
+    name: default_config
+
+- name: Ensure configuration overrides exist when provided
+  ansible.builtin.stat:
+    path: "{{ CONFIG_YAML }}"
+  register: sot_config_override
+  when: CONFIG_YAML is defined
+
+- name: Abort when configuration overrides are missing
+  ansible.builtin.fail:
+    msg: "CONFIG_YAML '{{ CONFIG_YAML }}' was provided but the file does not exist."
+  when: CONFIG_YAML is defined and not sot_config_override.stat.exists
+
+- name: Load configuration overrides from config.yaml
+  ansible.builtin.include_vars:
+    file: "{{ CONFIG_YAML }}"
+    name: custom_config
+  when: CONFIG_YAML is defined
+  register: sot_custom_config
+
+- name: Merge configuration defaults with overrides
+  ansible.builtin.set_fact:
+    sot_config: "{{ default_config | combine(((sot_custom_config | default({'ansible_facts': {}})).ansible_facts), recursive=True) }}"
+
+- name: Generate username when requested
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'username': lookup('password', '/dev/null', length=11, chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ')}) }}"
+  when: sot_config.username is not defined or sot_config.username | length == 0 or sot_config.username == '__GENERATE_USERNAME__'
+
+- name: Ensure system name is available
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'system_name': 'SRV-' + sot_config.username}) }}"
+  when: sot_config.system_name is not defined or sot_config.system_name | length == 0 or sot_config.system_name == '__GENERATE_SYSTEM_NAME__'
+
+- name: Derive opt_data_dir from system name when required
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'opt_data_dir': '/opt/' + sot_config.system_name}) }}"
+  when: sot_config.opt_data_dir is not defined or sot_config.opt_data_dir | length == 0 or sot_config.opt_data_dir == '__GENERATE_OPT_DATA_DIR__'
+
+- name: Build modules_dir path when not provided
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'modules_dir': sot_config.clone_dir + '/modules'}) }}"
+  when: sot_config.modules_dir is not defined or sot_config.modules_dir | length == 0 or sot_config.modules_dir == '__GENERATE_MODULES_DIR__'
+
+- name: Build scripts_dir path when not provided
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'scripts_dir': sot_config.clone_dir + '/scripts'}) }}"
+  when: sot_config.scripts_dir is not defined or sot_config.scripts_dir | length == 0 or sot_config.scripts_dir == '__GENERATE_SCRIPTS_DIR__'
+
+- name: Build pipelines_dir path when not provided
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'pipelines_dir': sot_config.clone_dir + '/pipelines'}) }}"
+  when: sot_config.pipelines_dir is not defined or sot_config.pipelines_dir | length == 0 or sot_config.pipelines_dir == '__GENERATE_PIPELINES_DIR__'
+
+- name: Derive vault file path when required
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'vault_file': sot_config.opt_data_dir + '/vault.yml'}) }}"
+  when: sot_config.vault_file is not defined or sot_config.vault_file | length == 0 or sot_config.vault_file == '__GENERATE_VAULT_FILE__'
+
+- name: Generate vault secret when required
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'vault_secret': lookup('password', '/dev/null', length=60)}) }}"
+  when: sot_config.vault_secret is not defined or sot_config.vault_secret | length == 0 or sot_config.vault_secret == '__GENERATE_VAULT_SECRET__'
+
+- name: Determine vault content template path
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'vault_content': sot_config.clone_dir + '/setup/vault_template.j2'}) }}"
+  when: sot_config.vault_content is not defined or sot_config.vault_content | length == 0 or sot_config.vault_content == '__GENERATE_VAULT_CONTENT__'
+
+- name: Provide default vault notification address
+  ansible.builtin.set_fact:
+    sot_config: "{{ sot_config | combine({'vault_mail': sot_config.username + '@'}) }}"
+  when: sot_config.vault_mail is not defined or sot_config.vault_mail | length == 0 or sot_config.vault_mail == '__GENERATE_VAULT_MAIL__'
+
+- name: Expose configuration values as individual facts
+  ansible.builtin.set_fact:
+    ansible_facts: "{{ sot_config }}"

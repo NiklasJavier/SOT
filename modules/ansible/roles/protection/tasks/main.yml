@@ -1,0 +1,21 @@
+---
+- name: Install UFW (Uncomplicated Firewall)
+  become: true
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+- name: Allow SSH port through UFW
+  become: true
+  community.general.ufw:
+    rule: allow
+    port: "{{ sot_config.ssh_port }}"
+    proto: tcp
+
+- name: Enable and configure UFW defaults
+  become: true
+  community.general.ufw:
+    state: enabled
+    policy: allow
+    logging: on

@@ -13,7 +13,7 @@ if ! command -v bash >/dev/null; then
   exit 1
 fi
 
-CLI_SCRIPT="$ROOT_DIR/environments/sot_cli.sh"
+CLI_SCRIPT="$ROOT_DIR/setup/cli_wrapper.sh"
 
 # Basic help output should list available commands.
 HELP_OUTPUT=$(CONFIG_FILE="$CONFIG_FILE" bash "$CLI_SCRIPT" help)

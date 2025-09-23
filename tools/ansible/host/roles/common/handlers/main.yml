@@ -1,4 +1,0 @@
----
-  - name: Restart-SSH
-    become: true  # Stelle sicher, dass der Befehl als Root ausgeführt wird
-    command: sudo service ssh restart

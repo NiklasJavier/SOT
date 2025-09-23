@@ -2,34 +2,50 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Shell](https://img.shields.io/badge/shell-bash-121011.svg?logo=gnu-bash&logoColor=white) ![Ansible](https://img.shields.io/badge/automation-ansible-EE0000.svg?logo=ansible&logoColor=white) ![Docker](https://img.shields.io/badge/containers-docker-2496ED.svg?logo=docker&logoColor=white)
 
-Das **Server Operation Toolkit (SOT)** stellt ein wiederholbares Setup- und Operations-Framework für Linux-Server bereit. Kern ist das CLI `SOT`, das Skripte strukturiert ausführt, zentrale Logs schreibt und sensible Parameter über einen Ansible-Vault verwaltet. Das Toolkit lässt sich per Einzeiler ausrollen, hält optionale Abhängigkeiten wie das Ansible-Repository **AAT** und das Terraform-Repository **TID** synchron und bietet Playbooks sowie Container-Templates für typische DevOps-Aufgaben.
+Das **Server Operation Toolkit (SOT)** liefert ein reproduzierbares Setup- und Operations-Framework
+für Linux-Server. Im Mittelpunkt steht das CLI `SOT`, das Skripte strukturiert ausführt, zentrale Logs
+schreibt und sensible Parameter via Ansible-Vault verwaltet. Das Toolkit orchestriert optionale
+Integrationen wie **AAT** (Ansible Automation Tools) und **TID** (Terraform Infrastructure Deployment),
+installiert benötigte Werkzeuge und stellt modulare Playbooks sowie Terraform-Einstiegspunkte bereit.
 
 ---
 
 ## Inhaltsverzeichnis
 
-1. [Highlights](#highlights)
+1. [Features](#features)
 2. [Architekturüberblick](#architekturüberblick)
-3. [Schnelleinstieg](#schnelleinstieg)
-4. [Setup-Flags & Optionen](#setup-flags--optionen)
-5. [CLI-Nutzung](#cli-nutzung)
-6. [Konfigurationsreferenz (`config.yaml`)](#konfigurationsreferenz-configyaml)
-7. [Integration von AAT & TID](#integration-von-aat--tid)
-8. [Ansible-Vault & Geheimnisse](#ansible-vault--geheimnisse)
-9. [Verzeichnisstruktur](#verzeichnisstruktur)
-10. [Wartung & Fehlersuche](#wartung--fehlersuche)
-11. [Sicherheit & Best Practices](#sicherheit--best-practices)
+3. [Voraussetzungen](#voraussetzungen)
+4. [Schnellstart](#schnellstart)
+5. [Setup-Flags & Optionen](#setup-flags--optionen)
+6. [CLI-Nutzung](#cli-nutzung)
+7. [Konfiguration (`config.yaml`)](#konfiguration-configyaml)
+8. [Module & Integrationen](#module--integrationen)
+9. [Sicherheitsmanagement](#sicherheitsmanagement)
+10. [Verzeichnisstruktur](#verzeichnisstruktur)
+11. [Wartung & Fehlersuche](#wartung--fehlersuche)
+12. [Best Practices](#best-practices)
 
 ---
 
-## Highlights
+## Features
 
-- ✅ **Einheitliches CLI**: `SOT [ordner] <kommando>` verknüpft Skripte aus `scripts/` mit einer konsistenten Übergabe von Konfigurationsparametern und Logging.【F:environments/sot_cli.sh†L1-L85】【F:environments/sot_cli.sh†L87-L143】
-- 🔐 **Sichere Konfiguration**: Setup erzeugt eine branch-spezifische `config.yaml` mit Vault-Pfaden, SSH-Parametern, Logs und Tool-Verzeichnissen; alle Skripte lesen daraus.【F:environments/setup_sot.sh†L400-L470】
-- 🤖 **Automation Ready**: Enthält Ansible-Playbooks, Rollen und Trigger, Docker-Installationsskripte sowie Templates für Traefik, Portainer und Grafana.【F:tools/ansible/trigger_playbook.sh†L1-L25】【F:tools/ansible/trigger_playbook.sh†L27-L34】
-- 🔄 **Repository-Sync**: `SOT aat sync` und `SOT tid sync` halten optionale Infrastruktur-Repos aktuell und respektieren die Einstellungen in `config.yaml`.【F:scripts/aat/sync.sh†L1-L74】【F:scripts/tid/sync.sh†L1-L71】
-- 🚀 **Runner-Orchestrierung**: `SOT runner` startet dynamische Ansible- oder Terraform-Läufe, synchronisiert optional AAT/TID, listet verfügbare Playbooks/Stacks (`SOT runner list`) und schreibt Logs in ein dediziertes Runner-Verzeichnis.【F:scripts/infra/runner.sh†L269-L444】
-- 📜 **Auditierbar**: Jeder CLI-Aufruf landet in `log_file` (Standard `/var/log/devops_commands.log`).【F:environments/sot_cli.sh†L25-L31】
+- ✅ **Konsistentes CLI** – `SOT [ordner] <kommando>` löst Skripte automatisch auf, hängt
+  Standardargumente (Konfigurationspfad, Module-Verzeichnis, Vault-Informationen usw.) an
+  und protokolliert jeden Aufruf in `log_file`. Fehler werden wahlweise auf einen Default-Befehl
+  (`help`) umgeleitet.【F:setup/cli_wrapper.sh†L10-L156】
+- 🔧 **Geführtes Setup** – `setup/setup_sot.sh` generiert dynamische Standardwerte,
+  legt Branch-spezifische Konfigurationsordner unter `setup/<branch>/.settings/` an und schreibt
+  eine vollständige `config.yaml`, inklusive Vault-Pfaden, Runner-Parametern sowie Modul-/Skript-
+  Verzeichnissen.【F:setup/setup_sot.sh†L122-L189】【F:setup/setup_sot.sh†L640-L792】
+- 🧰 **Modularisierung wie in AAT/TID** – Alle Werkzeuge liegen unter `modules/`.
+  `trigger_playbook.sh` kümmert sich um Inventare, Ansible-Konfiguration und optionale Docker-Installation,
+  während `modules/docker/` und `modules/sdkman/` dedizierte Installationsskripte bereitstellen.【F:modules/ansible/trigger_playbook.sh†L9-L78】【F:setup/install_tools.sh†L11-L82】
+- 🔄 **Repository-Sync & Runner** – `SOT aat sync` / `SOT tid sync` aktualisieren optionale Repos
+  auf Basis der Konfiguration. `SOT runner` orchestriert Ad-hoc-Ansible- und Terraform-Läufe,
+  erkennt Inventories/Stacks automatisch und protokolliert alle Befehle mit Zeitstempel.【F:scripts/integrations/aat_sync.sh†L3-L78】【F:scripts/integrations/tid_sync.sh†L3-L77】【F:scripts/runner.sh†L5-L399】
+- 🛡️ **Vault-Workflows out-of-the-box** – Das Setup erzeugt Vault-Datei, Geheimnis und Startinhalt,
+  die Rollen verschlüsseln den Inhalt bei Bedarf und `SOT vault` öffnet den Tresor über eine temporäre
+  Passwortdatei.【F:setup/setup_sot.sh†L170-L187】【F:modules/ansible/roles/vault/tasks/main.yml†L3-L52】【F:scripts/vault.sh†L10-L57】
 
 ---
 
@@ -38,66 +54,74 @@ Das **Server Operation Toolkit (SOT)** stellt ein wiederholbares Setup- und Oper
 ```mermaid
 flowchart TD
     subgraph SOT["SOT — Server Operation Toolkit"]
-        CLI["SOT CLI\n(environments/sot_cli.sh)"]
-        CFG["config.yaml\n(environments/<branch>/.settings)"]
-        VLT["Vault (Ansible Vault)"]
+        CLI["SOT CLI\n(setup/cli_wrapper.sh)"]
+        CFG["config.yaml\n(setup/<branch>/.settings)"]
+        VLT["Vault (modules/ansible/roles/vault)"]
         LOG["Logging\n/var/log/devops_commands.log"]
-        RUN["Runner\n(scripts/infra/runner.sh)"]
+        RUN["Runner\n(scripts/runner.sh)"]
         CLI --> CFG
         CLI --> VLT
         CLI --> LOG
         CLI --> RUN
     end
 
-    subgraph AAT["AAT — Ansible Automation Tools\n(https://github.com/NiklasJavier/AAT)"]
+    subgraph AAT["AAT — Ansible Automation Tools"]
         APL["Playbooks / Rollen / Inventories"]
-        AATDIR["Pfad: aat_dir (z. B. /opt/AAT)"]
+        AATDIR["Pfad: aat_dir (z. B. /opt/AAT)"]
         APL --> AATDIR
     end
 
-    subgraph TID["TID — Terraform Infrastructure Deployment\n(https://github.com/NiklasJavier/TID)"]
-        MOD["Module / services/*.tfvars / env"]
-        TIDDIR["Pfad: tid_dir (z. B. /opt/TID)"]
+    subgraph TID["TID — Terraform Infrastructure Deployment"]
+        MOD["Module / services/*.tfvars"]
+        TIDDIR["Pfad: tid_dir (z. B. /opt/TID)"]
         MOD --> TIDDIR
     end
 
     CLI -- "SOT aat sync" --> AAT
     CLI -- "SOT tid sync" --> TID
-    CLI -- "ansible-playbook ..." --> APL
-    CLI -- "terraform init/plan/apply" --> MOD
+    CLI -- "ansible-playbook" --> APL
+    CLI -- "terraform" --> MOD
     RUN -- "SOT runner ansible" --> APL
     RUN -- "SOT runner terraform" --> MOD
 
-    SETUP["setup_sot.sh\\n- klont/aktualisiert Repo\\n- schreibt config.yaml\\n- verlinkt SOT"]
+    SETUP["setup_sot.sh\n- klont/aktualisiert Repo\n- schreibt config.yaml\n- verlinkt SOT"]
     SETUP --- CLI
 ```
 
 ---
 
-## Schnelleinstieg
+## Voraussetzungen
 
-### Voraussetzungen
+- Linux-System mit Root-Rechten (Symlink unter `/usr/sbin/`, Schreibrechte für Logs und Vault).
+- `curl` für den Einzeiler sowie Paketmanager-Zugriff, damit fehlendes `git` installiert werden kann.【F:setup/setup_sot.sh†L248-L361】
+- Optional: `ansible`, `docker`, `terraform`. Der Installer richtet bei Bedarf SDKMAN!, Docker
+  und Ansible automatisiert ein.【F:setup/install_tools.sh†L14-L82】
 
-- Linux-System mit Root-Rechten (CLI erstellt Symlink unter `/usr/sbin/` und schreibt nach `/var/log/`).【F:environments/setup_sot.sh†L248-L266】【F:environments/setup_sot.sh†L326-L361】
-- `curl` für den Einzeiler sowie Paketmanager-Zugriff, damit fehlendes `git` installiert werden kann.【F:environments/setup_sot.sh†L273-L323】
-- Optional: `ansible`, `docker`, `terraform` – können automatisiert über `install_tools.sh` eingerichtet werden. `sdkman` wird standardmäßig eingespielt und kann zusätzliche Kandidaten direkt im selben Schritt installieren.【F:environments/install_tools.sh†L1-L82】
+---
 
-### Einzeiler-Setup
+## Schnellstart
+
+### Einzeiler
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh \
-  | bash -s -- -branch dev -port "22" && SOT setup
+BRANCH=${BRANCH:-production}
+curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${BRANCH}/setup/setup_sot.sh" \
+  | bash -s -- -branch "$BRANCH" -port "22" && SOT setup
 ```
 
-Was passiert?
+> 🔁 Für Tests kann `BRANCH=dev` oder `BRANCH=staging` gesetzt werden. Ohne Vorgabe wird `production` verwendet.
 
-1. `setup_sot.sh` klont das Repository (Standard `/etc/DevOpsToolkit`) und erstellt branch-spezifische Settings.【F:environments/setup_sot.sh†L205-L226】【F:environments/setup_sot.sh†L328-L367】
-2. `config.yaml` wird mit allen Parametern gefüllt (Systemname, Ports, Vault etc.).【F:environments/setup_sot.sh†L400-L470】
-3. Ein Symlink `/usr/sbin/SOT` zeigt auf `environments/sot_cli.sh`; alle Skripte erhalten Ausführungsrechte.【F:environments/setup_sot.sh†L335-L361】
-4. Optional ausgewählte Tools werden über `environments/install_tools.sh` installiert.【F:environments/install_tools.sh†L1-L30】
-5. Abschließend erhalten Sie eine Übersicht der gesetzten Werte und können sofort `SOT setup` ausführen.【F:environments/setup_sot.sh†L472-L522】
+### Was passiert?
 
-> 💡 Standardbranch ist `production`. Für interaktive Tests empfiehlt sich `-branch dev`.
+1. `setup_sot.sh` klont das Repository (Standard `/etc/DevOpsToolkit`) und erstellt
+   branch-spezifische `.settings`-Verzeichnisse unter `setup/<branch>/`.【F:setup/setup_sot.sh†L205-L367】【F:setup/setup_sot.sh†L426-L459】
+2. `config.yaml` wird mit dynamischen Werten (Systemname, Ports, Vault, Runner, Module-Verzeichnis)
+   gefüllt.【F:setup/setup_sot.sh†L640-L742】
+3. Das CLI wird nach `/usr/sbin/SOT` verlinkt; alle Skripte erhalten Ausführungsrechte.【F:setup/setup_sot.sh†L517-L578】
+4. `setup/install_tools.sh` installiert optionale Tools (Ansible, Docker, SDKMAN!).【F:setup/setup_sot.sh†L745-L756】【F:setup/install_tools.sh†L14-L82】
+5. Zum Abschluss erhalten Sie eine Übersicht der wichtigsten Parameter.【F:setup/setup_sot.sh†L759-L792】
+
+> 💡 Standardbranch ist `production`. Für Tests empfiehlt sich `-branch dev`.
 
 ---
 
@@ -105,16 +129,14 @@ Was passiert?
 
 | Flag | Beispiel | Beschreibung |
 |------|----------|--------------|
-| `-branch` | `-branch dev` | Wählt `production`, `staging` oder `dev`; setzt `use_defaults=true` und legt Zielordner unter `environments/<branch>/` fest.【F:environments/setup_sot.sh†L37-L89】【F:environments/setup_sot.sh†L205-L214】 |
-| `-config` | `-config /tmp/custom.yml` | Lädt Standardwerte aus einer alternativen Datei (`SOT_DEFAULT_CONFIG` wirkt identisch); sollte vor weiteren Flags kommen, damit deren Werte bestehen bleiben.【F:environments/setup_sot.sh†L17-L33】【F:environments/setup_sot.sh†L257-L264】 |
-| `-full` | `-full true` | Reserviert für erweiterte Host-Setups (Wert in `FULL`).|
-| `-systemname` | `-systemname srv-demo` | Überschreibt generierten Systemnamen (`SRV-<RANDOM>`).【F:environments/setup_sot.sh†L23-L58】 |
-| `-username` | `-username alice` | Setzt Benutzerbezug für Logs, Vault-Backup und Dienstverzeichnisse.【F:scripts/debug/delete.sh†L10-L45】 |
-| `-key` | `-key "ssh-ed25519 AAAA..."` | Aktiviert SSH-Key-Funktion und speichert Public Key in `config.yaml`.【F:environments/setup_sot.sh†L59-L119】【F:environments/setup_sot.sh†L415-L437】 |
-| `-port` | `-port 2222` | SSH-Port für spätere Ansible- und Firewall-Konfigurationen.【F:environments/setup_sot.sh†L22-L70】【F:environments/setup_sot.sh†L404-L411】 |
-| `-tools` | `-tools "ansible docker"` | Ergänzt Standardtool-Liste; weiterverarbeitet von `install_tools.sh`.【F:environments/setup_sot.sh†L17-L69】【F:environments/install_tools.sh†L1-L30】 |
-| `-aat_url`, `-aat_dir`, `-aat_enabled` | `-aat_enabled true` | Steuerung der optionalen AAT-Integration (Git-URL, Zielpfad).【F:environments/setup_sot.sh†L70-L156】【F:environments/setup_sot.sh†L378-L412】 |
-| `-tid_url`, `-tid_dir`, `-tid_enabled` | `-tid_dir /srv/TID` | Steuerung der optionalen TID-Integration.【F:environments/setup_sot.sh†L70-L156】【F:environments/setup_sot.sh†L412-L418】 |
+| `-branch` | `-branch dev` | Erstellt branch-spezifische Settings (`setup/<branch>/.settings`) und setzt `use_defaults=true`.【F:setup/setup_sot.sh†L201-L215】【F:setup/setup_sot.sh†L426-L436】 |
+| `-config` | `-config /tmp/custom.yml` | Lädt alternative Defaults (auch via `SOT_DEFAULT_CONFIG`).【F:setup/setup_sot.sh†L17-L58】【F:setup/setup_sot.sh†L191-L193】 |
+| `-systemname` | `-systemname srv-demo` | Überschreibt den generierten Systemnamen (`SRV-<RANDOM>`).【F:setup/setup_sot.sh†L122-L133】 |
+| `-key` | `-key "ssh-ed25519 AAAA..."` | Aktiviert SSH-Key-Funktion, speichert den Public Key in `config.yaml`.【F:setup/setup_sot.sh†L230-L271】【F:setup/setup_sot.sh†L640-L688】 |
+| `-tools` | `-tools "ansible docker"` | Ergänzt Standardtool-Liste für den Installer.【F:setup/setup_sot.sh†L262-L277】【F:setup/install_tools.sh†L14-L82】 |
+| `-aat_*` | `-aat_enabled true` | Steuert die optionale AAT-Integration (Repo-URL, Zielpfad).【F:setup/setup_sot.sh†L278-L330】【F:setup/setup_sot.sh†L721-L728】 |
+| `-tid_*` | `-tid_dir /srv/TID` | Steuert die optionale TID-Integration.【F:setup/setup_sot.sh†L331-L380】【F:setup/setup_sot.sh†L726-L739】 |
+| `-runner_*` | `-runner_mode ansible` | Konfiguriert Runner (Default-Modus, Sync-Verhalten, Verzeichnisse).【F:setup/setup_sot.sh†L150-L168】【F:setup/setup_sot.sh†L731-L739】 |
 
 ---
 
@@ -124,144 +146,128 @@ Was passiert?
 SOT [unterordner] <kommando> [optionen]
 ```
 
-- Ohne Argumente zeigt `SOT help` alle verfügbaren Befehle aus `scripts/` an.【F:environments/sot_cli.sh†L33-L67】
-- Alle Befehle erhalten automatisch Parameter wie `tools_dir`, `config_file`, `username`, `vault_file`, `opt_data_dir` usw.【F:environments/sot_cli.sh†L69-L93】
-- Jeder Aufruf wird nach `log_file` protokolliert (Standard `/var/log/devops_commands.log`).【F:environments/sot_cli.sh†L25-L31】
+- `SOT help` listet alle Skripte in `scripts/` (max. drei Ebenen tief).【F:setup/cli_wrapper.sh†L35-L47】
+- Jedes Kommando erhält automatisch `modules_dir`, `config_file`, `vault_file`, `vault_secret`,
+  `opt_data_dir`, `clone_dir`, `systemlink_path`, `log_file` und `branch`.【F:setup/cli_wrapper.sh†L90-L155】
+- Aufrufe werden mit Timestamp und Benutzername in `log_file` protokolliert.【F:setup/cli_wrapper.sh†L30-L35】
 
 ### Befehlsübersicht
 
 | Befehl | Ort | Zweck |
 |--------|-----|-------|
-| `SOT setup` | `scripts/core/setup.sh` | Startet das Standard-Playbook `host_setup.yml` (Ordner `tools/ansible/host`). Prüft Docker und triggert Ansible mit Übergabe von `CONFIG_YAML`.【F:scripts/core/setup.sh†L1-L24】【F:tools/ansible/trigger_playbook.sh†L1-L34】 |
-| `SOT vault` | `scripts/core/vault.sh` | Öffnet bzw. verwaltet den Vault (siehe Vault-Abschnitt). |
-| `SOT debug update` | `scripts/debug/update.sh` | Aktualisiert das Toolkit im vorhandenen Clone (z. B. für neue Skripte). |
-| `SOT debug delete` | `scripts/debug/delete.sh` | Entfernt Toolkit, schreibt Vault-Zugangsdaten in Backup-Datei und löscht Symlink/Logfile.【F:scripts/debug/delete.sh†L1-L66】 |
-| `SOT debug cleanUpOldUsers` | `scripts/debug/cleanUpOldUsers.sh` | Löscht Testbenutzer (`/home/<A-Z>{11}`) und bereinigt UFW-Regeln außerhalb des konfigurierten SSH-Ports – **mit Abfrage**.【F:scripts/debug/cleanUpOldUsers.sh†L1-L63】 |
-| `SOT aat sync` | `scripts/aat/sync.sh` | Klont oder aktualisiert das Ansible-Zentralrepo entsprechend `config.yaml`.【F:scripts/aat/sync.sh†L1-L74】 |
-| `SOT tid sync` | `scripts/tid/sync.sh` | Klont oder aktualisiert das Terraform-Repo entsprechend `config.yaml`.【F:scripts/tid/sync.sh†L1-L71】 |
-| `SOT runner` | `scripts/infra/runner.sh` | Führt dynamische Ansible-/Terraform-Setups samt optionalem Repo-Sync aus, listet Playbooks/Stacks (`list`) und bietet Komfort wie `--env`/Auto-`tfvars`-Erkennung.【F:scripts/infra/runner.sh†L269-L444】【F:scripts/infra/runner.sh†L457-L723】 |
+| `SOT setup` | `scripts/setup.sh` | Führt das Playbook `host_setup.yml` über den Trigger aus (inkl. Inventory-Auflösung, Docker-/Ansible-Prüfung).【F:scripts/setup.sh†L9-L26】【F:modules/ansible/trigger_playbook.sh†L9-L78】 |
+| `SOT vault` | `scripts/vault.sh` | Öffnet den Vault interaktiv über eine temporäre Passwortdatei.【F:scripts/vault.sh†L10-L57】 |
+| `SOT runner` | `scripts/runner.sh` | Dynamische Orchestrierung von Ansible/Terraform inkl. Repo-Sync, Inventar-/Stack-Erkennung und Logging.【F:scripts/runner.sh†L5-L399】 |
+| `SOT aat sync` | `scripts/integrations/aat_sync.sh` | Klont oder aktualisiert das AAT-Repository gemäß `config.yaml`.【F:scripts/integrations/aat_sync.sh†L3-L78】 |
+| `SOT tid sync` | `scripts/integrations/tid_sync.sh` | Synchronisiert das TID-Repository mit Fallback auf Recloning.【F:scripts/integrations/tid_sync.sh†L3-L77】 |
+| `SOT debug update` | `scripts/debug/update.sh` | Aktualisiert den bestehenden Clone (z. B. nach Git-Änderungen). |
+| `SOT debug delete` | `scripts/debug/delete.sh` | Entfernt Toolkit, Vault und Symlink kontrolliert. |
+| `SOT debug cleanup_old_users` | `scripts/debug/cleanup_old_users.sh` | Bereinigt Testbenutzer (`/home/<A-Z>{11}`) und UFW-Regeln nach Rückfrage. |
 
-> ℹ️ Weitere Skripte können durch Hinzufügen von `.sh`-Dateien in `scripts/` oder Unterordnern ergänzt werden. Der Aufrufname entspricht dem Pfad (`SOT ordner kommando`).
+> Neue Befehle entstehen durch `.sh`-Dateien unter `scripts/` – der CLI-Aufruf entspricht dem Pfad.
 
 ---
 
-## Konfigurationsreferenz (`config.yaml`)
+## Konfiguration (`config.yaml`)
 
-Die Datei liegt unter `environments/<branch>/.settings/config.yaml` und wird beim Setup erzeugt bzw. aktualisiert.【F:environments/setup_sot.sh†L205-L230】【F:environments/setup_sot.sh†L400-L470】
-Alle Standardwerte werden zentral in `config/defaults/default_config.yml` gepflegt. Das Setup-Skript liest diese Datei ein, erzeugt daraus dynamische Werte (z. B. Benutzernamen oder Vault-Geheimnisse) und schreibt anschließend die finale `config.yaml`.
-Die Ansible-Rollen binden `tools/ansible/config/load_config.yml` ein, das die Defaults lädt, optionale Overrides validiert, dynamische Werte ergänzt und die Ergebnisse als `sot_config`-Fact bereitstellt.
-【F:config/defaults/default_config.yml†L1-L33】【F:tools/ansible/config/load_config.yml†L1-L81】【F:tools/ansible/host/roles/variables/tasks/main.yml†L1-L3】【F:tools/ansible/container/roles/variables/tasks/main.yml†L1-L3】
+- Standardwerte liegen in `services/default_config.yml`. Platzhalter (`__GENERATE_*__`) werden während
+  des Setups bzw. in den Ansible-Rollen ersetzt.【F:services/default_config.yml†L1-L37】
+- `modules/ansible/config/load_config.yml` vereint Defaults und Overrides, generiert dynamische Werte
+  (z. B. Module-Verzeichnis, Vault-Pfade) und stellt sie als `sot_config`-Facts bereit.【F:modules/ansible/config/load_config.yml†L2-L81】
+- Die Rolle `variables` bindet das Playbook `config/load_config.yml` automatisch ein, sodass alle
+  Playbooks auf konsistente Konfigurationswerte zugreifen können.【F:modules/ansible/roles/variables/tasks/main.yml†L1-L3】
 
 | Schlüssel | Bedeutung | Beispiel |
 |-----------|-----------|----------|
-| `system_name` | Server-/Host-Bezeichnung, wird von Playbooks als Hostname genutzt. | `SRV-ABCD1234` |
-| `username` | Aktueller Benutzer, z. B. für Vault-Backups. | `root` |
-| `ssh_port` | SSH-Port für Firewall- und Servicekonfiguration. | `282` |
-| `log_level`, `log_file` | Steuerung der Logausgabe bzw. Speicherort. | `info`, `/var/log/devops_commands.log` |
-| `opt_data_dir` | Basisverzeichnis für persistente Daten & Vault. | `/opt/SRV-ABCD1234` |
-| `tools_dir`, `scripts_dir`, `pipelines_dir`, `clone_dir` | Pfade innerhalb des Toolkit-Clones. | `/etc/DevOpsToolkit/tools` |
-| `systemlink_path` | Ziel des Systemsymlinks für das CLI. | `/usr/sbin/SOT` |
-| `tools` | Whitespace-separierte Tool-Liste für `install_tools.sh`. Unterstützt SDKMAN!-Ketten via `sdkman:<kandidat>[=version]` (mehrere mit Komma trennen). | `ansible docker sdkman:java=17.0.9-tem,gradle` |
-| `ssh_key_function_enabled`, `ssh_key_public` | Aktiviert SSH-Key-Provisionierung. | `true`, `ssh-ed25519 ...` |
-| `vault_file`, `vault_secret`, `vault_content`, `vault_mail` | Vault-Position, Secret sowie Template und Kontakt. | `/opt/SRV-.../vault.yml`, `<random 60 chars>` |
-| `use_defaults` | Kennzeichnet, ob Setup ohne Interaktion lief. | `true` |
-| `branch` | Aktiver Branch (`production`, `staging`, `dev`). | `dev` |
-| `aat_*`, `tid_*` | Steuerung der optionalen Repo-Synchronisation. | Siehe [Integration](#integration-von-aat--tid) |
+| `system_name`, `username` | Server-/Benutzerbezeichnungen für Ansible & Vault. | `SRV-ABCD1234`, `root` |
+| `ssh_port` | SSH-Port für Firewalls & Playbooks. | `282` |
+| `modules_dir`, `scripts_dir`, `pipelines_dir` | Verzeichnisse innerhalb des Clones. | `/etc/DevOpsToolkit/modules` |
+| `tools` | Whitespace-separierte Liste für `setup/install_tools.sh` (SDKMAN!-Ketten via `sdkman:<kandidat>`). | `ansible docker sdkman:java=17,gradle` |
+| `vault_*` | Vault-Datei, Secret, Template, Benachrichtigungsadresse. | `/opt/SRV-.../vault.yml`, `<60 chars>` |
+| `aat_*`, `tid_*` | Steuerung optionaler Repos (URL, Zielpfad, Aktivierung). | siehe Tabelle oben |
+| `runner_*` | Runner-Workflow (Default-Modus, Sync, Verzeichnisse). | `runner_enabled=true` |
 
-> 💡 Beispiel: `tools: "ansible docker sdkman:java=17.0.9-tem,gradle"` installiert standardmäßig SDKMAN!, richtet Docker & Ansible ein und zieht anschließend die Java-Distribution `17.0.9-tem` sowie die neueste Gradle-Version über SDKMAN! nach.【F:environments/install_tools.sh†L1-L82】【F:tools/sdkman/install_sdkman.sh†L1-L70】
-
-Skripte lesen die Datei zeilenweise (`key: value`) und setzen daraus Shell-Variablen – neue Einträge sollten diesem Format folgen.【F:environments/sot_cli.sh†L9-L23】【F:scripts/aat/sync.sh†L27-L49】
+Alle Skripte lesen `config.yaml` zeilenweise (`key: value`) und setzen daraus Shell-Variablen – neue Einträge sollten diesem Format folgen.【F:setup/cli_wrapper.sh†L10-L27】【F:scripts/integrations/aat_sync.sh†L32-L44】
 
 ---
 
-## Integration von AAT & TID
+## Module & Integrationen
 
-### AAT – Ansible Automation Tools
+### Ansible
 
-- Standardwerte: `aat_enabled=true`, `aat_repo_url=https://github.com/NiklasJavier/AAT.git`, `aat_dir=/opt/AAT`.【F:environments/setup_sot.sh†L70-L156】【F:environments/setup_sot.sh†L378-L408】
-- `SOT aat sync` klont/pullt das Repo, sofern aktiviert, und legt fehlende Verzeichnisse automatisch an.【F:scripts/aat/sync.sh†L51-L74】
-- Nach erfolgreichem Sync können Playbooks direkt referenziert werden, z. B. `ansible-playbook -i "$aat_dir/inventory/..." ...`.
+- `modules/ansible` bildet die klassische Ansible-Struktur ab: globale `ansible.cfg`, Inventare,
+  Playbooks und Rollen orientieren sich an AAT.【F:modules/ansible/README.md†L1-L23】
+- Weitere Inventare können unter `modules/ansible/inventory/<name>/` abgelegt und über den
+  `inventory_key` des Triggers genutzt werden.【F:modules/ansible/trigger_playbook.sh†L9-L78】
 
-### TID – Terraform Infrastructure Deployment
+### Terraform
 
-- Standardwerte: `tid_enabled=true`, `tid_repo_url=https://github.com/NiklasJavier/TID.git`, `tid_dir=/opt/TID`.【F:environments/setup_sot.sh†L70-L156】【F:environments/setup_sot.sh†L408-L418】
-- `SOT tid sync` klont/pullt das Repo; Fehler bei `git pull` führen zu einem automatischen Recloning-Versuch.【F:scripts/tid/sync.sh†L31-L71】
-- Nach dem Sync lassen sich Terraform-Befehle im Zielverzeichnis ausführen (`terraform init/plan/apply`).
+- `modules/terraform` dient als Platzhalter für lokale Module/Stacks, angelehnt an die Struktur von TID.【F:modules/terraform/README.md†L1-L11】
+- `SOT runner terraform` erkennt Arbeitsverzeichnisse, `.tfvars`-Dateien und Workspaces automatisch
+  und führt `plan`, `apply`, `destroy` inkl. Logging aus.【F:scripts/runner.sh†L294-L357】【F:scripts/runner.sh†L200-L206】
 
-> 📁 Beide Skripte respektieren `*_enabled != true` und beenden sich dann ohne Fehler.
+### Snippets & Templates
 
-### Runner – dynamische Setups mit AAT & TID
-
-- `runner_enabled=true` sorgt dafür, dass `SOT runner` bereitsteht und eigene Arbeits-/Logverzeichnisse unterhalb von `runner_work_dir` und `runner_log_dir` anlegt (Standard: `/opt/<system>/runner` bzw. `…/logs`).【F:config/defaults/default_config.yml†L26-L33】【F:environments/setup_sot.sh†L120-L139】【F:environments/setup_sot.sh†L520-L548】
-- `SOT runner list` zeigt aufgelöste Pfade **und** listet Playbooks, Inventories sowie Terraform-Ziele aus den synchronisierten Repositories auf – ideal für einen dynamischen Überblick.【F:scripts/infra/runner.sh†L269-L444】
-- `SOT runner ansible <playbook>` synchronisiert optional AAT, löst Playbooks ohne Dateiendung oder relative Pfade auf und wählt per `--env <name>` automatisch das passende Inventory (inkl. Normalisierung von Extra-Var-Dateien).【F:scripts/infra/runner.sh†L208-L292】【F:scripts/infra/runner.sh†L457-L582】
-- `SOT runner terraform <ziel>` erledigt `terraform init`, Workspace-Handling sowie `plan/apply/destroy`, erkennt sowohl Verzeichnisse als auch `services/*.tfvars` automatisch und hängt fehlende `-var-file`-Parameter an.【F:scripts/infra/runner.sh†L294-L357】【F:scripts/infra/runner.sh†L585-L723】
-- Alle Läufe landen mit Zeitstempel im Runner-Log, sodass wiederholbare Ad-hoc-Setups und Tests auditierbar bleiben.【F:scripts/infra/runner.sh†L66-L85】【F:scripts/infra/runner.sh†L198-L203】【F:scripts/infra/runner.sh†L262-L270】
+- Wiederverwendbare YAML-/Cloud-Init- oder Vault-Snippets können unter `snippets/` abgelegt werden.
+  So lassen sich häufig benötigte Konfigurationen zentral verwalten.【F:snippets/README.md†L1-L12】
 
 ---
 
-## Ansible-Vault & Geheimnisse
+## Sicherheitsmanagement
 
-- Während des Setups werden `vault_file`, `vault_secret` und ein Startinhalt aus `config/templates/vault_content.j2` erzeugt.【F:environments/setup_sot.sh†L430-L470】
-- `SOT vault` erleichtert die Interaktion mit Ansible Vault (Ansicht/Bearbeitung; siehe Hinweis unten).
-- `SOT debug delete` legt alle relevanten Vault-Zugangsdaten unter `${opt_data_dir}/devopsVaultAccessSecret-<username>.yml` ab und erstellt ein Hilfsskript `${opt_data_dir}/openVault.sh` zum Öffnen der Secrets.【F:scripts/debug/delete.sh†L10-L55】
-- Empfehlung: Vault-Secret sicher archivieren und die generierte Hilfsdatei anschließend löschen.
-
-_Hinweis:_ Das Skript `scripts/core/vault.sh` kann nach Bedarf erweitert werden, um weitere Vault-Workflows abzubilden.
+- Das Vault-Template (`setup/vault_template.j2`) generiert sichere Standard-Geheimnisse und enthält
+  Beispiele für weitergehende Konfigurationen.【F:setup/vault_template.j2†L1-L51】
+- Die Rolle `vault` verschlüsselt neue Vault-Inhalte automatisch und räumt temporäre Dateien auf.【F:modules/ansible/roles/vault/tasks/main.yml†L3-L52】
+- `SOT vault` öffnet den Vault interaktiv und entfernt das temporäre Passwort zuverlässig.【F:scripts/vault.sh†L10-L57】
 
 ---
 
 ## Verzeichnisstruktur
 
-```text
-config/
-  defaults/
-    default_config.yml    # Standardwerte für das Toolkit
-  templates/
-    vault_content.j2      # Template für initiale Vault-Inhalte
-  validators/
-    validate_config.sh    # Yamllint-Wrapper für Konfigurationsprüfungen
-environments/
-  setup_sot.sh            # Bootstrap: Klonen, Config schreiben, Symlink anlegen
-  sot_cli.sh              # CLI-Wrapper, wird als /usr/sbin/SOT verlinkt
-  install_tools.sh        # Installiert gewünschte Tools (z. B. ansible, docker) & SDKMAN!-Ketten
-scripts/
-  core/
-    setup.sh              # Startet das Ansible-Standard-Setup
-    vault.sh              # Vault-Operationen (öffnen/bearbeiten)
-  debug/
-    update.sh             # Toolkit-Update
-    delete.sh             # Entfernt Toolkit & erstellt Vault-Backup
-    cleanUpOldUsers.sh    # Bereinigt Testbenutzer & UFW-Regeln
-  infra/
-    runner.sh            # Orchestriert AAT/TID-Läufe (ansible/terraform)
-  aat/sync.sh             # Sync für AAT-Repo
-  tid/sync.sh             # Sync für TID-Repo
-tools/
-  ansible/                # Rollen, Playbooks & Trigger-Skript
-  docker/                 # Docker-Installationsskript & Compose-Templates
-  ...                     # Platz für weitere Tool-Integrationen
 ```
+setup/                  # Bootstrap-Skripte & CLI
+├── cli_wrapper.sh
+├── install_tools.sh
+├── setup_sot.sh
+└── vault_template.j2
+modules/                # Modul-Layer für Automatisierung
+├── ansible/            # Ansible-Struktur inkl. Playbooks, Inventare, Rollen
+├── docker/             # Docker-Installationsskript + Compose-Templates
+├── sdkman/             # SDKMAN!-Installer
+└── terraform/          # Platzhalter für Terraform-Module/Stacks
+scripts/
+├── setup.sh            # Standard-Playbook-Trigger
+├── runner.sh           # Runner-Orchestrierung
+├── vault.sh            # Vault-Interaktion
+├── debug/              # Wartungsskripte
+└── integrations/       # AAT-/TID-Syncs
+services/default_config.yml
+snippets/               # Wiederverwendbare Templates/Snippets
+```
+
+Weitere Details zu den Ansible-Ordnern finden sich in `modules/ansible/README.md`.
 
 ---
 
 ## Wartung & Fehlersuche
 
-- **Update**: `SOT debug update` zieht neue Änderungen aus dem Git-Repository und erneuert Skripte (Details im Skript ergänzbar).
-- **Deinstallation**: `SOT debug delete` entfernt Clone, Symlink und Logdatei, erstellt jedoch ein Vault-Backup zur späteren Wiederverwendung.【F:scripts/debug/delete.sh†L1-L66】
-- **Cleanup**: `SOT debug cleanUpOldUsers` löscht Testbenutzer (Namen im Format `[A-Z]{11}`) und räumt Firewall-Regeln auf – nur nach Bestätigung!【F:scripts/debug/cleanUpOldUsers.sh†L1-L63】
-- **Logs**: Alle `SOT`-Aufrufe finden sich in `log_file` (Standard `/var/log/devops_commands.log`). Fehlgeschlagene Befehle liefern Rückgabecodes und lösen ggf. den Default-Command `help` aus.【F:environments/sot_cli.sh†L25-L31】【F:environments/sot_cli.sh†L111-L143】
+1. `SOT debug update` – Aktualisiert den bestehenden Clone (Git Pull & Rechte prüfen).
+2. `SOT debug delete` – Entfernt Setup, Vault, Symlink und Logs kontrolliert.
+3. Runner-Logs liegen unter `runner_log_dir` (`/opt/<system>/runner/logs` per Default).【F:setup/setup_sot.sh†L150-L168】【F:scripts/runner.sh†L164-L176】
+4. CLI-Logs finden sich in `log_file` (Standard `/var/log/devops_commands.log`).【F:setup/cli_wrapper.sh†L30-L35】
 
 ---
 
-## Sicherheit & Best Practices
+## Best Practices
 
-1. **Least Privilege**: Nach dem Setup nur notwendige Nutzer zum Einsatz bringen; Testnutzer regelmäßig per `SOT debug cleanUpOldUsers` entfernen.
-2. **Vault-Schutz**: Vault-Secret offline speichern. Das automatisch erstellte Skript `${opt_data_dir}/openVault.sh` sollte nach Sicherung des Secrets gelöscht werden.【F:scripts/debug/delete.sh†L10-L55】
-3. **Branch-Isolation**: Nutzen Sie eigene Branches (z. B. `staging`, `dev`), um unterschiedliche `config.yaml`-Profile parallel zu betreiben.【F:environments/setup_sot.sh†L205-L230】
-4. **Git-Hardening**: Produktionssysteme ohne Internetzugang sollten über interne Mirrors beliefert werden (`REPO_URL` anpassen).
-5. **CI/CD-Einbindung**: Pipelines können Skripte aus `scripts/` aufrufen; Logging und Vault-Handling erlauben nachvollziehbare Deployments.
+- **Branch-Isolation**: Nutzen Sie separate Branches (`production`, `staging`, `dev`) für parallele Profile.
+- **Konfigurations-Overrides**: Legen Sie angepasste `config.yaml`-Dateien ab und übergeben Sie sie via `-config`.
+- **Module erweitern**: Platzieren Sie eigene Rollen/Playbooks unter `modules/ansible/roles` bzw. `modules/ansible/playbooks`.
+- **Regelmäßiger Sync**: Verwenden Sie `SOT aat sync` / `SOT tid sync` oder aktivieren Sie `runner_sync_before_run`, damit externe Repos stets aktuell sind.【F:scripts/integrations/aat_sync.sh†L46-L78】【F:scripts/runner.sh†L177-L195】
+- **Secrets schützen**: Rotieren Sie `vault_secret` bei Bedarf und nutzen Sie `SOT vault`, um Änderungen nachvollziehbar durchzuführen.【F:setup/setup_sot.sh†L170-L187】【F:scripts/vault.sh†L10-L57】
 
 ---
 
-© Lizenz siehe [`LICENSE`](LICENSE).
+## Lizenz
+
+MIT License – siehe [LICENSE](LICENSE).
