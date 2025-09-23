@@ -37,7 +37,8 @@ flowchart TD
     CLI -- "ansible-playbook ..." --> APL
     CLI -- "terraform init/plan/apply" --> MOD
 
-    note over SOT: setup_devops_toolkit.sh\n-klont/aktualisiert Repo\n-schreibt config.yaml\n-verlinkt devops
+    SETUP["setup_devops_toolkit.sh\\n- klont/aktualisiert Repo\\n- schreibt config.yaml\\n- verlinkt devops"]
+    SETUP --- CLI
 ```
 
 ## Kurzüberblick (Cheat Sheet)
