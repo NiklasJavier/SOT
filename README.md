@@ -101,7 +101,8 @@ Was passiert?
 | Flag | Beispiel | Beschreibung |
 |------|----------|--------------|
 | `-branch` | `-branch dev` | Wählt `production`, `staging` oder `dev`; setzt `use_defaults=true` und legt Zielordner unter `environments/<branch>/` fest.【F:environments/setup_sot.sh†L37-L89】【F:environments/setup_sot.sh†L205-L214】 |
-| `-full` | `-full true` | Reserviert für erweiterte Host-Setups (Wert in `FULL`).| 
+| `-config` | `-config /tmp/custom.yml` | Lädt Standardwerte aus einer alternativen Datei (`SOT_DEFAULT_CONFIG` wirkt identisch); sollte vor weiteren Flags kommen, damit deren Werte bestehen bleiben.【F:environments/setup_sot.sh†L17-L33】【F:environments/setup_sot.sh†L257-L264】 |
+| `-full` | `-full true` | Reserviert für erweiterte Host-Setups (Wert in `FULL`).|
 | `-systemname` | `-systemname srv-demo` | Überschreibt generierten Systemnamen (`SRV-<RANDOM>`).【F:environments/setup_sot.sh†L23-L58】 |
 | `-username` | `-username alice` | Setzt Benutzerbezug für Logs, Vault-Backup und Dienstverzeichnisse.【F:scripts/debug/delete.sh†L10-L45】 |
 | `-key` | `-key "ssh-ed25519 AAAA..."` | Aktiviert SSH-Key-Funktion und speichert Public Key in `config.yaml`.【F:environments/setup_sot.sh†L59-L119】【F:environments/setup_sot.sh†L415-L437】 |
@@ -141,6 +142,10 @@ SOT [unterordner] <kommando> [optionen]
 ## Konfigurationsreferenz (`config.yaml`)
 
 Die Datei liegt unter `environments/<branch>/.settings/config.yaml` und wird beim Setup erzeugt bzw. aktualisiert.【F:environments/setup_sot.sh†L205-L230】【F:environments/setup_sot.sh†L400-L470】
+Alle Standardwerte werden zentral in `tools/ansible/config/default_config.yml` gepflegt. Das Setup-Skript liest diese Datei ein,
+erzeugt daraus dynamische Werte (z. B. Benutzernamen oder Vault-Geheimnisse) und schreibt anschließend die finale `config.yaml`.
+Die Ansible-Rollen binden `tools/ansible/config/load_config.yml` ein, das die Defaults lädt, optionale Overrides validiert, dynamische Werte ergänzt und die Ergebnisse als `sot_config`-Fact bereitstellt.
+【F:tools/ansible/config/default_config.yml†L1-L27】【F:tools/ansible/config/load_config.yml†L1-L81】【F:tools/ansible/host/roles/variables/tasks/main.yml†L1-L3】【F:tools/ansible/container/roles/variables/tasks/main.yml†L1-L3】
 
 | Schlüssel | Bedeutung | Beispiel |
 |-----------|-----------|----------|

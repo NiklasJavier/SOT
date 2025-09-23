@@ -8,7 +8,7 @@
 - name: Allow SSH port through UFW
   ufw:
     rule: allow
-    port: "{{ ssh_port }}"
+    port: "{{ sot_config.ssh_port }}"
     proto: tcp
 
 - name: Enable UFW
