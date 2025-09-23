@@ -7,7 +7,7 @@ ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/setup-env.sh"
 
-VAULT_SCRIPT="$ROOT_DIR/scripts/core/vault.sh"
+VAULT_SCRIPT="$ROOT_DIR/scripts/vault.sh"
 
 # shellcheck disable=SC2154
 OUTPUT=$(PATH="$PATH" bash "$VAULT_SCRIPT" placeholder placeholder placeholder "$vault_file" "$vault_secret" 2>&1)
