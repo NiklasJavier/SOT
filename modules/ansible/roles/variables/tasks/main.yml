@@ -1,0 +1,3 @@
+---
+- name: Load centralized configuration defaults and overrides
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../config/load_config.yml"
