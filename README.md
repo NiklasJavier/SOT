@@ -80,7 +80,7 @@ flowchart TD
 
 - Linux-System mit Root-Rechten (CLI erstellt Symlink unter `/usr/sbin/` und schreibt nach `/var/log/`).【F:environments/setup_sot.sh†L248-L266】【F:environments/setup_sot.sh†L326-L361】
 - `curl` für den Einzeiler sowie Paketmanager-Zugriff, damit fehlendes `git` installiert werden kann.【F:environments/setup_sot.sh†L273-L323】
-- Optional: `ansible`, `docker`, `terraform` – können automatisiert über `install_tools.sh` eingerichtet werden.【F:environments/install_tools.sh†L1-L26】
+- Optional: `ansible`, `docker`, `terraform` – können automatisiert über `install_tools.sh` eingerichtet werden. `sdkman` wird standardmäßig eingespielt und kann zusätzliche Kandidaten direkt im selben Schritt installieren.【F:environments/install_tools.sh†L1-L82】
 
 ### Einzeiler-Setup
 
@@ -162,12 +162,14 @@ Die Ansible-Rollen binden `tools/ansible/config/load_config.yml` ein, das die De
 | `opt_data_dir` | Basisverzeichnis für persistente Daten & Vault. | `/opt/SRV-ABCD1234` |
 | `tools_dir`, `scripts_dir`, `pipelines_dir`, `clone_dir` | Pfade innerhalb des Toolkit-Clones. | `/etc/DevOpsToolkit/tools` |
 | `systemlink_path` | Ziel des Systemsymlinks für das CLI. | `/usr/sbin/SOT` |
-| `tools` | Whitespace-separierte Tool-Liste für `install_tools.sh`. | `ansible docker` |
+| `tools` | Whitespace-separierte Tool-Liste für `install_tools.sh`. Unterstützt SDKMAN!-Ketten via `sdkman:<kandidat>[=version]` (mehrere mit Komma trennen). | `ansible docker sdkman:java=17.0.9-tem,gradle` |
 | `ssh_key_function_enabled`, `ssh_key_public` | Aktiviert SSH-Key-Provisionierung. | `true`, `ssh-ed25519 ...` |
 | `vault_file`, `vault_secret`, `vault_content`, `vault_mail` | Vault-Position, Secret sowie Template und Kontakt. | `/opt/SRV-.../vault.yml`, `<random 60 chars>` |
 | `use_defaults` | Kennzeichnet, ob Setup ohne Interaktion lief. | `true` |
 | `branch` | Aktiver Branch (`production`, `staging`, `dev`). | `dev` |
 | `aat_*`, `tid_*` | Steuerung der optionalen Repo-Synchronisation. | Siehe [Integration](#integration-von-aat--tid) |
+
+> 💡 Beispiel: `tools: "ansible docker sdkman:java=17.0.9-tem,gradle"` installiert standardmäßig SDKMAN!, richtet Docker & Ansible ein und zieht anschließend die Java-Distribution `17.0.9-tem` sowie die neueste Gradle-Version über SDKMAN! nach.【F:environments/install_tools.sh†L1-L82】【F:tools/sdkman/install_sdkman.sh†L1-L70】
 
 Skripte lesen die Datei zeilenweise (`key: value`) und setzen daraus Shell-Variablen – neue Einträge sollten diesem Format folgen.【F:environments/sot_cli.sh†L9-L23】【F:scripts/aat/sync.sh†L27-L49】
 
@@ -216,7 +218,7 @@ _Hinweis:_ Das Skript `scripts/vault.sh` kann nach Bedarf erweitert werden, um w
 environments/
   setup_sot.sh            # Bootstrap: Klonen, Config schreiben, Symlink anlegen
   sot_cli.sh              # CLI-Wrapper, wird als /usr/sbin/SOT verlinkt
-  install_tools.sh        # Installiert gewünschte Tools (z. B. ansible, docker)
+  install_tools.sh        # Installiert gewünschte Tools (z. B. ansible, docker) & SDKMAN!-Ketten
   vault_content.j2        # Template für initiale Vault-Inhalte
 scripts/
   setup.sh                # Startet das Ansible-Standard-Setup

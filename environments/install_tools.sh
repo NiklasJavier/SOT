@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Farben für die Ausgabe
 GREEN='\033[0;32m'
 GREY='\033[1;90m'
@@ -12,10 +14,55 @@ TOOLS="$2"
 echo -e "${GREY}Tools directory is: $TOOLS_DIR${NC}"
 echo -e "${GREY}Selected tools are: $TOOLS${NC}"
 
+sdkman_specs=()
+while read -r entry; do
+    if [[ $entry == sdkman:* ]]; then
+        spec="${entry#sdkman:}"
+        IFS=',' read -ra parts <<< "$spec"
+        for part in "${parts[@]}"; do
+            trimmed="${part//[[:space:]]/}"
+            if [[ -n "$trimmed" ]]; then
+                sdkman_specs+=("$trimmed")
+            fi
+        done
+    fi
+done < <(printf '%s\n' $TOOLS)
+
+if [[ -n "${SDKMAN_DEFAULT_CANDIDATES:-}" ]]; then
+    IFS=',' read -ra default_specs <<< "${SDKMAN_DEFAULT_CANDIDATES}"
+    for part in "${default_specs[@]}"; do
+        trimmed="${part//[[:space:]]/}"
+        if [[ -n "$trimmed" ]]; then
+            sdkman_specs+=("$trimmed")
+        fi
+    done
+fi
+
+declare -A sdkman_unique=()
+unique_sdkman_specs=()
+for spec in "${sdkman_specs[@]}"; do
+    if [[ -z "${sdkman_unique[$spec]:-}" ]]; then
+        sdkman_unique[$spec]=1
+        unique_sdkman_specs+=("$spec")
+    fi
+done
+
+sdkman_arg=""
+if (( ${#unique_sdkman_specs[@]} )); then
+    sdkman_arg="$(IFS=','; echo "${unique_sdkman_specs[*]}")"
+fi
+
+echo -e "${GREY}Ensuring SDKMAN! is installed${NC}"
+if [ -f "$TOOLS_DIR/sdkman/install_sdkman.sh" ]; then
+    bash "$TOOLS_DIR/sdkman/install_sdkman.sh" "$sdkman_arg"
+else
+    echo -e "${RED}SDKMAN! installation script not found: $TOOLS_DIR/sdkman/install_sdkman.sh${NC}"
+fi
+
 # Überprüfen, welche Tools ausgewählt wurden und die entsprechenden Installationsskripte ausführen
 
 # Docker Installation
-if [[ "$TOOLS" =~ "docker" ]]; then
+if [[ "$TOOLS" =~ (^|[[:space:]])docker([[:space:]]|$) ]]; then
     echo -e "${GREY}Installing Docker...${NC}"
     if [ -f "$TOOLS_DIR/docker/install_docker.sh" ]; then
         bash "$TOOLS_DIR/docker/install_docker.sh"
@@ -25,7 +72,7 @@ if [[ "$TOOLS" =~ "docker" ]]; then
 fi
 
 # Ansible Installation
-if [[ "$TOOLS" =~ "ansible" ]]; then
+if [[ "$TOOLS" =~ (^|[[:space:]])ansible([[:space:]]|$) ]]; then
     echo -e "${GREY}Installing Ansible...${NC}"
     if [ -f "$TOOLS_DIR/ansible/install_ansible.sh" ]; then
         bash "$TOOLS_DIR/ansible/install_ansible.sh"
