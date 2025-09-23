@@ -27,6 +27,7 @@ Das Repository stellt ein leichtgewichtiges DevOps-Toolkit bereit, mit dem sich 
 - [Installation & Flags](#installation--flags)
 - [`devops` CLI: Nutzung & Verhalten](#devops-cli-nutzung--verhalten)
 - [Konfiguration (`config.yaml`)](#konfiguration-configyaml)
+- [AAT-Integration (zentrales Ansible-Repo)](#aat-integration-zentrales-ansible-repo)
 - [Ansible Vault](#ansible-vault)
 - [Wichtige Skripte (Auszug)](#wichtige-skripte-auszug)
 - [Tools: Ansible & Docker-Vorlagen](#tools-ansible--docker-vorlagen)
@@ -132,6 +133,26 @@ Wird vom Setup unter `environments/<branch>/.settings/config.yaml` erstellt. Wic
 - `systemlink_path`
 - `vault_file`, `vault_secret`, `vault_content`, `vault_mail`
 - `clone_dir`, `branch`
+
+## AAT-Integration (zentrales Ansible-Repo)
+
+SOT kann optional automatisch auf das zentrale Ansible-Repository AAT verweisen und es bereitstellen. Standardwerte sind bereits gesetzt und können beim Setup überschrieben werden.
+
+- Repo: [`NiklasJavier/AAT`](https://github.com/NiklasJavier/AAT)
+- Default-Konfiguration (in `config.yaml`):
+  - `aat_enabled: "true"`
+  - `aat_repo_url: "https://github.com/NiklasJavier/AAT.git"`
+  - `aat_dir: "/opt/AAT"`
+
+### Setup-Flags für AAT
+
+```bash
+# URL, Zielpfad, Aktivierung steuern
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh \
+  | bash -s -- -branch dev -aat_url "https://github.com/NiklasJavier/AAT.git" -aat_dir "/opt/AAT" -aat_enabled true
+```
+
+Bei aktivierter Integration wird AAT während des Setups geklont bzw. aktualisiert und die Pfade in `config.yaml` hinterlegt. Anschließend können Ansible-Playbooks/Rollen aus AAT direkt referenziert werden (z. B. via `ansible-playbook -i "$aat_dir/inventory/..." "$aat_dir/playbooks/..."`).
 
 ## Ansible Vault
 

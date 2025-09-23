@@ -47,6 +47,11 @@ TOOLS="" # Liste der Tools, die installiert werden sollen
 TOOLS+="ansible docker" # Standard-Tools, die installiert werden sollen
 AVAILABLE_TOOLS="" # optional: Liste der verfügbaren Tools
 
+# AAT (Ansible Automation Tools) Integration Defaults
+AAT_REPO_URL="https://github.com/NiklasJavier/AAT.git"
+AAT_DIR="/opt/AAT"
+AAT_ENABLED=true
+
 ############# ANFANG DER PARAMETER FLAGS #############
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
@@ -118,6 +123,33 @@ while [[ "$#" -gt 0 ]]; do
         exit 1
       fi
       ;;
+    -aat_url)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        AAT_REPO_URL="$1"
+      else
+        echo -e "${RED}No AAT repo URL specified with -aat_url.${NC}"
+        exit 1
+      fi
+      ;;
+    -aat_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        AAT_DIR="$1"
+      else
+        echo -e "${RED}No AAT directory specified with -aat_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -aat_enabled)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        AAT_ENABLED="$1"
+      else
+        echo -e "${RED}Invalid value for aat_enabled. Please use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
     *)
       echo -e "${RED}Invalid option: $1${NC}" >&2
       exit 1
@@ -171,6 +203,9 @@ echo -e "${GREY}Einstellungsverzeichnis: ${YELLOW}$SETTINGS_DIR ${NC}"
 echo -e "${GREY}Konfigurationsdatei: ${YELLOW}$CONFIG_FILE ${NC}"
 echo -e "${GREY}Skriptverzeichnis: ${YELLOW}$SCRIPTS_DIR ${NC}"
 echo -e "${GREY}Pipeline-Verzeichnis: ${YELLOW}$PIPELINES_DIR ${NC}"
+echo -e "${GREY}AAT URL: ${YELLOW}$AAT_REPO_URL ${NC}"
+echo -e "${GREY}AAT DIR: ${YELLOW}$AAT_DIR ${NC}"
+echo -e "${GREY}AAT Enabled: ${YELLOW}$AAT_ENABLED ${NC}"
 }
 
 checkRootPermissions() {
@@ -271,6 +306,27 @@ sudo find "$CLONE_DIR" -type f -name "*.sh" -exec chmod +x {} \;
 echo -e "${GREY}Setup completed! Repository cloned to $CLONE_DIR and scripts are now executable.${NC}"
 }
 
+cloneOrUpdateAAT() {
+if [[ "$AAT_ENABLED" != true ]]; then
+    echo -e "${GREY}AAT integration disabled. Skipping AAT clone/update.${NC}"
+    return 0
+fi
+
+if ! command -v git &> /dev/null; then
+    echo -e "${YELLOW}Warning: Git not installed; cannot manage AAT. Continuing...${NC}"
+    return 0
+fi
+
+echo -e "${GREY}Ensuring AAT repository at ${YELLOW}$AAT_DIR${GREY} from ${YELLOW}$AAT_REPO_URL${GREY}...${NC}"
+if [ -d "$AAT_DIR/.git" ]; then
+    echo -e "${GREY}AAT repo exists. Pulling latest changes...${NC}"
+    sudo git -C "$AAT_DIR" pull || echo -e "${YELLOW}Warning: Could not pull AAT. Continuing...${NC}"
+else
+    sudo mkdir -p "$AAT_DIR"
+    sudo git clone "$AAT_REPO_URL" "$AAT_DIR" || echo -e "${YELLOW}Warning: Could not clone AAT. Continuing...${NC}"
+fi
+}
+
 #parameterChanges() {
 # Überprüfen, ob der Benutzer die Standardwerte verwenden möchte
 #}
@@ -358,6 +414,11 @@ clone_dir: "$CLONE_DIR"
 
 branch: "$BRANCH"
 
+# AAT (Ansible Automation Tools) Integration
+aat_enabled: "$AAT_ENABLED"
+aat_repo_url: "$AAT_REPO_URL"
+aat_dir: "$AAT_DIR"
+
 EOL
 echo -e "${GREY}Configuration saved in $CONFIG_FILE.${NC}"
 }
@@ -414,6 +475,7 @@ editCliWrapperFile
 createCliWrapperSbinLink
 makeScriptExecutable
 #parameterChanges
+cloneOrUpdateAAT
 writeConfigFile
 installAvailableTools
 initalScriptOverview
