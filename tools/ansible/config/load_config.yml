@@ -1,7 +1,7 @@
 ---
 - name: Load default configuration values
   ansible.builtin.include_vars:
-    file: "{{ playbook_dir }}/../config/default_config.yml"
+    file: "{{ playbook_dir }}/../../../config/defaults/default_config.yml"
     name: default_config
 
 - name: Ensure configuration overrides exist when provided
@@ -68,7 +68,7 @@
 
 - name: Determine vault content template path
   ansible.builtin.set_fact:
-    sot_config: "{{ sot_config | combine({'vault_content': sot_config.clone_dir + '/environments/vault_content.j2'}) }}"
+    sot_config: "{{ sot_config | combine({'vault_content': sot_config.clone_dir + '/config/templates/vault_content.j2'}) }}"
   when: sot_config.vault_content is not defined or sot_config.vault_content | length == 0 or sot_config.vault_content == '__GENERATE_VAULT_CONTENT__'
 
 - name: Provide default vault notification address
