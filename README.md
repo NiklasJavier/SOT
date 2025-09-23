@@ -5,6 +5,41 @@
 
 Das Repository stellt ein leichtgewichtiges DevOps-Toolkit bereit, mit dem sich Entwicklungs-, Staging- und Produktionsumgebungen auf einem Host schnell initialisieren, automatisieren und verwalten lassen. Kernstück ist das `devops` CLI, das Skripte strukturiert ausführt, Logs schreibt und eine Ansible-Vault-gestützte Konfiguration nutzt.
 
+
+### Architektur (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph SOT["SOT — Server Operation Toolkit"]
+        CLI["devops CLI\n(environments/devops_cli.sh)"]
+        CFG["config.yaml\n(environments/<branch>/.settings)"]
+        VLT["Vault (Ansible Vault)"]
+        LOG["Logging\n/var/log/devops_commands.log"]
+        CLI --> CFG
+        CLI --> VLT
+        CLI --> LOG
+    end
+
+    subgraph AAT["AAT — Ansible Automation Tools\n(https://github.com/NiklasJavier/AAT)"]
+        APL["Playbooks / Rollen / Inventories"]
+        AATDIR["Pfad: aat_dir (z. B. /opt/AAT)"]
+        APL --> AATDIR
+    end
+
+    subgraph TID["TID — Terraform Infrastructure Deployment\n(https://github.com/NiklasJavier/TID)"]
+        MOD["Module / services/*.tfvars / env"]
+        TIDDIR["Pfad: tid_dir (z. B. /opt/TID)"]
+        MOD --> TIDDIR
+    end
+
+    CLI -- "devops aat sync" --> AAT
+    CLI -- "devops tid sync" --> TID
+    CLI -- "ansible-playbook ..." --> APL
+    CLI -- "terraform init/plan/apply" --> MOD
+
+    note over SOT: setup_devops_toolkit.sh\n-klont/aktualisiert Repo\n-schreibt config.yaml\n-verlinkt devops
+```
+
 ## Kurzüberblick (Cheat Sheet)
 
 - Ziel: Einheitliches Setup/Operate-CLI (`devops`) mit Logging und sicherer Parameterverwaltung (Ansible Vault)
@@ -28,6 +63,7 @@ Das Repository stellt ein leichtgewichtiges DevOps-Toolkit bereit, mit dem sich 
 - [`devops` CLI: Nutzung & Verhalten](#devops-cli-nutzung--verhalten)
 - [Konfiguration (`config.yaml`)](#konfiguration-configyaml)
 - [AAT-Integration (zentrales Ansible-Repo)](#aat-integration-zentrales-ansible-repo)
+ - [TID-Integration (Terraform-Repo)](#tid-integration-terraform-repo)
 - [Ansible Vault](#ansible-vault)
 - [Wichtige Skripte (Auszug)](#wichtige-skripte-auszug)
 - [Tools: Ansible & Docker-Vorlagen](#tools-ansible--docker-vorlagen)
@@ -154,6 +190,34 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/s
 
 Bei aktivierter Integration wird AAT während des Setups geklont bzw. aktualisiert und die Pfade in `config.yaml` hinterlegt. Anschließend können Ansible-Playbooks/Rollen aus AAT direkt referenziert werden (z. B. via `ansible-playbook -i "$aat_dir/inventory/..." "$aat_dir/playbooks/..."`).
 
+## TID-Integration (Terraform-Repo)
+
+SOT kann optional das Terraform-Repository TID (Proxmox/Hetzner-Deployment) bereitstellen und aktuell halten.
+
+- Repo: [`NiklasJavier/TID`](https://github.com/NiklasJavier/TID)
+- Default-Konfiguration (in `config.yaml`):
+  - `tid_enabled: "true"`
+  - `tid_repo_url: "https://github.com/NiklasJavier/TID.git"`
+  - `tid_dir: "/opt/TID"`
+
+### Setup-Flags für TID
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh \
+  | bash -s -- -branch dev -tid_url "https://github.com/NiklasJavier/TID.git" -tid_dir "/opt/TID" -tid_enabled true
+```
+
+### Nutzung
+
+- Repo synchronisieren:
+  ```bash
+  devops tid sync
+  ```
+- Beispiel (im TID-Verzeichnis, je nach Konfiguration):
+  ```bash
+  cd "$tid_dir" && terraform init && terraform plan
+  ```
+
 ## Ansible Vault
 
 - Beim Setup wird ein Vault unter `vault_file` angelegt; der Zugriffsschlüssel steht in `vault_secret` und kann einmalig gesichert werden.
@@ -199,7 +263,15 @@ ls "$tools_dir/docker/templates/traefik" | cat
 
 # Ansible-Host-Playbook starten (Beispiel-Datei anpassen)
 ansible-playbook -i "$tools_dir/ansible/host/hosts.ini" "$tools_dir/ansible/host/playbooks/host_setup.yml"
+
+# AAT synchronisieren (holt/aktualisiert zentrales Ansible-Repo laut config.yaml)
+devops aat sync
 ```
+
+### Robustheit im Setup
+
+- Automatische Paketmanager-Erkennung für Git-Installation (apt, dnf, yum, pacman, zypper, apk, brew)
+- Git-Operationen mit Retry und optionalem Shallow Clone
 
 ## Sicherheit, CI/CD, Monitoring
 

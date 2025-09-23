@@ -52,6 +52,11 @@ AAT_REPO_URL="https://github.com/NiklasJavier/AAT.git"
 AAT_DIR="/opt/AAT"
 AAT_ENABLED=true
 
+# TID (Terraform Infrastructure Deployment) Integration Defaults
+TID_REPO_URL="https://github.com/NiklasJavier/TID.git"
+TID_DIR="/opt/TID"
+TID_ENABLED=true
+
 ############# ANFANG DER PARAMETER FLAGS #############
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
@@ -150,6 +155,33 @@ while [[ "$#" -gt 0 ]]; do
         exit 1
       fi
       ;;
+    -tid_url)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        TID_REPO_URL="$1"
+      else
+        echo -e "${RED}No TID repo URL specified with -tid_url.${NC}"
+        exit 1
+      fi
+      ;;
+    -tid_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        TID_DIR="$1"
+      else
+        echo -e "${RED}No TID directory specified with -tid_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -tid_enabled)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        TID_ENABLED="$1"
+      else
+        echo -e "${RED}Invalid value for tid_enabled. Please use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
     *)
       echo -e "${RED}Invalid option: $1${NC}" >&2
       exit 1
@@ -206,6 +238,9 @@ echo -e "${GREY}Pipeline-Verzeichnis: ${YELLOW}$PIPELINES_DIR ${NC}"
 echo -e "${GREY}AAT URL: ${YELLOW}$AAT_REPO_URL ${NC}"
 echo -e "${GREY}AAT DIR: ${YELLOW}$AAT_DIR ${NC}"
 echo -e "${GREY}AAT Enabled: ${YELLOW}$AAT_ENABLED ${NC}"
+echo -e "${GREY}TID URL: ${YELLOW}$TID_REPO_URL ${NC}"
+echo -e "${GREY}TID DIR: ${YELLOW}$TID_DIR ${NC}"
+echo -e "${GREY}TID Enabled: ${YELLOW}$TID_ENABLED ${NC}"
 }
 
 checkRootPermissions() {
@@ -327,6 +362,27 @@ else
 fi
 }
 
+cloneOrUpdateTID() {
+if [[ "$TID_ENABLED" != true ]]; then
+    echo -e "${GREY}TID integration disabled. Skipping TID clone/update.${NC}"
+    return 0
+fi
+
+if ! command -v git &> /dev/null; then
+    echo -e "${YELLOW}Warning: Git not installed; cannot manage TID. Continuing...${NC}"
+    return 0
+fi
+
+echo -e "${GREY}Ensuring TID repository at ${YELLOW}$TID_DIR${GREY} from ${YELLOW}$TID_REPO_URL${GREY}...${NC}"
+if [ -d "$TID_DIR/.git" ]; then
+    echo -e "${GREY}TID repo exists. Pulling latest changes...${NC}"
+    sudo git -C "$TID_DIR" pull || echo -e "${YELLOW}Warning: Could not pull TID. Continuing...${NC}"
+else
+    sudo mkdir -p "$TID_DIR"
+    sudo git clone "$TID_REPO_URL" "$TID_DIR" || echo -e "${YELLOW}Warning: Could not clone TID. Continuing...${NC}"
+fi
+}
+
 #parameterChanges() {
 # Überprüfen, ob der Benutzer die Standardwerte verwenden möchte
 #}
@@ -419,6 +475,11 @@ aat_enabled: "$AAT_ENABLED"
 aat_repo_url: "$AAT_REPO_URL"
 aat_dir: "$AAT_DIR"
 
+# TID (Terraform Infrastructure Deployment) Integration
+tid_enabled: "$TID_ENABLED"
+tid_repo_url: "$TID_REPO_URL"
+tid_dir: "$TID_DIR"
+
 EOL
 echo -e "${GREY}Configuration saved in $CONFIG_FILE.${NC}"
 }
@@ -476,6 +537,7 @@ createCliWrapperSbinLink
 makeScriptExecutable
 #parameterChanges
 cloneOrUpdateAAT
+cloneOrUpdateTID
 writeConfigFile
 installAvailableTools
 initalScriptOverview
