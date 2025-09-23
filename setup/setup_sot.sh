@@ -741,17 +741,29 @@ echo -e "${GREY}Configuration saved in $CONFIG_FILE.${NC}"
 }
 
 installAvailableTools() {
-# Überprüfen, ob install_tools.sh existiert und ausführen
-if [ -f "$CLONE_DIR/setup/install_tools.sh" ]; then
-    echo -e "${GREY}Switching to $CLONE_DIR/setup/install_tools.sh${NC}"
-    bash "$CLONE_DIR/setup/install_tools.sh" "$MODULES_DIR" "$TOOLS"
+    # "install_tools.sh" liegt im geklonten Verzeichnis. Falls der Clone-Pfad
+    # (z. B. /etc/DevOpsToolkit) nicht erreichbar ist, greifen wir auf das
+    # Verzeichnis dieses Skriptes zurück. Dadurch funktioniert das Setup auch
+    # in Entwicklungsumgebungen, in denen das Repository nicht nach
+    # $CLONE_DIR gespiegelt wurde.
+    local install_script=""
 
-    # Weiter im Skript, nachdem install_tools.sh ausgeführt wurde
-    echo -e "${GREY}Returned from install_tools.sh, continuing...${NC}"
-else
-    echo -e "${RED}Error: $CLONE_DIR/setup/install_tools.sh not found!${NC}"
-    exit 1
-fi
+    if [ -f "$CLONE_DIR/setup/install_tools.sh" ]; then
+        install_script="$CLONE_DIR/setup/install_tools.sh"
+    elif [ -f "$SCRIPT_DIR/install_tools.sh" ]; then
+        install_script="$SCRIPT_DIR/install_tools.sh"
+    fi
+
+    if [ -n "$install_script" ]; then
+        echo -e "${GREY}Switching to $install_script${NC}"
+        bash "$install_script" "$MODULES_DIR" "$TOOLS"
+
+        # Weiter im Skript, nachdem install_tools.sh ausgeführt wurde
+        echo -e "${GREY}Returned from install_tools.sh, continuing...${NC}"
+    else
+        echo -e "${RED}Error: install_tools.sh not found under $CLONE_DIR/setup or $SCRIPT_DIR.${NC}"
+        exit 1
+    fi
 }
 
 initalScriptOverview() {
