@@ -116,6 +116,51 @@ RUNNER_DEFAULT_INVENTORY=$(get_cfg "runner_default_inventory" "")
 RUNNER_AAT_PLAYBOOK_DIR=$(get_cfg "runner_aat_playbook_dir" "")
 RUNNER_TID_STACK_DIR=$(get_cfg "runner_tid_stack_dir" "")
 
+lower_branch="${branch,,}"
+
+if [[ -z "$RUNNER_AAT_PLAYBOOK_DIR" || "$RUNNER_AAT_PLAYBOOK_DIR" == "." ]]; then
+  if [[ -d "$AAT_DIR/playbooks" ]]; then
+    RUNNER_AAT_PLAYBOOK_DIR="playbooks"
+  elif [[ -d "$AAT_DIR/ansible/playbooks" ]]; then
+    RUNNER_AAT_PLAYBOOK_DIR="ansible/playbooks"
+  fi
+fi
+
+detect_inventory_candidate() {
+  local env_candidate="$1"
+  local -a inventory_candidates=(
+    "$AAT_DIR/inventory/$env_candidate/hosts.yml"
+    "$AAT_DIR/inventory/$env_candidate/hosts.yaml"
+    "$AAT_DIR/inventory/$env_candidate.yml"
+    "$AAT_DIR/inventory/$env_candidate.yaml"
+    "$AAT_DIR/inventory/${env_candidate}_hosts.yml"
+    "$AAT_DIR/inventory/${env_candidate}_hosts.yaml"
+  )
+  for candidate in "${inventory_candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if [[ -z "$RUNNER_DEFAULT_INVENTORY" ]]; then
+  if inventory_path=$(detect_inventory_candidate "$lower_branch"); then
+    RUNNER_DEFAULT_INVENTORY="$inventory_path"
+  elif inventory_path=$(detect_inventory_candidate "production"); then
+    RUNNER_DEFAULT_INVENTORY="$inventory_path"
+  fi
+fi
+
+if [[ -z "$RUNNER_TID_STACK_DIR" || "$RUNNER_TID_STACK_DIR" == "." ]]; then
+  if [[ -d "$TID_DIR/services" ]]; then
+    RUNNER_TID_STACK_DIR="services"
+  elif [[ -d "$TID_DIR/modules" ]]; then
+    RUNNER_TID_STACK_DIR="modules"
+  fi
+fi
+
 if [[ -z "$RUNNER_WORK_DIR" || "$RUNNER_WORK_DIR" == "__GENERATE_RUNNER_WORK_DIR__" ]]; then
   RUNNER_WORK_DIR="$opt_data_dir/runner"
 fi
@@ -160,6 +205,179 @@ run_with_logging() {
   } 2>&1 | tee -a "$log_path"
 }
 
+resolve_playbook_path() {
+  local playbook_input="$1"
+  if [[ "$playbook_input" == /* && -f "$playbook_input" ]]; then
+    echo "$playbook_input"
+    return 0
+  fi
+
+  local -a candidates=()
+  if [[ "$playbook_input" == *.yml || "$playbook_input" == *.yaml ]]; then
+    candidates+=("$AAT_DIR/$playbook_input")
+    if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
+      candidates+=("$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input")
+    fi
+  else
+    if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
+      candidates+=(
+        "$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input.yml"
+        "$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input.yaml"
+        "$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input"
+      )
+    fi
+    candidates+=(
+      "$AAT_DIR/$playbook_input.yml"
+      "$AAT_DIR/$playbook_input.yaml"
+      "$AAT_DIR/$playbook_input"
+    )
+  fi
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+resolve_inventory_for_env() {
+  local env_name="$1"
+  if [[ -z "$env_name" ]]; then
+    return 1
+  fi
+  env_name="${env_name,,}"
+  if inventory_path=$(detect_inventory_candidate "$env_name"); then
+    echo "$inventory_path"
+    return 0
+  fi
+  local inventory_root="$AAT_DIR/inventory/$env_name"
+  if [[ -d "$inventory_root" ]]; then
+    if [[ -f "$inventory_root/hosts" ]]; then
+      echo "$inventory_root/hosts"
+      return 0
+    fi
+    if [[ -f "$inventory_root/hosts.ini" ]]; then
+      echo "$inventory_root/hosts.ini"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+list_playbooks() {
+  local base_dir="$AAT_DIR"
+  if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
+    base_dir="$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR"
+  fi
+  if [[ -d "$base_dir" ]]; then
+    {
+      find "$base_dir" -maxdepth 2 -type f -iname "*.yml"
+      find "$base_dir" -maxdepth 2 -type f -iname "*.yaml"
+    } 2>/dev/null | sed "s|^$AAT_DIR/||" | sort -u
+  fi
+}
+
+list_inventories() {
+  local inventory_root="$AAT_DIR/inventory"
+  if [[ -d "$inventory_root" ]]; then
+    {
+      find "$inventory_root" -maxdepth 2 -type f -name "hosts"
+      find "$inventory_root" -maxdepth 2 -type f -name "hosts.ini"
+      find "$inventory_root" -maxdepth 2 -type f -name "hosts.yml"
+      find "$inventory_root" -maxdepth 2 -type f -name "hosts.yaml"
+    } 2>/dev/null | sed "s|^$AAT_DIR/||" | sort -u
+  fi
+}
+
+resolve_terraform_target() {
+  local target_input="$1"
+  TERRAFORM_WORKDIR=""
+  TERRAFORM_AUTOVAR=""
+
+  if [[ -z "$target_input" ]]; then
+    return 1
+  fi
+
+  if [[ "$target_input" == /* ]]; then
+    if [[ -d "$target_input" ]]; then
+      TERRAFORM_WORKDIR="$target_input"
+      return 0
+    elif [[ -f "$target_input" ]]; then
+      TERRAFORM_WORKDIR="$(dirname "$target_input")"
+      TERRAFORM_AUTOVAR="$target_input"
+      return 0
+    fi
+  fi
+
+  local maybe_file="$TID_DIR/$target_input"
+  if [[ -d "$maybe_file" ]]; then
+    TERRAFORM_WORKDIR="$maybe_file"
+    return 0
+  elif [[ -f "$maybe_file" ]]; then
+    TERRAFORM_WORKDIR="$TID_DIR"
+    TERRAFORM_AUTOVAR="$maybe_file"
+    return 0
+  fi
+
+  local simple_name="$target_input"
+  simple_name="${simple_name#/}"
+  local -a search_roots=()
+  if [[ -n "$RUNNER_TID_STACK_DIR" ]]; then
+    search_roots+=("$RUNNER_TID_STACK_DIR")
+  fi
+  search_roots+=(services modules stacks env)
+
+  for root_dir in "${search_roots[@]}"; do
+    [[ -d "$TID_DIR/$root_dir" ]] || continue
+    if [[ -d "$TID_DIR/$root_dir/$simple_name" ]]; then
+      TERRAFORM_WORKDIR="$TID_DIR/$root_dir/$simple_name"
+      return 0
+    fi
+    if [[ "$simple_name" != *.tfvars ]]; then
+      if [[ -f "$TID_DIR/$root_dir/$simple_name.tfvars" ]]; then
+        TERRAFORM_WORKDIR="$TID_DIR"
+        TERRAFORM_AUTOVAR="$TID_DIR/$root_dir/$simple_name.tfvars"
+        return 0
+      fi
+    fi
+    if [[ -f "$TID_DIR/$root_dir/$simple_name" ]]; then
+      case "$simple_name" in
+        *.tfvars|*.tfvars.template)
+          TERRAFORM_WORKDIR="$TID_DIR"
+          TERRAFORM_AUTOVAR="$TID_DIR/$root_dir/$simple_name"
+          return 0
+          ;;
+      esac
+    fi
+  done
+
+  return 1
+}
+
+list_terraform_targets() {
+  if [[ ! -d "$TID_DIR" ]]; then
+    return
+  fi
+  local -a entries=()
+  local dir
+  for dir in services modules stacks env; do
+    if [[ -d "$TID_DIR/$dir" ]]; then
+      while IFS= read -r item; do
+        entries+=("$item")
+      done < <({
+        find "$TID_DIR/$dir" -maxdepth 1 -mindepth 1 -type d
+        find "$TID_DIR/$dir" -maxdepth 1 -mindepth 1 -type f -name "*.tfvars"
+        find "$TID_DIR/$dir" -maxdepth 1 -mindepth 1 -type f -name "*.tfvars.template"
+      } 2>/dev/null | sed "s|^$TID_DIR/||")
+    fi
+  done
+  if [[ ${#entries[@]} -gt 0 ]]; then
+    printf '%s\n' "${entries[@]}" | sort -u
+  fi
+}
+
 subcommand="${USER_ARGS[0]}"
 if [[ "$subcommand" != "help" && "$subcommand" != "--help" && "$subcommand" != "-h" && "$subcommand" != "list" && "$subcommand" != "aat" && "$subcommand" != "ansible" && "$subcommand" != "tid" && "$subcommand" != "terraform" ]]; then
   if [[ -n "$RUNNER_DEFAULT_MODE" ]]; then
@@ -190,6 +408,39 @@ Runner-Status für Branch '$branch'
   AAT Playbook-Ordner:       ${RUNNER_AAT_PLAYBOOK_DIR:-<nicht gesetzt>}
   TID Stack-Ordner:          ${RUNNER_TID_STACK_DIR:-<nicht gesetzt>}
 EOF
+    if is_true "$AAT_ENABLED"; then
+      echo
+      echo "  Verfügbare AAT-Playbooks:"
+      if mapfile -t __runner_playbooks < <(list_playbooks); then
+        if [[ ${#__runner_playbooks[@]} -eq 0 ]]; then
+          echo "    <keine Playbooks gefunden>"
+        else
+          printf '    %s\n' "${__runner_playbooks[@]}"
+        fi
+      fi
+      echo
+      echo "  Verfügbare Inventories:"
+      if mapfile -t __runner_inventories < <(list_inventories); then
+        if [[ ${#__runner_inventories[@]} -eq 0 ]]; then
+          echo "    <keine Inventories gefunden>"
+        else
+          printf '    %s\n' "${__runner_inventories[@]}"
+        fi
+      fi
+      unset __runner_playbooks __runner_inventories
+    fi
+    if is_true "$TID_ENABLED"; then
+      echo
+      echo "  Terraform-Ziele:"
+      if mapfile -t __runner_targets < <(list_terraform_targets); then
+        if [[ ${#__runner_targets[@]} -eq 0 ]]; then
+          echo "    <keine Ziele gefunden>"
+        else
+          printf '    %s\n' "${__runner_targets[@]}"
+        fi
+      fi
+      unset __runner_targets
+    fi
     exit 0
     ;;
   aat|ansible)
@@ -213,6 +464,7 @@ EOF
     check_mode=false
     diff_mode=false
     perform_sync=false
+    environment=""
 
     for ((i=1; i<${#USER_ARGS[@]}; i++)); do
       arg="${USER_ARGS[$i]}"
@@ -247,6 +499,11 @@ EOF
           limit="${USER_ARGS[$((i+1))]}"
           ((i++))
           ;;
+        --env|--environment)
+          ((i+1<${#USER_ARGS[@]})) || { echo "--env benötigt einen Namen." >&2; exit 1; }
+          environment="${USER_ARGS[$((i+1))]}"
+          ((i++))
+          ;;
         --check)
           check_mode=true
           ;;
@@ -268,10 +525,16 @@ EOF
       sync_repo aat
     fi
 
-    if [[ -z "$inventory" ]] && [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
-      default_inventory_candidate="$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/hosts.yml"
-      if [[ -f "$default_inventory_candidate" ]]; then
-        inventory="$default_inventory_candidate"
+    if [[ -n "$environment" ]]; then
+      if inventory_candidate=$(resolve_inventory_for_env "$environment"); then
+        inventory="$inventory_candidate"
+      else
+        echo "Konnte kein Inventory für Umgebung '$environment' finden." >&2
+        exit 1
+      fi
+    elif [[ -z "$inventory" ]]; then
+      if inventory_candidate=$(resolve_inventory_for_env "$lower_branch"); then
+        inventory="$inventory_candidate"
       fi
     fi
 
@@ -280,18 +543,13 @@ EOF
       exit 1
     fi
 
-    playbook_path=""
-    if [[ "$playbook" == /* ]]; then
-      playbook_path="$playbook"
-    else
-      if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" && -f "$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook" ]]; then
-        playbook_path="$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook"
-      elif [[ -f "$AAT_DIR/$playbook" ]]; then
-        playbook_path="$AAT_DIR/$playbook"
-      else
-        echo "Playbook '$playbook' wurde im AAT-Repository nicht gefunden." >&2
-        exit 1
-      fi
+    if [[ -n "$inventory" ]]; then
+      inventory="$(readlink -f "$inventory")"
+    fi
+
+    if ! playbook_path=$(resolve_playbook_path "$playbook"); then
+      echo "Playbook '$playbook' wurde im AAT-Repository nicht gefunden." >&2
+      exit 1
     fi
 
     log_path="$RUNNER_LOG_DIR/aat_$(date '+%Y%m%d_%H%M%S').log"
@@ -303,7 +561,11 @@ EOF
       ansible_cmd+=("-e" "$var")
     done
     for var_file in "${extra_var_files[@]}"; do
-      ansible_cmd+=("-e" "@$var_file")
+      if [[ -f "$var_file" ]]; then
+        ansible_cmd+=("-e" "@$(readlink -f "$var_file")")
+      else
+        ansible_cmd+=("-e" "@$var_file")
+      fi
     done
     if [[ -n "$tags" ]]; then
       ansible_cmd+=("--tags" "$tags")
@@ -384,17 +646,16 @@ EOF
       sync_repo tid
     fi
 
-    stack_path="$stack"
-    if [[ "$stack_path" != /* ]]; then
-      if [[ -n "$RUNNER_TID_STACK_DIR" && -d "$TID_DIR/$RUNNER_TID_STACK_DIR/$stack" ]]; then
-        stack_path="$TID_DIR/$RUNNER_TID_STACK_DIR/$stack"
-      else
-        stack_path="$TID_DIR/$stack"
-      fi
+    if ! resolve_terraform_target "$stack"; then
+      echo "Terraform-Ziel '$stack' konnte nicht aufgelöst werden." >&2
+      exit 1
     fi
 
-    if [[ ! -d "$stack_path" ]]; then
-      echo "Terraform-Verzeichnis nicht gefunden: $stack_path" >&2
+    stack_path="$TERRAFORM_WORKDIR"
+    auto_var_file="$TERRAFORM_AUTOVAR"
+
+    if [[ -z "$stack_path" || ! -d "$stack_path" ]]; then
+      echo "Terraform-Arbeitsverzeichnis ungültig: ${stack_path:-<leer>}" >&2
       exit 1
     fi
 
@@ -422,6 +683,32 @@ EOF
         terraform_cmd+=(-input=false)
         ;;
     esac
+    if [[ -n "$auto_var_file" ]]; then
+      found=false
+      for existing in "${var_files[@]}"; do
+        if [[ "$existing" == "$auto_var_file" ]]; then
+          found=true
+          break
+        fi
+      done
+      if ! $found; then
+        var_files+=("$auto_var_file")
+      fi
+    fi
+
+    if [[ ${#var_files[@]} -gt 0 ]]; then
+      resolved_var_files=()
+      for file in "${var_files[@]}"; do
+        if [[ -f "$file" ]]; then
+          resolved_var_files+=("$(readlink -f "$file")")
+        else
+          resolved_var_files+=("$file")
+        fi
+      done
+      var_files=("${resolved_var_files[@]}")
+      unset resolved_var_files
+    fi
+
     for file in "${var_files[@]}"; do
       terraform_cmd+=("-var-file=$file")
     done
