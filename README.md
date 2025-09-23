@@ -104,9 +104,12 @@ flowchart TD
 ### Einzeiler
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/setup/setup_sot.sh \
-  | bash -s -- -branch dev -port "22" && SOT setup
+BRANCH=${BRANCH:-production}
+curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${BRANCH}/setup/setup_sot.sh" \
+  | bash -s -- -branch "$BRANCH" -port "22" && SOT setup
 ```
+
+> 🔁 Für Tests kann `BRANCH=dev` oder `BRANCH=staging` gesetzt werden. Ohne Vorgabe wird `production` verwendet.
 
 ### Was passiert?
 

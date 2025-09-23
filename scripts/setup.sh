@@ -13,14 +13,18 @@ playbook_name="host_setup" # Name des Ansible Playbooks -> playbookname bspw. (l
 inventory_key="default"    # Inventarordner (z.B. default, container)
 
 ansibleOpenPlaybook() {
-bash "$modules_dir/ansible/trigger_playbook.sh" "$modules_dir" "$config_file" "$playbook_name" "$inventory_key"
+  bash "$modules_dir/ansible/trigger_playbook.sh" \
+    "$modules_dir" \
+    "$config_file" \
+    "$playbook_name" \
+    "$inventory_key"
 }
 
 methods=(
-ansibleOpenPlaybook
+  ansibleOpenPlaybook
 )
 
 for method in "${methods[@]}"; do
-echo -e "\n${GREY}======= ${GREEN}Running: ${PINK}[$method] ${GREY}=======${NC}"
-$method 
+  echo -e "\n${GREY}======= ${GREEN}Running: ${PINK}[$method] ${GREY}=======${NC}"
+  "$method"
 done

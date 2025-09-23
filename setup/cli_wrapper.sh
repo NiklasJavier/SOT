@@ -103,12 +103,14 @@ show_help() {
 
 show_command_help() {
   local command_path="$1"
-  if [[ -x "$command_path" ]]; then
-    "$command_path" --help
-  else
-    echo "No help available for this command."
+
+  if [[ -f "$command_path" ]] && grep -q '^##' "$command_path"; then
+    awk '/^##/{sub(/^##[[:space:]]*/, ""); print}' "$command_path"
     return 0
   fi
+
+  echo "No help available for this command."
+  return 0
 }
 
 resolve_command_path() {
