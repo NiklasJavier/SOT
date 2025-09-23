@@ -99,6 +99,26 @@ generate_dynamic_defaults() {
         OPT_DATA_DIR="/opt/$SYSTEM_NAME"
     fi
 
+    if [[ -z "$RUNNER_WORK_DIR" || "$RUNNER_WORK_DIR" == "__GENERATE_RUNNER_WORK_DIR__" ]]; then
+        RUNNER_WORK_DIR="$OPT_DATA_DIR/runner"
+    fi
+
+    if [[ -z "$RUNNER_LOG_DIR" || "$RUNNER_LOG_DIR" == "__GENERATE_RUNNER_LOG_DIR__" ]]; then
+        RUNNER_LOG_DIR="$RUNNER_WORK_DIR/logs"
+    fi
+
+    if [[ -z "$RUNNER_DEFAULT_MODE" ]]; then
+        RUNNER_DEFAULT_MODE="aat"
+    fi
+
+    if [[ -z "$RUNNER_SYNC_BEFORE_RUN" ]]; then
+        RUNNER_SYNC_BEFORE_RUN="true"
+    fi
+
+    if [[ -z "$RUNNER_ENABLED" ]]; then
+        RUNNER_ENABLED="true"
+    fi
+
     if [[ -z "$VAULT_FILE" || "$VAULT_FILE" == "__GENERATE_VAULT_FILE__" ]]; then
         VAULT_FILE="$OPT_DATA_DIR/vault.yml"
     fi
@@ -254,6 +274,78 @@ while [[ "$#" -gt 0 ]]; do
         exit 1
       fi
       ;;
+    -runner_enabled)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        RUNNER_ENABLED="$1"
+      else
+        echo -e "${RED}Invalid value for runner_enabled. Please use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_mode)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_DEFAULT_MODE="$1"
+      else
+        echo -e "${RED}No mode specified with -runner_mode.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_sync)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        RUNNER_SYNC_BEFORE_RUN="$1"
+      else
+        echo -e "${RED}Invalid value for -runner_sync. Use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_work_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_WORK_DIR="$1"
+      else
+        echo -e "${RED}No directory specified with -runner_work_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_log_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_LOG_DIR="$1"
+      else
+        echo -e "${RED}No directory specified with -runner_log_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_inventory)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_DEFAULT_INVENTORY="$1"
+      else
+        echo -e "${RED}No path specified with -runner_inventory.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_aat_playbooks)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_AAT_PLAYBOOK_DIR="$1"
+      else
+        echo -e "${RED}No folder specified with -runner_aat_playbooks.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_tid_stack)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_TID_STACK_DIR="$1"
+      else
+        echo -e "${RED}No folder specified with -runner_tid_stack.${NC}"
+        exit 1
+      fi
+      ;;
     -config)
       shift
       if [[ -n "$1" && "$1" != -* ]]; then
@@ -327,6 +419,12 @@ echo -e "${GREY}AAT Enabled: ${YELLOW}$AAT_ENABLED ${NC}"
 echo -e "${GREY}TID URL: ${YELLOW}$TID_REPO_URL ${NC}"
 echo -e "${GREY}TID DIR: ${YELLOW}$TID_DIR ${NC}"
 echo -e "${GREY}TID Enabled: ${YELLOW}$TID_ENABLED ${NC}"
+
+echo -e "${GREY}Runner Enabled: ${YELLOW}$RUNNER_ENABLED ${NC}"
+echo -e "${GREY}Runner Default Mode: ${YELLOW}$RUNNER_DEFAULT_MODE ${NC}"
+echo -e "${GREY}Runner Sync Before Run: ${YELLOW}$RUNNER_SYNC_BEFORE_RUN ${NC}"
+echo -e "${GREY}Runner Workdir: ${YELLOW}$RUNNER_WORK_DIR ${NC}"
+echo -e "${GREY}Runner Logdir: ${YELLOW}$RUNNER_LOG_DIR ${NC}"
 }
 
 checkRootPermissions() {
@@ -567,6 +665,16 @@ tid_enabled: "$TID_ENABLED"
 tid_repo_url: "$TID_REPO_URL"
 tid_dir: "$TID_DIR"
 
+# Runner (dynamische Playbook/Terraform-Ausführung)
+runner_enabled: "$RUNNER_ENABLED"
+runner_default_mode: "$RUNNER_DEFAULT_MODE"
+runner_sync_before_run: "$RUNNER_SYNC_BEFORE_RUN"
+runner_work_dir: "$RUNNER_WORK_DIR"
+runner_log_dir: "$RUNNER_LOG_DIR"
+runner_default_inventory: "$RUNNER_DEFAULT_INVENTORY"
+runner_aat_playbook_dir: "$RUNNER_AAT_PLAYBOOK_DIR"
+runner_tid_stack_dir: "$RUNNER_TID_STACK_DIR"
+
 EOL
 echo -e "${GREY}Configuration saved in $CONFIG_FILE.${NC}"
 }
@@ -605,6 +713,13 @@ echo -e "${GREY}opt_data_dir: ${YELLOW}\"$OPT_DATA_DIR\"${NC}"
 echo -e "${GREY}tools_dir: ${YELLOW}\"$TOOLS_DIR\"${NC}"
 echo -e "${GREY}scripts_dir: ${YELLOW}\"$SCRIPTS_DIR\"${NC}"
 echo -e "${GREY}pipelines_dir: ${YELLOW}\"$PIPELINES_DIR\"${NC}\n"
+
+echo -e "${GREY}# runner: orchestrierte Setups (AAT/TID)${NC}"
+echo -e "${GREY}runner_enabled: ${YELLOW}\"$RUNNER_ENABLED\"${NC}"
+echo -e "${GREY}runner_default_mode: ${YELLOW}\"$RUNNER_DEFAULT_MODE\"${NC}"
+echo -e "${GREY}runner_sync_before_run: ${YELLOW}\"$RUNNER_SYNC_BEFORE_RUN\"${NC}"
+echo -e "${GREY}runner_work_dir: ${YELLOW}\"$RUNNER_WORK_DIR\"${NC}"
+echo -e "${GREY}runner_log_dir: ${YELLOW}\"$RUNNER_LOG_DIR\"${NC}\n"
 
 echo -e "${GREY}# log_file: Pfad zur Logdatei + log_level: Log-Level${NC}"
 echo -e "${GREY}log_file: ${YELLOW}\"$LOG_FILE\" ${GREY}log_level: ${YELLOW}\"$LOG_LEVEL\"${NC}\n"
