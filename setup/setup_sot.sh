@@ -202,16 +202,14 @@ while [[ "$#" -gt 0 ]]; do
   case "$1" in
     -branch)
       shift
-      case "$1" in
-        production|staging|dev)
-          USE_DEFAULTS=true # Immer mit Standardwerten arbeiten
-          BRANCH="$1"
-          ;;
-        *)
-          echo -e "${RED}Invalid branch specified with -t. Please use 'production', 'staging', or 'dev'.${NC}"
-          exit 1
-          ;;
-      esac
+      if [[ -z "${1:-}" || "$1" == -* ]]; then
+        echo -e "${RED}No branch specified with -branch.${NC}"
+        exit 1
+      fi
+
+      USE_DEFAULTS=true # Immer mit Standardwerten arbeiten
+      BRANCH="$1"
+      DEFAULT_BRANCH_HINT="$1"
       ;;
     -full) 
       shift
