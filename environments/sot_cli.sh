@@ -33,7 +33,11 @@ show_help() {
     echo "Usage: SOT [foldername] <command> [args]"
     echo ""
     echo "Available commands:"
-    find "$scripts_dir" -type f -name "*.sh" | sed "s|^$scripts_dir/||" | sed "s|/| |g" | sed "s|.sh$||"
+    find "$scripts_dir" -maxdepth 3 -type f -name "*.sh" -print0 | while IFS= read -r -d '' script; do
+        rel_path="${script#"$scripts_dir/"}"
+        rel_path="${rel_path%.sh}"
+        echo "$rel_path" | tr '/' ' '
+    done | sort
     echo ""
     echo "Use 'SOT help <command>' for more information on a specific command."
 }
@@ -48,6 +52,34 @@ show_command_help() {
         echo "No help available for this command."
         return 1
     fi
+}
+
+# Funktion zur Auflösung eines Befehls in einen Skriptpfad
+resolve_command_path() {
+    local -n _resolved_path=$1
+    local -n _consumed_args=$2
+    shift 2
+    local args=("$@")
+
+    _resolved_path=""
+    _consumed_args=0
+
+    for ((i=${#args[@]}; i>0; i--)); do
+        local parts=("${args[@]:0:i}")
+        local joined="${parts[0]}"
+        for part in "${parts[@]:1}"; do
+            joined="$joined/$part"
+        done
+
+        local candidate="$scripts_dir/$joined.sh"
+        if [ -f "$candidate" ]; then
+            _resolved_path="$candidate"
+            _consumed_args=$i
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 # Funktion zum Ausführen des Befehls
@@ -76,12 +108,11 @@ if [ "$1" = "help" ]; then
         show_help
         exit 0
     else
-        if [ -f "$scripts_dir/$2.sh" ]; then
-            show_command_help "$scripts_dir/$2.sh"
-        elif [ -f "$scripts_dir/$2/$3.sh" ]; then
-            show_command_help "$scripts_dir/$2/$3.sh"
+        command_args=("${@:2}")
+        if resolve_command_path COMMAND_PATH consumed "${command_args[@]}"; then
+            show_command_help "$COMMAND_PATH"
         else
-            echo "No help available for the command '$2'."
+            echo "No help available for the command '${command_args[*]}'."
             exit 1
         fi
         exit 0
@@ -89,12 +120,9 @@ if [ "$1" = "help" ]; then
 fi
 
 # Aufbau des Befehls (Ordner/Skriptstruktur unterstützen)
-if [ -f "$scripts_dir/$1.sh" ]; then
-    COMMAND_PATH="$scripts_dir/$1.sh"
-    shift
-elif [ -f "$scripts_dir/$1/$2.sh" ]; then
-    COMMAND_PATH="$scripts_dir/$1/$2.sh"
-    shift 2
+command_args=("$@")
+if resolve_command_path COMMAND_PATH consumed "${command_args[@]}"; then
+    set -- "${command_args[@]:$consumed}"
 else
     COMMAND_PATH=""
 fi
