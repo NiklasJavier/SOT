@@ -148,10 +148,9 @@ SOT [unterordner] <kommando> [optionen]
 ## Konfigurationsreferenz (`config.yaml`)
 
 Die Datei liegt unter `environments/<branch>/.settings/config.yaml` und wird beim Setup erzeugt bzw. aktualisiert.【F:environments/setup_sot.sh†L205-L230】【F:environments/setup_sot.sh†L400-L470】
-Alle Standardwerte werden zentral in `tools/ansible/config/default_config.yml` gepflegt. Das Setup-Skript liest diese Datei ein,
-erzeugt daraus dynamische Werte (z. B. Benutzernamen oder Vault-Geheimnisse) und schreibt anschließend die finale `config.yaml`.
+Alle Standardwerte werden zentral in `config/defaults/default_config.yml` gepflegt. Das Setup-Skript liest diese Datei ein, erzeugt daraus dynamische Werte (z. B. Benutzernamen oder Vault-Geheimnisse) und schreibt anschließend die finale `config.yaml`.
 Die Ansible-Rollen binden `tools/ansible/config/load_config.yml` ein, das die Defaults lädt, optionale Overrides validiert, dynamische Werte ergänzt und die Ergebnisse als `sot_config`-Fact bereitstellt.
-【F:tools/ansible/config/default_config.yml†L1-L27】【F:tools/ansible/config/load_config.yml†L1-L81】【F:tools/ansible/host/roles/variables/tasks/main.yml†L1-L3】【F:tools/ansible/container/roles/variables/tasks/main.yml†L1-L3】
+【F:config/defaults/default_config.yml†L1-L33】【F:tools/ansible/config/load_config.yml†L1-L81】【F:tools/ansible/host/roles/variables/tasks/main.yml†L1-L3】【F:tools/ansible/container/roles/variables/tasks/main.yml†L1-L3】
 
 | Schlüssel | Bedeutung | Beispiel |
 |-----------|-----------|----------|
@@ -193,7 +192,7 @@ Skripte lesen die Datei zeilenweise (`key: value`) und setzen daraus Shell-Varia
 
 ### Runner – dynamische Setups mit AAT & TID
 
-- `runner_enabled=true` sorgt dafür, dass `SOT runner` bereitsteht und eigene Arbeits-/Logverzeichnisse unterhalb von `runner_work_dir` und `runner_log_dir` anlegt (Standard: `/opt/<system>/runner` bzw. `…/logs`).【F:tools/ansible/config/default_config.yml†L26-L33】【F:environments/setup_sot.sh†L120-L139】【F:environments/setup_sot.sh†L520-L548】
+- `runner_enabled=true` sorgt dafür, dass `SOT runner` bereitsteht und eigene Arbeits-/Logverzeichnisse unterhalb von `runner_work_dir` und `runner_log_dir` anlegt (Standard: `/opt/<system>/runner` bzw. `…/logs`).【F:config/defaults/default_config.yml†L26-L33】【F:environments/setup_sot.sh†L120-L139】【F:environments/setup_sot.sh†L520-L548】
 - `SOT runner list` zeigt aufgelöste Pfade **und** listet Playbooks, Inventories sowie Terraform-Ziele aus den synchronisierten Repositories auf – ideal für einen dynamischen Überblick.【F:scripts/infra/runner.sh†L269-L444】
 - `SOT runner ansible <playbook>` synchronisiert optional AAT, löst Playbooks ohne Dateiendung oder relative Pfade auf und wählt per `--env <name>` automatisch das passende Inventory (inkl. Normalisierung von Extra-Var-Dateien).【F:scripts/infra/runner.sh†L208-L292】【F:scripts/infra/runner.sh†L457-L582】
 - `SOT runner terraform <ziel>` erledigt `terraform init`, Workspace-Handling sowie `plan/apply/destroy`, erkennt sowohl Verzeichnisse als auch `services/*.tfvars` automatisch und hängt fehlende `-var-file`-Parameter an.【F:scripts/infra/runner.sh†L294-L357】【F:scripts/infra/runner.sh†L585-L723】
@@ -203,7 +202,7 @@ Skripte lesen die Datei zeilenweise (`key: value`) und setzen daraus Shell-Varia
 
 ## Ansible-Vault & Geheimnisse
 
-- Während des Setups werden `vault_file`, `vault_secret` und ein Startinhalt aus `vault_content.j2` erzeugt.【F:environments/setup_sot.sh†L430-L470】
+- Während des Setups werden `vault_file`, `vault_secret` und ein Startinhalt aus `config/templates/vault_content.j2` erzeugt.【F:environments/setup_sot.sh†L430-L470】
 - `SOT vault` erleichtert die Interaktion mit Ansible Vault (Ansicht/Bearbeitung; siehe Hinweis unten).
 - `SOT debug delete` legt alle relevanten Vault-Zugangsdaten unter `${opt_data_dir}/devopsVaultAccessSecret-<username>.yml` ab und erstellt ein Hilfsskript `${opt_data_dir}/openVault.sh` zum Öffnen der Secrets.【F:scripts/debug/delete.sh†L10-L55】
 - Empfehlung: Vault-Secret sicher archivieren und die generierte Hilfsdatei anschließend löschen.
@@ -215,11 +214,17 @@ _Hinweis:_ Das Skript `scripts/core/vault.sh` kann nach Bedarf erweitert werden,
 ## Verzeichnisstruktur
 
 ```text
+config/
+  defaults/
+    default_config.yml    # Standardwerte für das Toolkit
+  templates/
+    vault_content.j2      # Template für initiale Vault-Inhalte
+  validators/
+    validate_config.sh    # Yamllint-Wrapper für Konfigurationsprüfungen
 environments/
   setup_sot.sh            # Bootstrap: Klonen, Config schreiben, Symlink anlegen
   sot_cli.sh              # CLI-Wrapper, wird als /usr/sbin/SOT verlinkt
   install_tools.sh        # Installiert gewünschte Tools (z. B. ansible, docker) & SDKMAN!-Ketten
-  vault_content.j2        # Template für initiale Vault-Inhalte
 scripts/
   core/
     setup.sh              # Startet das Ansible-Standard-Setup

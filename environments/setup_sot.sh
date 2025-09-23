@@ -15,7 +15,7 @@ NC='\033[0m' # Keine Farbe
 
 ############# PARAMETER VOR FLAGS ##############
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../tools/ansible/config/default_config.yml}"
+DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../config/defaults/default_config.yml}"
 DEFAULT_BRANCH_HINT="production"
 
 ORIGINAL_ARGS=("$@")
@@ -45,7 +45,7 @@ load_default_config() {
     local file="$1"
     if [[ ! -f "$file" ]]; then
         local tmp_file=""
-        local source_url="${SOT_DEFAULT_CONFIG_URL:-https://raw.githubusercontent.com/NiklasJavier/SOT/${DEFAULT_BRANCH_HINT}/tools/ansible/config/default_config.yml}"
+        local source_url="${SOT_DEFAULT_CONFIG_URL:-https://raw.githubusercontent.com/NiklasJavier/SOT/${DEFAULT_BRANCH_HINT}/config/defaults/default_config.yml}"
         tmp_file="$(mktemp)"
         if curl -fsSL "$source_url" -o "$tmp_file"; then
             echo -e "${GREY}Default configuration not found locally. Downloaded from ${YELLOW}$source_url${NC}"
@@ -128,6 +128,7 @@ generate_dynamic_defaults() {
     fi
 
     ENV_DIR="$CLONE_DIR/environments"
+    CONFIG_DIR="$CLONE_DIR/config"
     DEVOPS_CLI_FILE="$ENV_DIR/sot_cli.sh"
 
     if [[ -z "$TOOLS_DIR" || "$TOOLS_DIR" == "__GENERATE_TOOLS_DIR__" ]]; then
@@ -175,7 +176,7 @@ generate_dynamic_defaults() {
     fi
 
     if [[ -z "$VAULT_CONTENT" || "$VAULT_CONTENT" == "__GENERATE_VAULT_CONTENT__" ]]; then
-        VAULT_CONTENT="$ENV_DIR/vault_content.j2"
+        VAULT_CONTENT="$CONFIG_DIR/templates/vault_content.j2"
     fi
 
     if [[ -z "$VAULT_MAIL" || "$VAULT_MAIL" == "__GENERATE_VAULT_MAIL__" ]]; then
