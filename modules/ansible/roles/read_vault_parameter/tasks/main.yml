@@ -20,19 +20,19 @@
 
 - name: Setze Variablen aus der Vault-Datei
   set_fact:
-    db_password: "{{ vault_vars.db_password | default('default_password') }}"
-    api_key: "{{ vault_vars.api_key | default('default_api_key') }}"
-    server_name: "{{ vault_vars.server_name | default(sot_config.system_name) }}"
-    user_name: "{{ vault_vars.user_name | default(sot_config.username) }}"
-    server_ip: "{{ vault_vars.server_ip | default('default_server_ip') }}"
-    server_email: "{{ vault_vars.server_email | default(sot_config.vault_mail) }}"
-    opt_data_dir: "{{ vault_vars.opt_data_dir | default(sot_config.opt_data_dir) }}"
-    system_name: "{{ vault_vars.system_name | default(sot_config.system_name) }}"
-    username: "{{ vault_vars.username | default(sot_config.username) }}"
-    log_level: "{{ vault_vars.log_level | default(sot_config.log_level) }}"
-    log_file: "{{ vault_vars.log_file | default(sot_config.log_file) }}"
-    os_family: "{{ vault_vars.os_family | default('default_os_family') }}"
-    kernel_version: "{{ vault_vars.kernel_version | default('default_kernel_version') }}"
+    db_password: "{{ vault_vars.get('db_password', 'default_password') }}"
+    api_key: "{{ vault_vars.get('api_key', 'default_api_key') }}"
+    server_name: "{{ vault_vars.get('server_name', sot_config.system_name) }}"
+    user_name: "{{ vault_vars.get('user_name', sot_config.username) }}"
+    server_ip: "{{ vault_vars.get('server_ip', 'default_server_ip') }}"
+    server_email: "{{ vault_vars.get('server_email', sot_config.vault_mail) }}"
+    opt_data_dir: "{{ vault_vars.get('opt_data_dir', sot_config.opt_data_dir) }}"
+    system_name: "{{ vault_vars.get('system_name', sot_config.system_name) }}"
+    username: "{{ vault_vars.get('username', sot_config.username) }}"
+    log_level: "{{ vault_vars.get('log_level', sot_config.log_level) }}"
+    log_file: "{{ vault_vars.get('log_file', sot_config.log_file) }}"
+    os_family: "{{ vault_vars.get('os_family', 'default_os_family') }}"
+    kernel_version: "{{ vault_vars.get('kernel_version', 'default_kernel_version') }}"
 
 - name: Zeige alle geladenen Variablen
   debug:
