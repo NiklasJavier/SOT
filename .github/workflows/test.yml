@@ -1,0 +1,29 @@
+name: Tests
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      SOT_VAULT_SECRET: ${{ secrets.SOT_VAULT_SECRET }}
+      SOT_VAULT_MAIL: ${{ secrets.SOT_VAULT_MAIL }}
+      SOT_BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+      - name: Prepare CI environment
+        run: ci/setup-env.sh
+      - name: CLI help command
+        run: bash environments/sot_cli.sh help
+        env:
+          CONFIG_FILE: ${{ env.CONFIG_FILE }}
+      - name: Run CLI smoke suite
+        run: ci/run-cli-tests.sh
+      - name: Validate configuration
+        run: ci/run-config-validation.sh
+      - name: Exercise vault workflow
+        run: ci/run-vault-tests.sh

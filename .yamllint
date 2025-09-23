@@ -1,0 +1,10 @@
+extends: relaxed
+rules:
+  document-start: disable
+  line-length:
+    max: 160
+    level: warning
+  truthy: disable
+ignore: |
+  tools/
+  ci/tmp/

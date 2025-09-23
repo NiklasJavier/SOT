@@ -1,16 +1,13 @@
 #!/bin/bash
 
 GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m' 
-BLUE='\033[0;34m' 
+YELLOW='\033[1;33m'
 PINK='\033[0;35m'
-BOLD='\033[1m'
 GREY='\033[1;90m'
 NC='\033[0m' 
 
 clone_dir="$7"
-branch="$10"
+branch="${10}"
 
 gitOpenLocalRepository() {
   echo -e "${GREY}Current branch: ${YELLOW}$branch${NC}"
