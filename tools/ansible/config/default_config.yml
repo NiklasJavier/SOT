@@ -1,0 +1,37 @@
+# Default configuration for the DevOps toolkit. Values marked with
+# __GENERATE_*__ are dynamically derived by the setup script and the
+# Ansible variable role.
+system_name: __GENERATE_SYSTEM_NAME__
+username: __GENERATE_USERNAME__
+ssh_port: "282"
+log_level: "info"
+log_file: "/var/log/devops_commands.log"
+use_defaults: "false"
+tools: "ansible docker"
+ssh_key_function_enabled: "false"
+ssh_key_public: ""
+clone_dir: "/etc/DevOpsToolkit"
+tools_dir: __GENERATE_TOOLS_DIR__
+scripts_dir: __GENERATE_SCRIPTS_DIR__
+pipelines_dir: __GENERATE_PIPELINES_DIR__
+opt_data_dir: __GENERATE_OPT_DATA_DIR__
+systemlink_path: "/usr/sbin/SOT"
+vault_file: __GENERATE_VAULT_FILE__
+vault_secret: __GENERATE_VAULT_SECRET__
+vault_content: __GENERATE_VAULT_CONTENT__
+vault_mail: __GENERATE_VAULT_MAIL__
+branch: "production"
+aat_enabled: "true"
+aat_repo_url: "https://github.com/NiklasJavier/AAT.git"
+aat_dir: "/opt/AAT"
+tid_enabled: "true"
+tid_repo_url: "https://github.com/NiklasJavier/TID.git"
+tid_dir: "/opt/TID"
+runner_enabled: "true"
+runner_default_mode: "aat"
+runner_sync_before_run: "true"
+runner_work_dir: "__GENERATE_RUNNER_WORK_DIR__"
+runner_log_dir: "__GENERATE_RUNNER_LOG_DIR__"
+runner_default_inventory: ""
+runner_aat_playbook_dir: ""
+runner_tid_stack_dir: ""

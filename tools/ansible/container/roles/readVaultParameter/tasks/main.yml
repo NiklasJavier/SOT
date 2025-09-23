@@ -1,12 +1,11 @@
----
----
-- name: Setze Pfad zur Passwortdatei für die Vault
+- name: Stelle den Standardpfad zur Vault-Passwortdatei bereit
   set_fact:
-    vault_password_file: /path/to/vault-password-file  # Pfad zur Passwortdatei für die Vault
+    vault_password_file: "{{ sot_config.opt_data_dir + '/vault_pass.txt' }}"
+  when: vault_password_file is not defined
 
-- name: Setze Pfad zur verschlüsselten Vault-Datei
+- name: Übernehme den Pfad zur verschlüsselten Vault-Datei aus der Konfiguration
   set_fact:
-    vault_file: /path/to/vault.yml  # Pfad zur verschlüsselten Vault-Datei
+    vault_file: "{{ sot_config.vault_file }}"
 
 - name: Entschlüsseln der Vault-Datei
   command: >
@@ -23,15 +22,15 @@
   set_fact:
     db_password: "{{ vault_vars.db_password | default('default_password') }}"
     api_key: "{{ vault_vars.api_key | default('default_api_key') }}"
-    server_name: "{{ vault_vars.server_name | default('default_server_name') }}"
-    user_name: "{{ vault_vars.user_name | default('default_user_name') }}"
+    server_name: "{{ vault_vars.server_name | default(sot_config.system_name) }}"
+    user_name: "{{ vault_vars.user_name | default(sot_config.username) }}"
     server_ip: "{{ vault_vars.server_ip | default('default_server_ip') }}"
-    server_email: "{{ vault_vars.server_email | default('default_server_email') }}"
-    opt_data_dir: "{{ vault_vars.opt_data_dir | default('/default/opt_data_dir') }}"
-    system_name: "{{ vault_vars.system_name | default('default_system_name') }}"
-    username: "{{ vault_vars.username | default('default_username') }}"
-    log_level: "{{ vault_vars.log_level | default('info') }}"
-    log_file: "{{ vault_vars.log_file | default('/var/log/default.log') }}"
+    server_email: "{{ vault_vars.server_email | default(sot_config.vault_mail) }}"
+    opt_data_dir: "{{ vault_vars.opt_data_dir | default(sot_config.opt_data_dir) }}"
+    system_name: "{{ vault_vars.system_name | default(sot_config.system_name) }}"
+    username: "{{ vault_vars.username | default(sot_config.username) }}"
+    log_level: "{{ vault_vars.log_level | default(sot_config.log_level) }}"
+    log_file: "{{ vault_vars.log_file | default(sot_config.log_file) }}"
     os_family: "{{ vault_vars.os_family | default('default_os_family') }}"
     kernel_version: "{{ vault_vars.kernel_version | default('default_kernel_version') }}"
 

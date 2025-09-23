@@ -8,45 +8,45 @@
 
 - name: Set the hostname using system_name from config.yaml
   hostname:
-    name: "{{ system_name }}"  # Hier wird die system_name-Variable als Hostname gesetzt
+    name: "{{ sot_config.system_name }}"  # Hier wird die system_name-Variable als Hostname gesetzt
 
 - name: Update /etc/hosts with new system_name
   lineinfile:
     path: /etc/hosts
     regexp: '^127\.0\.1\.1\s+.*'
-    line: "127.0.1.1 {{ system_name }}"  # Aktualisiert /etc/hosts mit dem neuen Hostnamen
+    line: "127.0.1.1 {{ sot_config.system_name }}"  # Aktualisiert /etc/hosts mit dem neuen Hostnamen
     state: present
 
 - name: Set the SSH port to the value of ssh_port
   lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^#?Port.*'
-    line: "Port {{ ssh_port }}"
+    line: "Port {{ sot_config.ssh_port }}"
     state: present
   notify: Restart-SSH
 
 - name: Create a user with the username from variable
   user:
-    name: "{{ username }}"
-    state: present           
-    shell: /bin/bash         
-    create_home: yes         
+    name: "{{ sot_config.username }}"
+    state: present
+    shell: /bin/bash
+    create_home: yes
 
 - name: Add root SSH public key if ssh_key_function_enabled is true
   authorized_key:
     user: "root"
-    key: "{{ ssh_key_public }}"
-  when: ssh_key_function_enabled | bool
+    key: "{{ sot_config.ssh_key_public }}"
+  when: sot_config.ssh_key_function_enabled | bool
 
 - name: Add username SSH public key if ssh_key_function_enabled is true
   authorized_key:
-    user: "{{ username }}"
-    key: "{{ ssh_key_public }}"
-  when: ssh_key_function_enabled | bool
-  
+    user: "{{ sot_config.username }}"
+    key: "{{ sot_config.ssh_key_public }}"
+  when: sot_config.ssh_key_function_enabled | bool
+
 - name: Create directory in opt_data_dir
   file:
-    path: "{{ opt_data_dir }}"
+    path: "{{ sot_config.opt_data_dir }}"
     state: directory
-    owner: "{{ username }}"
+    owner: "{{ sot_config.username }}"
     mode: '0700'

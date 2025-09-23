@@ -14,51 +14,140 @@ GREY='\033[1;90m'
 NC='\033[0m' # Keine Farbe
 
 ############# PARAMETER VOR FLAGS ##############
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../tools/ansible/config/default_config.yml}"
+
+ORIGINAL_ARGS=("$@")
+for ((i = 0; i < ${#ORIGINAL_ARGS[@]}; i++)); do
+    if [[ "${ORIGINAL_ARGS[$i]}" == "-config" ]]; then
+        next_index=$((i + 1))
+        if (( next_index < ${#ORIGINAL_ARGS[@]} )) && [[ -n "${ORIGINAL_ARGS[$next_index]}" && "${ORIGINAL_ARGS[$next_index]}" != -* ]]; then
+            DEFAULT_CONFIG_FILE="${ORIGINAL_ARGS[$next_index]}"
+        else
+            echo -e "${RED}No configuration file specified with -config.${NC}"
+            exit 1
+        fi
+        break
+    fi
+done
+set -- "${ORIGINAL_ARGS[@]}"
+
+declare -A CONFIG_DEFAULTS
+
+load_default_config() {
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        echo -e "${RED}Default configuration missing: ${YELLOW}$file${NC}"
+        exit 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%%#*}"
+        line="${line%%$'\r'}"
+        if [[ -z "${line//[[:space:]]/}" ]]; then
+            continue
+        fi
+
+        if [[ "$line" =~ ^([a-zA-Z0-9_]+):[[:space:]]*(.*)$ ]]; then
+            local key="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[2]}"
+            value="${value%\"}"
+            value="${value#\"}"
+            CONFIG_DEFAULTS["$key"]="$value"
+        fi
+    done < "$file"
+}
+
+apply_config_defaults() {
+    for key in "${!CONFIG_DEFAULTS[@]}"; do
+        local var_name="${key^^}"
+        var_name="${var_name//-/_}"
+        local value="${CONFIG_DEFAULTS[$key]}"
+        printf -v "$var_name" '%s' "$value"
+    done
+}
+
+generate_dynamic_defaults() {
+    if [[ -z "$USERNAME" || "$USERNAME" == "__GENERATE_USERNAME__" ]]; then
+        USERNAME="$(< /dev/urandom tr -dc 'A-Z' | head -c 11)"
+    fi
+
+    if [[ -z "$SYSTEM_NAME" || "$SYSTEM_NAME" == "__GENERATE_SYSTEM_NAME__" ]]; then
+        SYSTEM_NAME="SRV-$USERNAME"
+    fi
+
+    if [[ -z "$CLONE_DIR" ]]; then
+        CLONE_DIR="/etc/DevOpsToolkit"
+    fi
+
+    ENV_DIR="$CLONE_DIR/environments"
+    DEVOPS_CLI_FILE="$ENV_DIR/sot_cli.sh"
+
+    if [[ -z "$TOOLS_DIR" || "$TOOLS_DIR" == "__GENERATE_TOOLS_DIR__" ]]; then
+        TOOLS_DIR="$CLONE_DIR/tools"
+    fi
+
+    if [[ -z "$SCRIPTS_DIR" || "$SCRIPTS_DIR" == "__GENERATE_SCRIPTS_DIR__" ]]; then
+        SCRIPTS_DIR="$CLONE_DIR/scripts"
+    fi
+
+    if [[ -z "$PIPELINES_DIR" || "$PIPELINES_DIR" == "__GENERATE_PIPELINES_DIR__" ]]; then
+        PIPELINES_DIR="$CLONE_DIR/pipelines"
+    fi
+
+    if [[ -z "$OPT_DATA_DIR" || "$OPT_DATA_DIR" == "__GENERATE_OPT_DATA_DIR__" ]]; then
+        OPT_DATA_DIR="/opt/$SYSTEM_NAME"
+    fi
+
+    if [[ -z "$RUNNER_WORK_DIR" || "$RUNNER_WORK_DIR" == "__GENERATE_RUNNER_WORK_DIR__" ]]; then
+        RUNNER_WORK_DIR="$OPT_DATA_DIR/runner"
+    fi
+
+    if [[ -z "$RUNNER_LOG_DIR" || "$RUNNER_LOG_DIR" == "__GENERATE_RUNNER_LOG_DIR__" ]]; then
+        RUNNER_LOG_DIR="$RUNNER_WORK_DIR/logs"
+    fi
+
+    if [[ -z "$RUNNER_DEFAULT_MODE" ]]; then
+        RUNNER_DEFAULT_MODE="aat"
+    fi
+
+    if [[ -z "$RUNNER_SYNC_BEFORE_RUN" ]]; then
+        RUNNER_SYNC_BEFORE_RUN="true"
+    fi
+
+    if [[ -z "$RUNNER_ENABLED" ]]; then
+        RUNNER_ENABLED="true"
+    fi
+
+    if [[ -z "$VAULT_FILE" || "$VAULT_FILE" == "__GENERATE_VAULT_FILE__" ]]; then
+        VAULT_FILE="$OPT_DATA_DIR/vault.yml"
+    fi
+
+    if [[ -z "$VAULT_SECRET" || "$VAULT_SECRET" == "__GENERATE_VAULT_SECRET__" ]]; then
+        VAULT_SECRET="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 60)"
+    fi
+
+    if [[ -z "$VAULT_CONTENT" || "$VAULT_CONTENT" == "__GENERATE_VAULT_CONTENT__" ]]; then
+        VAULT_CONTENT="$ENV_DIR/vault_content.j2"
+    fi
+
+    if [[ -z "$VAULT_MAIL" || "$VAULT_MAIL" == "__GENERATE_VAULT_MAIL__" ]]; then
+        VAULT_MAIL="$USERNAME@"
+    fi
+
+    if [[ -z "$SYSTEMLINK_PATH" || "$SYSTEMLINK_PATH" == "__GENERATE_SYSTEMLINK_PATH__" ]]; then
+        SYSTEMLINK_PATH="/usr/sbin/SOT"
+    fi
+}
+
+load_default_config "$DEFAULT_CONFIG_FILE"
+apply_config_defaults
+
 REPO_URL="https://github.com/NiklasJavier/DevOpsToolkit.git" # Name des Repositories
 BRANCH="" # Variable zur Speicherung des Branch-Namens
 BRANCH_DIR="" # Variable zur Speicherung des Branch-Verzeichnisses wird dynamisch festgelegt
 
-USE_DEFAULTS=false # Möchten immer mit default werten arbeiten (true) oder nicht (false) Bspw. true wenn -t dev angegeben wurde
-
-USERNAME="$(< /dev/urandom tr -dc 'A-Z' | head -c 11)" # Benutzername (zufällig generiert)
-SYSTEM_NAME="SRV-$USERNAME" # Systemname (ehemals Hostname)
-SSH_PORT="282" # Port für SSH-Verbindung
-SSH_KEY_FUNCTION_ENABLED=false # SSH-Key-Funktion aktivieren
-SSH_KEY_PUBLIC="none" # Öffentlicher SSH-Schlüssel
-
-CLONE_DIR="/etc/DevOpsToolkit"
-ENV_DIR="$CLONE_DIR/environments"
-TOOLS_DIR="$CLONE_DIR/tools"
-SCRIPTS_DIR="$CLONE_DIR/scripts" 
-PIPELINES_DIR="$CLONE_DIR/pipelines" 
-OPT_DATA_DIR="/opt/$SYSTEM_NAME" # Datenverzeichnis, in dem Anwendungsdaten gespeichert werden
-
-SETTINGS_DIR="" 
-CONFIG_FILE="" # Konfigurationsdatei für das Setup in Settings-Verzeichnis
-DEVOPS_CLI_FILE="$ENV_DIR/sot_cli.sh"
-
-VAULT_FILE="$OPT_DATA_DIR/vault.yml" # Vault-Datei für sensible Daten (Ansible)
-VAULT_SECRET="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 60)" # Geheimer Schlüssel für die Vault-Datei
-VAULT_CONTENT="$ENV_DIR/vault_content.j2" # Vorlage für den Inhalt der Vault-Datei
-VAULT_MAIL="$USERNAME@" # E-Mail-Adresse für die Vault-Datei
-
-SYSLINK_PATH="/usr/sbin/SOT" # Pfad für den Symlink
-LOG_LEVEL="info" # Log-Level für die Protokollierung debug, info, warn, error
-LOG_FILE="/var/log/devops_commands.log"
-
-TOOLS="" # Liste der Tools, die installiert werden sollen
-TOOLS+="ansible docker" # Standard-Tools, die installiert werden sollen
 AVAILABLE_TOOLS="" # optional: Liste der verfügbaren Tools
-
-# AAT (Ansible Automation Tools) Integration Defaults
-AAT_REPO_URL="https://github.com/NiklasJavier/AAT.git"
-AAT_DIR="/opt/AAT"
-AAT_ENABLED=true
-
-# TID (Terraform Infrastructure Deployment) Integration Defaults
-TID_REPO_URL="https://github.com/NiklasJavier/TID.git"
-TID_DIR="/opt/TID"
-TID_ENABLED=true
 
 ############# ANFANG DER PARAMETER FLAGS #############
 while [[ "$#" -gt 0 ]]; do
@@ -185,6 +274,87 @@ while [[ "$#" -gt 0 ]]; do
         exit 1
       fi
       ;;
+    -runner_enabled)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        RUNNER_ENABLED="$1"
+      else
+        echo -e "${RED}Invalid value for runner_enabled. Please use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_mode)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_DEFAULT_MODE="$1"
+      else
+        echo -e "${RED}No mode specified with -runner_mode.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_sync)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        RUNNER_SYNC_BEFORE_RUN="$1"
+      else
+        echo -e "${RED}Invalid value for -runner_sync. Use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_work_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_WORK_DIR="$1"
+      else
+        echo -e "${RED}No directory specified with -runner_work_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_log_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_LOG_DIR="$1"
+      else
+        echo -e "${RED}No directory specified with -runner_log_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_inventory)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_DEFAULT_INVENTORY="$1"
+      else
+        echo -e "${RED}No path specified with -runner_inventory.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_aat_playbooks)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_AAT_PLAYBOOK_DIR="$1"
+      else
+        echo -e "${RED}No folder specified with -runner_aat_playbooks.${NC}"
+        exit 1
+      fi
+      ;;
+    -runner_tid_stack)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        RUNNER_TID_STACK_DIR="$1"
+      else
+        echo -e "${RED}No folder specified with -runner_tid_stack.${NC}"
+        exit 1
+      fi
+      ;;
+    -config)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        DEFAULT_CONFIG_FILE="$1"
+      else
+        echo -e "${RED}No configuration file specified with -config.${NC}"
+        exit 1
+      fi
+      ;;
     *)
       echo -e "${RED}Invalid option: $1${NC}" >&2
       exit 1
@@ -198,6 +368,9 @@ if [ -z "$BRANCH" ]; then
       USE_DEFAULTS=true # Immer mit Standardwerten arbeiten
       BRANCH="production"
 fi
+
+# Recalculate dependent defaults in case CLI flags adjusted key values.
+generate_dynamic_defaults
 
 ############# PARAMETER NACH FLAGS ##############
 BRANCH_DIR="$ENV_DIR/$BRANCH" # Branch-Verzeichnis festlegen
@@ -226,8 +399,8 @@ echo -e "${PINK}                                    "
 # Debugging-Ausgabe (kann entfernt werden) 
 echo -e "${GREY}Branch: ${YELLOW}$BRANCH ${NC}"
 echo -e "${GREY}Full HostSetup: ${YELLOW}$FULL ${NC}"
-echo -e "${GREY}Verwendete Tools: ${YELLOW}${TOOLS[*]} ${NC}"
-echo -e "${GREY}Port: ${YELLOW}$PORT ${NC}"
+echo -e "${GREY}Verwendete Tools: ${YELLOW}$TOOLS ${NC}"
+echo -e "${GREY}Port: ${YELLOW}$SSH_PORT ${NC}"
 echo -e "${GREY}Benutzername: ${YELLOW}$USERNAME ${NC}"
 echo -e "${GREY}Systemname: ${YELLOW}$SYSTEM_NAME ${NC}"
 echo -e "${GREY}SSH Key aktiviert: ${YELLOW}$SSH_KEY_FUNCTION_ENABLED ${NC}"
@@ -237,6 +410,7 @@ echo -e "${GREY}Einstellungsverzeichnis: ${YELLOW}$SETTINGS_DIR ${NC}"
 echo -e "${GREY}Konfigurationsdatei: ${YELLOW}$CONFIG_FILE ${NC}"
 echo -e "${GREY}Skriptverzeichnis: ${YELLOW}$SCRIPTS_DIR ${NC}"
 echo -e "${GREY}Pipeline-Verzeichnis: ${YELLOW}$PIPELINES_DIR ${NC}"
+echo -e "${GREY}Systemlink: ${YELLOW}$SYSTEMLINK_PATH ${NC}"
 ### show AAT/TID
 echo -e "${GREY}AAT URL: ${YELLOW}$AAT_REPO_URL ${NC}"
 echo -e "${GREY}AAT DIR: ${YELLOW}$AAT_DIR ${NC}"
@@ -245,6 +419,12 @@ echo -e "${GREY}AAT Enabled: ${YELLOW}$AAT_ENABLED ${NC}"
 echo -e "${GREY}TID URL: ${YELLOW}$TID_REPO_URL ${NC}"
 echo -e "${GREY}TID DIR: ${YELLOW}$TID_DIR ${NC}"
 echo -e "${GREY}TID Enabled: ${YELLOW}$TID_ENABLED ${NC}"
+
+echo -e "${GREY}Runner Enabled: ${YELLOW}$RUNNER_ENABLED ${NC}"
+echo -e "${GREY}Runner Default Mode: ${YELLOW}$RUNNER_DEFAULT_MODE ${NC}"
+echo -e "${GREY}Runner Sync Before Run: ${YELLOW}$RUNNER_SYNC_BEFORE_RUN ${NC}"
+echo -e "${GREY}Runner Workdir: ${YELLOW}$RUNNER_WORK_DIR ${NC}"
+echo -e "${GREY}Runner Logdir: ${YELLOW}$RUNNER_LOG_DIR ${NC}"
 }
 
 checkRootPermissions() {
@@ -324,18 +504,18 @@ echo -e "${GREY}Zeile wurde in $DEVOPS_CLI_FILE an Position 5 eingefügt.${NC}"
 
 createCliWrapperSbinLink() {
 # Überprüfen, ob der Symlink bereits existiert
-if [ -L "$SYSLINK_PATH" ]; then
+if [ -L "$SYSTEMLINK_PATH" ]; then
     # Wenn der Symlink existiert, überprüfen, ob er auf die richtige Datei zeigt
-    if [ "$(readlink "$SYSLINK_PATH")" != "$DEVOPS_CLI_FILE" ]; then
-        echo -e "${GREY}Symlink $SYSLINK_PATH existiert und zeigt auf einen anderen Pfad. Aktualisierung...${NC}"
-        sudo ln -sf "$DEVOPS_CLI_FILE" "$SYSLINK_PATH"
+    if [ "$(readlink "$SYSTEMLINK_PATH")" != "$DEVOPS_CLI_FILE" ]; then
+        echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert und zeigt auf einen anderen Pfad. Aktualisierung...${NC}"
+        sudo ln -sf "$DEVOPS_CLI_FILE" "$SYSTEMLINK_PATH"
     else
-        echo -e "${GREY}Symlink $SYSLINK_PATH existiert bereits und zeigt auf das richtige Ziel.${NC}"
+        echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert bereits und zeigt auf das richtige Ziel.${NC}"
     fi
 else
     # Wenn der Symlink nicht existiert, erstelle ihn
-    echo -e "${GREY}Symlink $SYSLINK_PATH existiert nicht. Erstellen...${NC}"
-    sudo ln -s "$DEVOPS_CLI_FILE" "$SYSLINK_PATH"
+    echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert nicht. Erstellen...${NC}"
+    sudo ln -s "$DEVOPS_CLI_FILE" "$SYSTEMLINK_PATH"
 fi
 }
 
@@ -461,7 +641,7 @@ log_file: "$LOG_FILE"
 
 # Der Pfad zum System-Symlink, der auf eine bestimmte Datei oder ein Verzeichnis verweist, wird durch die Umgebungsvariable festgelegt.
 # Der Wert kann z.B. auf "/usr/local/bin/myapp" gesetzt sein, um auf eine ausführbare Datei zu verweisen.
-systemlink_path: "$SYSLINK_PATH"
+systemlink_path: "$SYSTEMLINK_PATH"
 
 vault_file: "$VAULT_FILE"
 
@@ -484,6 +664,16 @@ aat_dir: "$AAT_DIR"
 tid_enabled: "$TID_ENABLED"
 tid_repo_url: "$TID_REPO_URL"
 tid_dir: "$TID_DIR"
+
+# Runner (dynamische Playbook/Terraform-Ausführung)
+runner_enabled: "$RUNNER_ENABLED"
+runner_default_mode: "$RUNNER_DEFAULT_MODE"
+runner_sync_before_run: "$RUNNER_SYNC_BEFORE_RUN"
+runner_work_dir: "$RUNNER_WORK_DIR"
+runner_log_dir: "$RUNNER_LOG_DIR"
+runner_default_inventory: "$RUNNER_DEFAULT_INVENTORY"
+runner_aat_playbook_dir: "$RUNNER_AAT_PLAYBOOK_DIR"
+runner_tid_stack_dir: "$RUNNER_TID_STACK_DIR"
 
 EOL
 echo -e "${GREY}Configuration saved in $CONFIG_FILE.${NC}"
@@ -523,6 +713,13 @@ echo -e "${GREY}opt_data_dir: ${YELLOW}\"$OPT_DATA_DIR\"${NC}"
 echo -e "${GREY}tools_dir: ${YELLOW}\"$TOOLS_DIR\"${NC}"
 echo -e "${GREY}scripts_dir: ${YELLOW}\"$SCRIPTS_DIR\"${NC}"
 echo -e "${GREY}pipelines_dir: ${YELLOW}\"$PIPELINES_DIR\"${NC}\n"
+
+echo -e "${GREY}# runner: orchestrierte Setups (AAT/TID)${NC}"
+echo -e "${GREY}runner_enabled: ${YELLOW}\"$RUNNER_ENABLED\"${NC}"
+echo -e "${GREY}runner_default_mode: ${YELLOW}\"$RUNNER_DEFAULT_MODE\"${NC}"
+echo -e "${GREY}runner_sync_before_run: ${YELLOW}\"$RUNNER_SYNC_BEFORE_RUN\"${NC}"
+echo -e "${GREY}runner_work_dir: ${YELLOW}\"$RUNNER_WORK_DIR\"${NC}"
+echo -e "${GREY}runner_log_dir: ${YELLOW}\"$RUNNER_LOG_DIR\"${NC}\n"
 
 echo -e "${GREY}# log_file: Pfad zur Logdatei + log_level: Log-Level${NC}"
 echo -e "${GREY}log_file: ${YELLOW}\"$LOG_FILE\" ${GREY}log_level: ${YELLOW}\"$LOG_LEVEL\"${NC}\n"
