@@ -113,7 +113,7 @@ flowchart TD
 ### Einzeiler
 
 ```bash
-SOTBRANCH=${SOTBRANCH:-production} && AATBRANCH=${AATBRANCH:-production} && TIDBRANCH=${TIDBRANCH:-production}
+SOTBRANCH=${SOTBRANCH:-production} && AATBRANCH=${AATBRANCH:-main} && TIDBRANCH=${TIDBRANCH:-main}
 curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${SOTBRANCH}/setup/setup_sot.sh" \
   | bash -s -- -branch "$SOTBRANCH" -port "22" && \
   SOT integrations aat_sync --branch "$AATBRANCH" && \
