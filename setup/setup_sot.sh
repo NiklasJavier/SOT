@@ -143,6 +143,22 @@ generate_dynamic_defaults() {
         PIPELINES_DIR="$CLONE_DIR/pipelines"
     fi
 
+    if [[ -z "$ANSIBLE_LOCAL_DIR" || "$ANSIBLE_LOCAL_DIR" == "__GENERATE_ANSIBLE_LOCAL_DIR__" ]]; then
+        ANSIBLE_LOCAL_DIR="$MODULES_DIR/ansible"
+    fi
+
+    if [[ -z "$OVERRIDES_DIR" || "$OVERRIDES_DIR" == "__GENERATE_OVERRIDES_DIR__" ]]; then
+        OVERRIDES_DIR="$CLONE_DIR/services/overrides"
+    fi
+
+    if [[ -z "$ANSIBLE_LOCAL_ENABLED" ]]; then
+        ANSIBLE_LOCAL_ENABLED="true"
+    fi
+
+    if [[ -z "$ANSIBLE_LOCAL_PRIORITY" ]]; then
+        ANSIBLE_LOCAL_PRIORITY="true"
+    fi
+
     if [[ -z "$OPT_DATA_DIR" || "$OPT_DATA_DIR" == "__GENERATE_OPT_DATA_DIR__" ]]; then
         OPT_DATA_DIR="/opt/$SYSTEM_NAME"
     fi
@@ -161,6 +177,14 @@ generate_dynamic_defaults() {
 
     if [[ -z "$RUNNER_SYNC_BEFORE_RUN" ]]; then
         RUNNER_SYNC_BEFORE_RUN="true"
+    fi
+
+    if [[ -z "$AAT_BRANCH" ]]; then
+        AAT_BRANCH="main"
+    fi
+
+    if [[ -z "$TID_BRANCH" ]]; then
+        TID_BRANCH="main"
     fi
 
     if [[ -z "$RUNNER_ENABLED" ]]; then
@@ -317,6 +341,60 @@ while [[ "$#" -gt 0 ]]; do
         TID_ENABLED="$1"
       else
         echo -e "${RED}Invalid value for tid_enabled. Please use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
+    -local_ansible_enabled)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        ANSIBLE_LOCAL_ENABLED="$1"
+      else
+        echo -e "${RED}Invalid value for local_ansible_enabled. Please use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
+    -local_ansible_priority)
+      shift
+      if [[ "$1" == "true" || "$1" == "false" ]]; then
+        ANSIBLE_LOCAL_PRIORITY="$1"
+      else
+        echo -e "${RED}Invalid value for local_ansible_priority. Please use 'true' or 'false'.${NC}"
+        exit 1
+      fi
+      ;;
+    -local_ansible_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        ANSIBLE_LOCAL_DIR="$1"
+      else
+        echo -e "${RED}No directory specified with -local_ansible_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -overrides_dir)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        OVERRIDES_DIR="$1"
+      else
+        echo -e "${RED}No directory specified with -overrides_dir.${NC}"
+        exit 1
+      fi
+      ;;
+    -aat_branch)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        AAT_BRANCH="$1"
+      else
+        echo -e "${RED}No branch specified with -aat_branch.${NC}"
+        exit 1
+      fi
+      ;;
+    -tid_branch)
+      shift
+      if [[ -n "$1" && "$1" != -* ]]; then
+        TID_BRANCH="$1"
+      else
+        echo -e "${RED}No branch specified with -tid_branch.${NC}"
         exit 1
       fi
       ;;
@@ -538,6 +616,11 @@ if [ ! -d "$SETTINGS_DIR" ]; then
 else
     echo -e "${GREY}.settings folder already exists in $BRANCH_DIR...${NC}"
 fi
+# Ensure overrides directory exists for environment-specific settings
+if [ ! -d "$OVERRIDES_DIR" ]; then
+    echo -e "${GREY}Creating overrides directory at $OVERRIDES_DIR...${NC}"
+    mkdir -p "$OVERRIDES_DIR"
+fi
 # Konfigurationsdatei erstellen
 touch -f "$SETTINGS_DIR/config.yaml"
 }
@@ -692,6 +775,14 @@ scripts_dir: "$SCRIPTS_DIR"
 # Dieses Verzeichnis enthält die Dateien für Jenkins, GitLab CI oder andere CI/CD-Tools, die in Automatisierungsprozesse integriert sind.
 pipelines_dir: "$PIPELINES_DIR"
 
+# Lokale Ansible-Steuerung: Aktiviert lokale Playbooks und priorisiert sie vor externen Integrationen.
+ansible_local_enabled: "$ANSIBLE_LOCAL_ENABLED"
+ansible_local_priority: "$ANSIBLE_LOCAL_PRIORITY"
+ansible_local_dir: "$ANSIBLE_LOCAL_DIR"
+
+# overrides_dir: Pfad für environment-spezifische Konfigurationsdateien innerhalb von services/overrides.
+overrides_dir: "$OVERRIDES_DIR"
+
 # Diese Variable wird verwendet, um den aktuellen Benutzer im System zu identifizieren.
 # Der Wert von $USERNAME wird zur Laufzeit aus der Umgebung übernommen, sodass keine manuelle Eingabe erforderlich ist.
 username: "$USERNAME"
@@ -720,11 +811,13 @@ branch: "$BRANCH"
 aat_enabled: "$AAT_ENABLED"
 aat_repo_url: "$AAT_REPO_URL"
 aat_dir: "$AAT_DIR"
+aat_branch: "$AAT_BRANCH"
 
 # TID (Terraform Infrastructure Deployment) Integration
 tid_enabled: "$TID_ENABLED"
 tid_repo_url: "$TID_REPO_URL"
 tid_dir: "$TID_DIR"
+tid_branch: "$TID_BRANCH"
 
 # Runner (dynamische Playbook/Terraform-Ausführung)
 runner_enabled: "$RUNNER_ENABLED"

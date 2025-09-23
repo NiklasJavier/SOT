@@ -37,9 +37,11 @@ installiert benötigte Werkzeuge und stellt modulare Playbooks sowie Terraform-E
   legt Branch-spezifische Konfigurationsordner unter `setup/<branch>/.settings/` an und schreibt
   eine vollständige `config.yaml`, inklusive Vault-Pfaden, Runner-Parametern sowie Modul-/Skript-
   Verzeichnissen.【F:setup/setup_sot.sh†L122-L189】【F:setup/setup_sot.sh†L640-L792】
-- 🧰 **Modularisierung wie in AAT/TID** – Alle Werkzeuge liegen unter `modules/`.
-  `trigger_playbook.sh` kümmert sich um Inventare, Ansible-Konfiguration und optionale Docker-Installation,
-  während `modules/docker/` und `modules/sdkman/` dedizierte Installationsskripte bereitstellen.【F:modules/ansible/trigger_playbook.sh†L9-L78】【F:setup/install_tools.sh†L11-L82】
+- 🧰 **Lokale Priorität & externe Integrationen** – Alle Werkzeuge liegen unter `modules/`.
+  Lokale Playbooks in `modules/ansible/` werden vom Runner bevorzugt und erst wenn kein Treffer
+  vorhanden ist, greift SOT auf die synchronisierten AAT-Playbooks zurück.【F:scripts/runner.sh†L131-L214】【F:scripts/runner.sh†L432-L542】
+  Terraform-Module befinden sich ausschließlich im TID-Repository; SOT kümmert sich um das Syncen
+  und die Ausführung.【F:scripts/runner.sh†L265-L364】【F:scripts/integrations/tid_sync.sh†L1-L113】
 - 🔄 **Repository-Sync & Runner** – `SOT aat sync` / `SOT tid sync` aktualisieren optionale Repos
   auf Basis der Konfiguration. `SOT runner` orchestriert Ad-hoc-Ansible- und Terraform-Läufe,
   erkennt Inventories/Stacks automatisch und protokolliert alle Befehle mit Zeitstempel.【F:scripts/integrations/aat_sync.sh†L3-L78】【F:scripts/integrations/tid_sync.sh†L3-L77】【F:scripts/runner.sh†L5-L399】
@@ -65,6 +67,12 @@ flowchart TD
         CLI --> RUN
     end
 
+    subgraph LOCAL["Lokale Ansible-Module"]
+        LPL["Playbooks / Rollen / Inventories"]
+        LDIR["Pfad: modules/ansible"]
+        LPL --> LDIR
+    end
+
     subgraph AAT["AAT — Ansible Automation Tools"]
         APL["Playbooks / Rollen / Inventories"]
         AATDIR["Pfad: aat_dir (z. B. /opt/AAT)"]
@@ -77,15 +85,16 @@ flowchart TD
         MOD --> TIDDIR
     end
 
-    CLI -- "SOT aat sync" --> AAT
-    CLI -- "SOT tid sync" --> TID
-    CLI -- "ansible-playbook" --> APL
-    CLI -- "terraform" --> MOD
-    RUN -- "SOT runner ansible" --> APL
+    CLI -- "SOT integrations aat_sync" --> AAT
+    CLI -- "SOT integrations tid_sync" --> TID
+    RUN -- "Lokale Playbooks (Priorität)" --> LPL
+    RUN -- "Fallback auf AAT" --> APL
     RUN -- "SOT runner terraform" --> MOD
 
-    SETUP["setup_sot.sh\n- klont/aktualisiert Repo\n- schreibt config.yaml\n- verlinkt SOT"]
+    SETUP["setup_sot.sh\n- schreibt config.yaml\n- legt overrides an\n- verlinkt SOT"]
     SETUP --- CLI
+    CLI -- "validate_sync" --> AAT
+    CLI -- "validate_sync" --> TID
 ```
 
 ---
@@ -106,7 +115,11 @@ flowchart TD
 ```bash
 BRANCH=${BRANCH:-production}
 curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${BRANCH}/setup/setup_sot.sh" \
-  | bash -s -- -branch $BRANCH -port "22" && SOT setup
+  | bash -s -- -branch "$BRANCH" -port "22" && \
+  SOT integrations aat_sync --branch "$BRANCH" && \
+  SOT integrations tid_sync --branch "$BRANCH" && \
+  SOT integrations validate_sync && \
+  SOT setup
 ```
 
 > 🔁 Für Tests kann `BRANCH=dev` oder `BRANCH=staging` gesetzt werden. Ohne Vorgabe wird `production` verwendet.
@@ -115,11 +128,13 @@ curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${BRANCH}/setup/s
 
 1. `setup_sot.sh` klont das Repository (Standard `/etc/DevOpsToolkit`) und erstellt
    branch-spezifische `.settings`-Verzeichnisse unter `setup/<branch>/`.【F:setup/setup_sot.sh†L205-L367】【F:setup/setup_sot.sh†L426-L459】
-2. `config.yaml` wird mit dynamischen Werten (Systemname, Ports, Vault, Runner, Module-Verzeichnis)
-   gefüllt.【F:setup/setup_sot.sh†L640-L742】
+2. `config.yaml` wird mit dynamischen Werten (Systemname, Ports, Vault, Runner, Module-Verzeichnis,
+   lokale Ansible-Pfade, Overrides-Verzeichnis) gefüllt.【F:setup/setup_sot.sh†L640-L742】
 3. Das CLI wird nach `/usr/sbin/SOT` verlinkt; alle Skripte erhalten Ausführungsrechte.【F:setup/setup_sot.sh†L517-L578】
-4. `setup/install_tools.sh` installiert optionale Tools (Ansible, Docker, SDKMAN!).【F:setup/setup_sot.sh†L745-L756】【F:setup/install_tools.sh†L14-L82】
-5. Zum Abschluss erhalten Sie eine Übersicht der wichtigsten Parameter.【F:setup/setup_sot.sh†L759-L792】
+4. `SOT integrations aat_sync` / `tid_sync` ziehen die externen Repos anhand der konfigurierten Branches
+   und `SOT integrations validate_sync` prüft die Ergebnisse.【F:scripts/integrations/aat_sync.sh†L1-L127】【F:scripts/integrations/tid_sync.sh†L1-L128】【F:scripts/integrations/validate_sync.sh†L1-L86】
+5. `setup/install_tools.sh` installiert optionale Tools (Ansible, Docker, SDKMAN!).【F:setup/setup_sot.sh†L745-L756】【F:setup/install_tools.sh†L14-L82】
+6. Zum Abschluss erhalten Sie eine Übersicht der wichtigsten Parameter.【F:setup/setup_sot.sh†L759-L792】
 
 > 💡 Standardbranch ist `production`. Für Tests empfiehlt sich `-branch dev`.
 
@@ -137,6 +152,14 @@ curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${BRANCH}/setup/s
 | `-aat_*` | `-aat_enabled true` | Steuert die optionale AAT-Integration (Repo-URL, Zielpfad).【F:setup/setup_sot.sh†L278-L330】【F:setup/setup_sot.sh†L721-L728】 |
 | `-tid_*` | `-tid_dir /srv/TID` | Steuert die optionale TID-Integration.【F:setup/setup_sot.sh†L331-L380】【F:setup/setup_sot.sh†L726-L739】 |
 | `-runner_*` | `-runner_mode ansible` | Konfiguriert Runner (Default-Modus, Sync-Verhalten, Verzeichnisse).【F:setup/setup_sot.sh†L150-L168】【F:setup/setup_sot.sh†L731-L739】 |
+
+Zusätzlich stehen feinere Schalter zur Verfügung:
+
+- `-local_ansible_enabled true|false` – Aktiviert oder deaktiviert lokale Playbooks komplett.【F:setup/setup_sot.sh†L347-L355】
+- `-local_ansible_priority true|false` – Steuert, ob lokale Playbooks Vorrang vor AAT haben.【F:setup/setup_sot.sh†L356-L364】
+- `-local_ansible_dir <pfad>` – Überschreibt das lokale Playbook-Verzeichnis (Standard: `modules/ansible`).【F:setup/setup_sot.sh†L365-L373】
+- `-overrides_dir <pfad>` – Legt das Zielverzeichnis für `services/overrides` fest.【F:setup/setup_sot.sh†L374-L382】
+- `-aat_branch <name>` / `-tid_branch <name>` – Syncen die Integrationen aus alternativen Branches.【F:setup/setup_sot.sh†L383-L400】
 
 ---
 
@@ -157,9 +180,10 @@ SOT [unterordner] <kommando> [optionen]
 |--------|-----|-------|
 | `SOT setup` | `scripts/setup.sh` | Führt das Playbook `host_setup.yml` über den Trigger aus (inkl. Inventory-Auflösung, Docker-/Ansible-Prüfung).【F:scripts/setup.sh†L9-L26】【F:modules/ansible/trigger_playbook.sh†L9-L78】 |
 | `SOT vault` | `scripts/vault.sh` | Öffnet den Vault interaktiv über eine temporäre Passwortdatei.【F:scripts/vault.sh†L10-L57】 |
-| `SOT runner` | `scripts/runner.sh` | Dynamische Orchestrierung von Ansible/Terraform inkl. Repo-Sync, Inventar-/Stack-Erkennung und Logging.【F:scripts/runner.sh†L5-L399】 |
-| `SOT aat sync` | `scripts/integrations/aat_sync.sh` | Klont oder aktualisiert das AAT-Repository gemäß `config.yaml`.【F:scripts/integrations/aat_sync.sh†L3-L78】 |
-| `SOT tid sync` | `scripts/integrations/tid_sync.sh` | Synchronisiert das TID-Repository mit Fallback auf Recloning.【F:scripts/integrations/tid_sync.sh†L3-L77】 |
+| `SOT runner` | `scripts/runner.sh` | Orchestriert lokale Playbooks mit Vorrang, greift bei Bedarf auf AAT zurück und führt Terraform über TID aus.【F:scripts/runner.sh†L131-L214】【F:scripts/runner.sh†L432-L586】 |
+| `SOT aat sync` | `scripts/integrations/aat_sync.sh` | Klont oder aktualisiert das AAT-Repository inkl. Branch-Auswahl.【F:scripts/integrations/aat_sync.sh†L1-L127】 |
+| `SOT tid sync` | `scripts/integrations/tid_sync.sh` | Synchronisiert das TID-Repository mit Branch-Steuerung und Fallback auf Recloning.【F:scripts/integrations/tid_sync.sh†L1-L128】 |
+| `SOT integrations validate_sync` | `scripts/integrations/validate_sync.sh` | Prüft, ob AAT/TID korrekt synchronisiert und Schlüsseldateien vorhanden sind.【F:scripts/integrations/validate_sync.sh†L1-L86】 |
 | `SOT debug update` | `scripts/debug/update.sh` | Aktualisiert den bestehenden Clone (z. B. nach Git-Änderungen). |
 | `SOT debug delete` | `scripts/debug/delete.sh` | Entfernt Toolkit, Vault und Symlink kontrolliert. |
 | `SOT debug cleanup_old_users` | `scripts/debug/cleanup_old_users.sh` | Bereinigt Testbenutzer (`/home/<A-Z>{11}`) und UFW-Regeln nach Rückfrage. |
@@ -182,6 +206,8 @@ SOT [unterordner] <kommando> [optionen]
 | `system_name`, `username` | Server-/Benutzerbezeichnungen für Ansible & Vault. | `SRV-ABCD1234`, `root` |
 | `ssh_port` | SSH-Port für Firewalls & Playbooks. | `282` |
 | `modules_dir`, `scripts_dir`, `pipelines_dir` | Verzeichnisse innerhalb des Clones. | `/etc/DevOpsToolkit/modules` |
+| `ansible_local_*` | Steuerung lokaler Playbooks (`enabled`, `priority`, `dir`). | `ansible_local_dir=/etc/DevOpsToolkit/modules/ansible` |
+| `overrides_dir` | Ablage für environment-spezifische Variablen (`services/overrides`). | `/etc/DevOpsToolkit/services/overrides` |
 | `tools` | Whitespace-separierte Liste für `setup/install_tools.sh` (SDKMAN!-Ketten via `sdkman:<kandidat>`). | `ansible docker sdkman:java=17,gradle` |
 | `vault_*` | Vault-Datei, Secret, Template, Benachrichtigungsadresse. | `/opt/SRV-.../vault.yml`, `<60 chars>` |
 | `aat_*`, `tid_*` | Steuerung optionaler Repos (URL, Zielpfad, Aktivierung). | siehe Tabelle oben |
@@ -193,16 +219,29 @@ Alle Skripte lesen `config.yaml` zeilenweise (`key: value`) und setzen daraus Sh
 
 ## Module & Integrationen
 
-### Ansible
+### Lokale Ansible-Inhalte
 
-- `modules/ansible` bildet die klassische Ansible-Struktur ab: globale `ansible.cfg`, Inventare,
-  Playbooks und Rollen orientieren sich an AAT.【F:modules/ansible/README.md†L1-L23】
-- Weitere Inventare können unter `modules/ansible/inventory/<name>/` abgelegt und über den
-  `inventory_key` des Triggers genutzt werden.【F:modules/ansible/trigger_playbook.sh†L9-L78】
+- `modules/ansible/` bleibt die erste Anlaufstelle für Playbooks, Inventare und Rollen. Der Runner
+  durchsucht dieses Verzeichnis vor jeder AAT-Integration.【F:scripts/runner.sh†L131-L214】
+- Branch- oder kundenbezogene Variablen können über `services/overrides/` abgelegt werden; das Setup
+  erzeugt das Verzeichnis automatisch.【F:setup/setup_sot.sh†L600-L614】【F:modules/ansible/config/load_config.yml†L2-L86】
+- `modules/ansible/trigger_playbook.sh` bleibt für direkte Aufrufe (`SOT setup`) zuständig und löst
+  Inventare inklusive lokaler Overrides auf.【F:modules/ansible/trigger_playbook.sh†L9-L78】
 
-### Terraform
+### AAT — Ansible Automation Tools
 
-- `modules/terraform` dient als Platzhalter für lokale Module/Stacks, angelehnt an die Struktur von TID.【F:modules/terraform/README.md†L1-L11】
+- `SOT integrations aat_sync` aktualisiert das externe Repository und erlaubt Branch-Auswahl.【F:scripts/integrations/aat_sync.sh†L1-L127】
+- Der Runner nutzt AAT nur, wenn kein passendes lokales Playbook gefunden wird oder wenn lokale
+  Playbooks deaktiviert sind.【F:scripts/runner.sh†L131-L214】【F:scripts/runner.sh†L480-L552】
+- `SOT integrations validate_sync` prüft nach einem Sync, ob zentrale Dateien wie `playbooks/site.yml`
+  verfügbar sind.【F:scripts/integrations/validate_sync.sh†L1-L86】
+
+### TID — Terraform Infrastructure Deployment
+
+- Terraform-Code lebt vollständig im TID-Repository; lokale Module unter `modules/terraform` wurden entfernt.
+  `SOT integrations tid_sync` sorgt für einen sauberen Clone inklusive Branch-Steuerung.【F:scripts/integrations/tid_sync.sh†L1-L128】
+- `SOT runner terraform` führt Stacks aus dem synchronisierten TID-Verzeichnis aus (Stacks, Services,
+  Var-Dateien).【F:scripts/runner.sh†L265-L364】【F:scripts/runner.sh†L586-L637】
 - `SOT runner terraform` erkennt Arbeitsverzeichnisse, `.tfvars`-Dateien und Workspaces automatisch
   und führt `plan`, `apply`, `destroy` inkl. Logging aus.【F:scripts/runner.sh†L294-L357】【F:scripts/runner.sh†L200-L206】
 
@@ -233,15 +272,16 @@ setup/                  # Bootstrap-Skripte & CLI
 modules/                # Modul-Layer für Automatisierung
 ├── ansible/            # Ansible-Struktur inkl. Playbooks, Inventare, Rollen
 ├── docker/             # Docker-Installationsskript + Compose-Templates
-├── sdkman/             # SDKMAN!-Installer
-└── terraform/          # Platzhalter für Terraform-Module/Stacks
+└── sdkman/             # SDKMAN!-Installer
 scripts/
 ├── setup.sh            # Standard-Playbook-Trigger
-├── runner.sh           # Runner-Orchestrierung
+├── runner.sh           # Runner (lokale Priorität + Integrationen)
 ├── vault.sh            # Vault-Interaktion
 ├── debug/              # Wartungsskripte
-└── integrations/       # AAT-/TID-Syncs
-services/default_config.yml
+└── integrations/       # AAT-/TID-Syncs inkl. validate_sync
+services/
+├── default_config.yml
+└── overrides/          # Umgebungsspezifische Konfigurationen
 snippets/               # Wiederverwendbare Templates/Snippets
 ```
 
@@ -263,7 +303,7 @@ Weitere Details zu den Ansible-Ordnern finden sich in `modules/ansible/README.md
 - **Branch-Isolation**: Nutzen Sie separate Branches (`production`, `staging`, `dev`) für parallele Profile.
 - **Konfigurations-Overrides**: Legen Sie angepasste `config.yaml`-Dateien ab und übergeben Sie sie via `-config`.
 - **Module erweitern**: Platzieren Sie eigene Rollen/Playbooks unter `modules/ansible/roles` bzw. `modules/ansible/playbooks`.
-- **Regelmäßiger Sync**: Verwenden Sie `SOT aat sync` / `SOT tid sync` oder aktivieren Sie `runner_sync_before_run`, damit externe Repos stets aktuell sind.【F:scripts/integrations/aat_sync.sh†L46-L78】【F:scripts/runner.sh†L177-L195】
+- **Regelmäßiger Sync**: Verwenden Sie `SOT aat sync` / `SOT tid sync` oder aktivieren Sie `runner_sync_before_run`. Anschließend prüft `SOT integrations validate_sync`, ob Schlüsseldateien vorhanden sind.【F:scripts/integrations/aat_sync.sh†L46-L115】【F:scripts/integrations/validate_sync.sh†L1-L86】【F:scripts/runner.sh†L177-L195】
 - **Secrets schützen**: Rotieren Sie `vault_secret` bei Bedarf und nutzen Sie `SOT vault`, um Änderungen nachvollziehbar durchzuführen.【F:setup/setup_sot.sh†L170-L187】【F:scripts/vault.sh†L10-L57】
 
 ---

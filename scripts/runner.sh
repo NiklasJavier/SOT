@@ -115,6 +115,12 @@ RUNNER_LOG_DIR=$(get_cfg "runner_log_dir" "")
 RUNNER_DEFAULT_INVENTORY=$(get_cfg "runner_default_inventory" "")
 RUNNER_AAT_PLAYBOOK_DIR=$(get_cfg "runner_aat_playbook_dir" "")
 RUNNER_TID_STACK_DIR=$(get_cfg "runner_tid_stack_dir" "")
+ANSIBLE_LOCAL_ENABLED=$(get_cfg "ansible_local_enabled" "true")
+ANSIBLE_LOCAL_PRIORITY=$(get_cfg "ansible_local_priority" "true")
+ANSIBLE_LOCAL_DIR=$(get_cfg "ansible_local_dir" "$modules_dir/ansible")
+OVERRIDES_DIR=$(get_cfg "overrides_dir" "$clone_dir/services/overrides")
+AAT_BRANCH=$(get_cfg "aat_branch" "main")
+TID_BRANCH=$(get_cfg "tid_branch" "main")
 
 lower_branch="${branch,,}"
 
@@ -128,19 +134,24 @@ fi
 
 detect_inventory_candidate() {
   local env_candidate="$1"
-  local -a inventory_candidates=(
-    "$AAT_DIR/inventory/$env_candidate/hosts.yml"
-    "$AAT_DIR/inventory/$env_candidate/hosts.yaml"
-    "$AAT_DIR/inventory/$env_candidate.yml"
-    "$AAT_DIR/inventory/$env_candidate.yaml"
-    "$AAT_DIR/inventory/${env_candidate}_hosts.yml"
-    "$AAT_DIR/inventory/${env_candidate}_hosts.yaml"
-  )
-  for candidate in "${inventory_candidates[@]}"; do
-    if [[ -f "$candidate" ]]; then
-      echo "$candidate"
-      return 0
-    fi
+  [[ -n "$env_candidate" ]] || return 1
+
+  mapfile -t __inventory_roots < <(gather_inventory_roots)
+  for root in "${__inventory_roots[@]}"; do
+    local -a inventory_candidates=(
+      "$root/$env_candidate/hosts.yml"
+      "$root/$env_candidate/hosts.yaml"
+      "$root/$env_candidate.yml"
+      "$root/$env_candidate.yaml"
+      "$root/${env_candidate}_hosts.yml"
+      "$root/${env_candidate}_hosts.yaml"
+    )
+    for candidate in "${inventory_candidates[@]}"; do
+      if [[ -f "$candidate" ]]; then
+        echo "$candidate"
+        return 0
+      fi
+    done
   done
   return 1
 }
@@ -183,14 +194,14 @@ sync_repo() {
         echo "AAT-Integration ist deaktiviert und kann nicht synchronisiert werden." >&2
         return 1
       fi
-      bash "$clone_dir/scripts/integrations/aat_sync.sh" "$config_file"
+      bash "$clone_dir/scripts/integrations/aat_sync.sh" --branch "$AAT_BRANCH" "$config_file"
       ;;
     tid)
       if ! is_true "$TID_ENABLED"; then
         echo "TID-Integration ist deaktiviert und kann nicht synchronisiert werden." >&2
         return 1
       fi
-      bash "$clone_dir/scripts/integrations/tid_sync.sh" "$config_file"
+      bash "$clone_dir/scripts/integrations/tid_sync.sh" --branch "$TID_BRANCH" "$config_file"
       ;;
   esac
 }
@@ -205,6 +216,87 @@ run_with_logging() {
   } 2>&1 | tee -a "$log_path"
 }
 
+get_local_playbook_root() {
+  if [[ -d "$ANSIBLE_LOCAL_DIR/playbooks" ]]; then
+    echo "$ANSIBLE_LOCAL_DIR/playbooks"
+  else
+    echo "$ANSIBLE_LOCAL_DIR"
+  fi
+}
+
+gather_playbook_bases() {
+  declare -a ordered=()
+  declare -a local_candidates=()
+  declare -A seen=()
+
+  if is_true "$ANSIBLE_LOCAL_ENABLED"; then
+    local local_root
+    local_root=$(get_local_playbook_root)
+    local_candidates+=("$local_root")
+  fi
+
+  if is_true "$ANSIBLE_LOCAL_ENABLED" && is_true "$ANSIBLE_LOCAL_PRIORITY"; then
+    for dir in "${local_candidates[@]}"; do
+      ordered+=("$dir")
+    done
+  fi
+
+  if is_true "$AAT_ENABLED"; then
+    if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
+      ordered+=("$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR")
+    fi
+    ordered+=("$AAT_DIR")
+  fi
+
+  if is_true "$ANSIBLE_LOCAL_ENABLED" && ! is_true "$ANSIBLE_LOCAL_PRIORITY"; then
+    for dir in "${local_candidates[@]}"; do
+      ordered+=("$dir")
+    done
+  fi
+
+  for dir in "${ordered[@]}"; do
+    [[ -d "$dir" ]] || continue
+    if [[ -z "${seen[$dir]:-}" ]]; then
+      printf '%s\n' "$dir"
+      seen[$dir]=1
+    fi
+  done
+}
+
+gather_inventory_roots() {
+  declare -a ordered=()
+  declare -a local_candidates=()
+  declare -A seen=()
+
+  if is_true "$ANSIBLE_LOCAL_ENABLED"; then
+    local_candidates+=("$ANSIBLE_LOCAL_DIR/inventory")
+  fi
+
+  if is_true "$ANSIBLE_LOCAL_ENABLED" && is_true "$ANSIBLE_LOCAL_PRIORITY"; then
+    for dir in "${local_candidates[@]}"; do
+      ordered+=("$dir")
+    done
+  fi
+
+  if is_true "$AAT_ENABLED"; then
+    ordered+=("$AAT_DIR/inventory")
+  fi
+
+  if is_true "$ANSIBLE_LOCAL_ENABLED" && ! is_true "$ANSIBLE_LOCAL_PRIORITY"; then
+    for dir in "${local_candidates[@]}"; do
+      ordered+=("$dir")
+    done
+  fi
+
+  for dir in "${ordered[@]}"; do
+    [[ -d "$dir" ]] || continue
+    if [[ -z "${seen[$dir]:-}" ]]; then
+      printf '%s\n' "$dir"
+      seen[$dir]=1
+    fi
+  done
+}
+
 resolve_playbook_path() {
   local playbook_input="$1"
   if [[ "$playbook_input" == /* && -f "$playbook_input" ]]; then
@@ -212,26 +304,19 @@ resolve_playbook_path() {
     return 0
   fi
 
+  mapfile -t __playbook_bases < <(gather_playbook_bases)
   local -a candidates=()
-  if [[ "$playbook_input" == *.yml || "$playbook_input" == *.yaml ]]; then
-    candidates+=("$AAT_DIR/$playbook_input")
-    if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
-      candidates+=("$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input")
-    fi
-  else
-    if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
+  for base in "${__playbook_bases[@]}"; do
+    if [[ "$playbook_input" == *.yml || "$playbook_input" == *.yaml ]]; then
+      candidates+=("$base/$playbook_input")
+    else
       candidates+=(
-        "$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input.yml"
-        "$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input.yaml"
-        "$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR/$playbook_input"
+        "$base/$playbook_input.yml"
+        "$base/$playbook_input.yaml"
+        "$base/$playbook_input"
       )
     fi
-    candidates+=(
-      "$AAT_DIR/$playbook_input.yml"
-      "$AAT_DIR/$playbook_input.yaml"
-      "$AAT_DIR/$playbook_input"
-    )
-  fi
+  done
 
   for candidate in "${candidates[@]}"; do
     if [[ -f "$candidate" ]]; then
@@ -252,42 +337,86 @@ resolve_inventory_for_env() {
     echo "$inventory_path"
     return 0
   fi
-  local inventory_root="$AAT_DIR/inventory/$env_name"
-  if [[ -d "$inventory_root" ]]; then
-    if [[ -f "$inventory_root/hosts" ]]; then
-      echo "$inventory_root/hosts"
-      return 0
+  mapfile -t __inventory_roots < <(gather_inventory_roots)
+  for root in "${__inventory_roots[@]}"; do
+    local inventory_root="$root/$env_name"
+    if [[ -d "$inventory_root" ]]; then
+      if [[ -f "$inventory_root/hosts" ]]; then
+        echo "$inventory_root/hosts"
+        return 0
+      fi
+      if [[ -f "$inventory_root/hosts.ini" ]]; then
+        echo "$inventory_root/hosts.ini"
+        return 0
+      fi
+      if [[ -f "$inventory_root/hosts.yml" ]]; then
+        echo "$inventory_root/hosts.yml"
+        return 0
+      fi
+      if [[ -f "$inventory_root/hosts.yaml" ]]; then
+        echo "$inventory_root/hosts.yaml"
+        return 0
+      fi
     fi
-    if [[ -f "$inventory_root/hosts.ini" ]]; then
-      echo "$inventory_root/hosts.ini"
-      return 0
-    fi
-  fi
+  done
   return 1
 }
 
 list_playbooks() {
-  local base_dir="$AAT_DIR"
-  if [[ -n "$RUNNER_AAT_PLAYBOOK_DIR" ]]; then
-    base_dir="$AAT_DIR/$RUNNER_AAT_PLAYBOOK_DIR"
-  fi
-  if [[ -d "$base_dir" ]]; then
-    {
-      find "$base_dir" -maxdepth 2 -type f -iname "*.yml"
-      find "$base_dir" -maxdepth 2 -type f -iname "*.yaml"
-    } 2>/dev/null | sed "s|^$AAT_DIR/||" | sort -u
+  mapfile -t __playbook_bases < <(gather_playbook_bases)
+  declare -a entries=()
+  for base in "${__playbook_bases[@]}"; do
+    [[ -d "$base" ]] || continue
+    local label="LOCAL"
+    local root="$ANSIBLE_LOCAL_DIR"
+    if [[ "$base" == "$AAT_DIR"* ]]; then
+      label="AAT"
+      root="$AAT_DIR"
+    fi
+    while IFS= read -r item; do
+      local relative="$item"
+      if [[ "$label" == "AAT" ]]; then
+        relative="${item#"$AAT_DIR"/}"
+      else
+        relative="${item#"$ANSIBLE_LOCAL_DIR"/}"
+      fi
+      entries+=("$label:$relative")
+    done < <({
+      find "$base" -maxdepth 2 -type f -iname "*.yml"
+      find "$base" -maxdepth 2 -type f -iname "*.yaml"
+    } 2>/dev/null)
+  done
+  if [[ ${#entries[@]} -gt 0 ]]; then
+    printf '%s\n' "${entries[@]}" | sort -u
   fi
 }
 
 list_inventories() {
-  local inventory_root="$AAT_DIR/inventory"
-  if [[ -d "$inventory_root" ]]; then
-    {
-      find "$inventory_root" -maxdepth 2 -type f -name "hosts"
-      find "$inventory_root" -maxdepth 2 -type f -name "hosts.ini"
-      find "$inventory_root" -maxdepth 2 -type f -name "hosts.yml"
-      find "$inventory_root" -maxdepth 2 -type f -name "hosts.yaml"
-    } 2>/dev/null | sed "s|^$AAT_DIR/||" | sort -u
+  mapfile -t __inventory_roots < <(gather_inventory_roots)
+  declare -a entries=()
+  for root in "${__inventory_roots[@]}"; do
+    [[ -d "$root" ]] || continue
+    local label="LOCAL"
+    if [[ "$root" == "$AAT_DIR"* ]]; then
+      label="AAT"
+    fi
+    while IFS= read -r item; do
+      local relative="$item"
+      if [[ "$label" == "AAT" ]]; then
+        relative="${item#"$AAT_DIR"/}"
+      else
+        relative="${item#"$ANSIBLE_LOCAL_DIR"/}"
+      fi
+      entries+=("$label:$relative")
+    done < <({
+      find "$root" -maxdepth 2 -type f -name "hosts"
+      find "$root" -maxdepth 2 -type f -name "hosts.ini"
+      find "$root" -maxdepth 2 -type f -name "hosts.yml"
+      find "$root" -maxdepth 2 -type f -name "hosts.yaml"
+    } 2>/dev/null)
+  done
+  if [[ ${#entries[@]} -gt 0 ]]; then
+    printf '%s\n' "${entries[@]}" | sort -u
   fi
 }
 
@@ -398,37 +527,53 @@ Runner-Status für Branch '$branch'
   Sync vor Ausführung:       $RUNNER_SYNC_BEFORE_RUN
   Arbeitsverzeichnis:        $RUNNER_WORK_DIR
   Log-Verzeichnis:           $RUNNER_LOG_DIR
+  Lokale Ansible aktiviert:  $ANSIBLE_LOCAL_ENABLED
+  Lokale Priorität:          $ANSIBLE_LOCAL_PRIORITY
+  Lokaler Playbook-Pfad:     $ANSIBLE_LOCAL_DIR
+  Overrides-Verzeichnis:     ${OVERRIDES_DIR:-<nicht gesetzt>}
   AAT aktiviert:             $AAT_ENABLED
   AAT Verzeichnis:           $AAT_DIR
   AAT Repo:                  $AAT_REPO_URL
+  AAT Branch:                $AAT_BRANCH
   TID aktiviert:             $TID_ENABLED
   TID Verzeichnis:           $TID_DIR
   TID Repo:                  $TID_REPO_URL
+  TID Branch:                $TID_BRANCH
   Default Inventory:         ${RUNNER_DEFAULT_INVENTORY:-<nicht gesetzt>}
   AAT Playbook-Ordner:       ${RUNNER_AAT_PLAYBOOK_DIR:-<nicht gesetzt>}
   TID Stack-Ordner:          ${RUNNER_TID_STACK_DIR:-<nicht gesetzt>}
 EOF
-    if is_true "$AAT_ENABLED"; then
-      echo
-      echo "  Verfügbare AAT-Playbooks:"
-      if mapfile -t __runner_playbooks < <(list_playbooks); then
-        if [[ ${#__runner_playbooks[@]} -eq 0 ]]; then
-          echo "    <keine Playbooks gefunden>"
-        else
-          printf '    %s\n' "${__runner_playbooks[@]}"
-        fi
+    echo
+    echo "  Verfügbare Ansible-Playbooks:"
+    if mapfile -t __runner_playbooks < <(list_playbooks); then
+      if [[ ${#__runner_playbooks[@]} -eq 0 ]]; then
+        echo "    <keine Playbooks gefunden>"
+      else
+        for entry in "${__runner_playbooks[@]}"; do
+          case "$entry" in
+            LOCAL:*) echo "    [LOCAL] ${entry#LOCAL:}" ;;
+            AAT:*) echo "    [AAT] ${entry#AAT:}" ;;
+            *) echo "    $entry" ;;
+          esac
+        done
       fi
-      echo
-      echo "  Verfügbare Inventories:"
-      if mapfile -t __runner_inventories < <(list_inventories); then
-        if [[ ${#__runner_inventories[@]} -eq 0 ]]; then
-          echo "    <keine Inventories gefunden>"
-        else
-          printf '    %s\n' "${__runner_inventories[@]}"
-        fi
-      fi
-      unset __runner_playbooks __runner_inventories
     fi
+    echo
+    echo "  Verfügbare Inventories:"
+    if mapfile -t __runner_inventories < <(list_inventories); then
+      if [[ ${#__runner_inventories[@]} -eq 0 ]]; then
+        echo "    <keine Inventories gefunden>"
+      else
+        for entry in "${__runner_inventories[@]}"; do
+          case "$entry" in
+            LOCAL:*) echo "    [LOCAL] ${entry#LOCAL:}" ;;
+            AAT:*) echo "    [AAT] ${entry#AAT:}" ;;
+            *) echo "    $entry" ;;
+          esac
+        done
+      fi
+    fi
+    unset __runner_playbooks __runner_inventories
     if is_true "$TID_ENABLED"; then
       echo
       echo "  Terraform-Ziele:"
@@ -444,8 +589,8 @@ EOF
     exit 0
     ;;
   aat|ansible)
-    if ! is_true "$AAT_ENABLED"; then
-      echo "AAT-Integration ist deaktiviert. Aktivieren Sie sie über config.yaml." >&2
+    if ! is_true "$AAT_ENABLED" && ! is_true "$ANSIBLE_LOCAL_ENABLED"; then
+      echo "Keine Ansible-Quelle verfügbar. Aktivieren Sie lokale Playbooks oder die AAT-Integration." >&2
       exit 1
     fi
     USER_ARGS=("${USER_ARGS[@]:1}")
@@ -522,7 +667,9 @@ EOF
     done
 
     if $perform_sync || is_true "$RUNNER_SYNC_BEFORE_RUN"; then
-      sync_repo aat
+      if is_true "$AAT_ENABLED"; then
+        sync_repo aat
+      fi
     fi
 
     if [[ -n "$environment" ]]; then
@@ -548,7 +695,7 @@ EOF
     fi
 
     if ! playbook_path=$(resolve_playbook_path "$playbook"); then
-      echo "Playbook '$playbook' wurde im AAT-Repository nicht gefunden." >&2
+      echo "Playbook '$playbook' wurde weder lokal noch im AAT-Repository gefunden." >&2
       exit 1
     fi
 
