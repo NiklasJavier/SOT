@@ -376,9 +376,9 @@ list_playbooks() {
     while IFS= read -r item; do
       local relative="$item"
       if [[ "$label" == "AAT" ]]; then
-        relative="${item#$AAT_DIR/}"
+        relative="${item#"$AAT_DIR"/}"
       else
-        relative="${item#$ANSIBLE_LOCAL_DIR/}"
+        relative="${item#"$ANSIBLE_LOCAL_DIR"/}"
       fi
       entries+=("$label:$relative")
     done < <({
@@ -403,9 +403,9 @@ list_inventories() {
     while IFS= read -r item; do
       local relative="$item"
       if [[ "$label" == "AAT" ]]; then
-        relative="${item#$AAT_DIR/}"
+        relative="${item#"$AAT_DIR"/}"
       else
-        relative="${item#$ANSIBLE_LOCAL_DIR/}"
+        relative="${item#"$ANSIBLE_LOCAL_DIR"/}"
       fi
       entries+=("$label:$relative")
     done < <({
