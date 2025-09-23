@@ -28,7 +28,7 @@ Das **Server Operation Toolkit (SOT)** stellt ein wiederholbares Setup- und Oper
 - 🔐 **Sichere Konfiguration**: Setup erzeugt eine branch-spezifische `config.yaml` mit Vault-Pfaden, SSH-Parametern, Logs und Tool-Verzeichnissen; alle Skripte lesen daraus.【F:environments/setup_sot.sh†L400-L470】
 - 🤖 **Automation Ready**: Enthält Ansible-Playbooks, Rollen und Trigger, Docker-Installationsskripte sowie Templates für Traefik, Portainer und Grafana.【F:tools/ansible/trigger_playbook.sh†L1-L25】【F:tools/ansible/trigger_playbook.sh†L27-L34】
 - 🔄 **Repository-Sync**: `SOT aat sync` und `SOT tid sync` halten optionale Infrastruktur-Repos aktuell und respektieren die Einstellungen in `config.yaml`.【F:scripts/aat/sync.sh†L1-L74】【F:scripts/tid/sync.sh†L1-L71】
-- 🚀 **Runner-Orchestrierung**: `SOT runner` startet dynamische Ansible- oder Terraform-Läufe, synchronisiert optional AAT/TID und schreibt Logs in ein dediziertes Runner-Verzeichnis.【F:scripts/runner.sh†L1-L275】
+- 🚀 **Runner-Orchestrierung**: `SOT runner` startet dynamische Ansible- oder Terraform-Läufe, synchronisiert optional AAT/TID, listet verfügbare Playbooks/Stacks (`SOT runner list`) und schreibt Logs in ein dediziertes Runner-Verzeichnis.【F:scripts/runner.sh†L269-L444】
 - 📜 **Auditierbar**: Jeder CLI-Aufruf landet in `log_file` (Standard `/var/log/devops_commands.log`).【F:environments/sot_cli.sh†L25-L31】
 
 ---
@@ -139,7 +139,7 @@ SOT [unterordner] <kommando> [optionen]
 | `SOT debug cleanUpOldUsers` | `scripts/debug/cleanUpOldUsers.sh` | Löscht Testbenutzer (`/home/<A-Z>{11}`) und bereinigt UFW-Regeln außerhalb des konfigurierten SSH-Ports – **mit Abfrage**.【F:scripts/debug/cleanUpOldUsers.sh†L1-L63】 |
 | `SOT aat sync` | `scripts/aat/sync.sh` | Klont oder aktualisiert das Ansible-Zentralrepo entsprechend `config.yaml`.【F:scripts/aat/sync.sh†L1-L74】 |
 | `SOT tid sync` | `scripts/tid/sync.sh` | Klont oder aktualisiert das Terraform-Repo entsprechend `config.yaml`.【F:scripts/tid/sync.sh†L1-L71】 |
-| `SOT runner` | `scripts/runner.sh` | Führt dynamische Ansible- bzw. Terraform-Setups samt optionalem Repo-Sync und Logging aus.【F:scripts/runner.sh†L1-L275】 |
+| `SOT runner` | `scripts/runner.sh` | Führt dynamische Ansible-/Terraform-Setups samt optionalem Repo-Sync aus, listet Playbooks/Stacks (`list`) und bietet Komfort wie `--env`/Auto-`tfvars`-Erkennung.【F:scripts/runner.sh†L269-L444】【F:scripts/runner.sh†L457-L723】 |
 
 > ℹ️ Weitere Skripte können durch Hinzufügen von `.sh`-Dateien in `scripts/` oder Unterordnern ergänzt werden. Der Aufrufname entspricht dem Pfad (`SOT ordner kommando`).
 
@@ -194,9 +194,9 @@ Skripte lesen die Datei zeilenweise (`key: value`) und setzen daraus Shell-Varia
 ### Runner – dynamische Setups mit AAT & TID
 
 - `runner_enabled=true` sorgt dafür, dass `SOT runner` bereitsteht und eigene Arbeits-/Logverzeichnisse unterhalb von `runner_work_dir` und `runner_log_dir` anlegt (Standard: `/opt/<system>/runner` bzw. `…/logs`).【F:tools/ansible/config/default_config.yml†L26-L33】【F:environments/setup_sot.sh†L120-L139】【F:environments/setup_sot.sh†L520-L548】
-- `SOT runner list` zeigt die aufgelösten Pfade und hilft bei der Fehlersuche (AAT/TID aktiviert? Pfade korrekt?).【F:scripts/runner.sh†L87-L121】
-- `SOT runner ansible <playbook>` synchronisiert optional AAT, lädt `config.yaml` als Variablenbasis und führt das gewünschte Playbook inklusive Zusatzoptionen (`--inventory`, `--extra-var`, `--tags`, `--check` …) aus.【F:scripts/runner.sh†L123-L204】【F:scripts/runner.sh†L206-L246】
-- `SOT runner terraform <stack>` erledigt `terraform init`, Workspace-Handling sowie `plan/apply/destroy` inklusive Variablen- und Auto-Approve-Optionen.【F:scripts/runner.sh†L248-L275】
+- `SOT runner list` zeigt aufgelöste Pfade **und** listet Playbooks, Inventories sowie Terraform-Ziele aus den synchronisierten Repositories auf – ideal für einen dynamischen Überblick.【F:scripts/runner.sh†L269-L444】
+- `SOT runner ansible <playbook>` synchronisiert optional AAT, löst Playbooks ohne Dateiendung oder relative Pfade auf und wählt per `--env <name>` automatisch das passende Inventory (inkl. Normalisierung von Extra-Var-Dateien).【F:scripts/runner.sh†L208-L292】【F:scripts/runner.sh†L457-L582】
+- `SOT runner terraform <ziel>` erledigt `terraform init`, Workspace-Handling sowie `plan/apply/destroy`, erkennt sowohl Verzeichnisse als auch `services/*.tfvars` automatisch und hängt fehlende `-var-file`-Parameter an.【F:scripts/runner.sh†L294-L357】【F:scripts/runner.sh†L585-L723】
 - Alle Läufe landen mit Zeitstempel im Runner-Log, sodass wiederholbare Ad-hoc-Setups und Tests auditierbar bleiben.【F:scripts/runner.sh†L66-L85】【F:scripts/runner.sh†L198-L203】【F:scripts/runner.sh†L262-L270】
 
 ---

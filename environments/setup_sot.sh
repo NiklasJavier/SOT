@@ -552,20 +552,33 @@ echo -e "${GREY}Zeile wurde in $DEVOPS_CLI_FILE an Position 5 eingefügt.${NC}"
 }
 
 createCliWrapperSbinLink() {
-# Überprüfen, ob der Symlink bereits existiert
-if [ -L "$SYSTEMLINK_PATH" ]; then
-    # Wenn der Symlink existiert, überprüfen, ob er auf die richtige Datei zeigt
-    if [ "$(readlink "$SYSTEMLINK_PATH")" != "$DEVOPS_CLI_FILE" ]; then
-        echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert und zeigt auf einen anderen Pfad. Aktualisierung...${NC}"
-        sudo ln -sf "$DEVOPS_CLI_FILE" "$SYSTEMLINK_PATH"
+  ensure_symlink() {
+    local link_path="$1"
+
+    if [ -L "$link_path" ]; then
+      if [ "$(readlink "$link_path")" != "$DEVOPS_CLI_FILE" ]; then
+        echo -e "${GREY}Symlink $link_path existiert und zeigt auf einen anderen Pfad. Aktualisierung...${NC}"
+        sudo ln -sf "$DEVOPS_CLI_FILE" "$link_path"
+      else
+        echo -e "${GREY}Symlink $link_path existiert bereits und zeigt auf das richtige Ziel.${NC}"
+      fi
     else
-        echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert bereits und zeigt auf das richtige Ziel.${NC}"
+      echo -e "${GREY}Symlink $link_path existiert nicht. Erstellen...${NC}"
+      sudo ln -s "$DEVOPS_CLI_FILE" "$link_path"
     fi
-else
-    # Wenn der Symlink nicht existiert, erstelle ihn
-    echo -e "${GREY}Symlink $SYSTEMLINK_PATH existiert nicht. Erstellen...${NC}"
-    sudo ln -s "$DEVOPS_CLI_FILE" "$SYSTEMLINK_PATH"
-fi
+  }
+
+  ensure_symlink "$SYSTEMLINK_PATH"
+
+  local lowercase_link_dir
+  local lowercase_link_path
+  lowercase_link_dir="$(dirname "$SYSTEMLINK_PATH")"
+  lowercase_link_path="${lowercase_link_dir}/$(basename "$SYSTEMLINK_PATH" | tr '[:upper:]' '[:lower:]')"
+
+  if [ "$lowercase_link_path" != "$SYSTEMLINK_PATH" ]; then
+    ensure_symlink "$lowercase_link_path"
+  fi
+  unset lowercase_link_dir lowercase_link_path
 }
 
 makeScriptExecutable() {
