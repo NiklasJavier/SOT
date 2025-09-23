@@ -30,12 +30,12 @@ log_command() {
 
 # Funktion zur Anzeige der Hilfe
 show_help() {
-    echo "Usage: devops [foldername] <command> [args]"
+    echo "Usage: SOT [foldername] <command> [args]"
     echo ""
     echo "Available commands:"
     find "$scripts_dir" -type f -name "*.sh" | sed "s|^$scripts_dir/||" | sed "s|/| |g" | sed "s|.sh$||"
     echo ""
-    echo "Use 'devops help <command>' for more information on a specific command."
+    echo "Use 'SOT help <command>' for more information on a specific command."
 }
 
 # Funktion zur Anzeige der spezifischen Hilfe für einen Befehl
@@ -129,3 +129,5 @@ if [ $RESULT -ne 0 ]; then
 fi
 
 exit 0
+
+

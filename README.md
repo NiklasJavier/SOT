@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Shell](https://img.shields.io/badge/shell-bash-121011.svg?logo=gnu-bash&logoColor=white) ![Ansible](https://img.shields.io/badge/automation-ansible-EE0000.svg?logo=ansible&logoColor=white) ![Docker](https://img.shields.io/badge/containers-docker-2496ED.svg?logo=docker&logoColor=white)
 
 
-Das Repository stellt ein leichtgewichtiges DevOps-Toolkit bereit, mit dem sich Entwicklungs-, Staging- und Produktionsumgebungen auf einem Host schnell initialisieren, automatisieren und verwalten lassen. Kernstück ist das `devops` CLI, das Skripte strukturiert ausführt, Logs schreibt und eine Ansible-Vault-gestützte Konfiguration nutzt.
+Das Repository stellt ein leichtgewichtiges DevOps-Toolkit bereit, mit dem sich Entwicklungs-, Staging- und Produktionsumgebungen auf einem Host schnell initialisieren, automatisieren und verwalten lassen. Kernstück ist das `SOT` CLI, das Skripte strukturiert ausführt, Logs schreibt und eine Ansible-Vault-gestützte Konfiguration nutzt.
 
 
 ### Architektur (Mermaid)
@@ -11,7 +11,7 @@ Das Repository stellt ein leichtgewichtiges DevOps-Toolkit bereit, mit dem sich 
 ```mermaid
 flowchart TD
     subgraph SOT["SOT — Server Operation Toolkit"]
-        CLI["devops CLI\n(environments/devops_cli.sh)"]
+        CLI["SOT CLI\n(environments/sot_cli.sh)"]
         CFG["config.yaml\n(environments/<branch>/.settings)"]
         VLT["Vault (Ansible Vault)"]
         LOG["Logging\n/var/log/devops_commands.log"]
@@ -32,27 +32,27 @@ flowchart TD
         MOD --> TIDDIR
     end
 
-    CLI -- "devops aat sync" --> AAT
-    CLI -- "devops tid sync" --> TID
+    CLI -- "SOT aat sync" --> AAT
+    CLI -- "SOT tid sync" --> TID
     CLI -- "ansible-playbook ..." --> APL
     CLI -- "terraform init/plan/apply" --> MOD
 
-    SETUP["setup_devops_toolkit.sh\\n- klont/aktualisiert Repo\\n- schreibt config.yaml\\n- verlinkt devops"]
+    SETUP["setup_sot.sh\\n- klont/aktualisiert Repo\\n- schreibt config.yaml\\n- verlinkt SOT"]
     SETUP --- CLI
 ```
 
 ## Kurzüberblick (Cheat Sheet)
 
-- Ziel: Einheitliches Setup/Operate-CLI (`devops`) mit Logging und sicherer Parameterverwaltung (Ansible Vault)
-- Setup: `environments/setup_devops_toolkit.sh` klont nach `/etc/DevOpsToolkit`, erzeugt `config.yaml`, verlinkt `/usr/sbin/devops`
-- CLI: `devops [ordner] <kommando> [args]`, `devops help | cat`, Logging nach `log_file`
+- Ziel: Einheitliches Setup/Operate-CLI (`SOT`) mit Logging und sicherer Parameterverwaltung (Ansible Vault)
+- Setup: `environments/setup_sot.sh` klont nach `/etc/DevOpsToolkit`, erzeugt `config.yaml`, verlinkt `/usr/sbin/SOT`
+- CLI: `SOT [ordner] <kommando> [args]`, `SOT help | cat`, Logging nach `log_file`
 - Config: `environments/<branch>/.settings/config.yaml` (u. a. `system_name`, `ssh_port`, `opt_data_dir`, `vault_*`)
 - Vault: `devops vault` und `${opt_data_dir}/openVault.sh`, Secret sicher verwahren/entfernen
 - Wichtige Kommandos: `devops setup`, `devops debug update`, `devops debug delete`
 - Ansible/Docker: Playbooks unter `tools/ansible/...`, Templates unter `tools/docker/templates/...`
 - Schnellstart:
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev -port "22" && devops setup
+  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh | bash -s -- -branch dev -port "22" && SOT setup
   ```
 
 ## Inhalt
@@ -81,8 +81,8 @@ flowchart TD
 
 ```text
 environments/
-  devops_cli.sh            # CLI Wrapper, wird als /usr/sbin/devops verlinkt
-  setup_devops_toolkit.sh  # Setup-/Bootstrap-Skript
+  sot_cli.sh               # CLI Wrapper, wird als /usr/sbin/SOT verlinkt
+  setup_sot.sh             # Setup-/Bootstrap-Skript
   install_tools.sh         # Installation konfigurierter Tools (z. B. ansible, docker)
   vault_content.j2         # Template für Vault-Startinhalt
 scripts/
@@ -103,12 +103,12 @@ tools/
 Initialisiert das Toolkit und führt anschließend das `setup`-Kommando aus:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev -port "22" && devops setup
+  curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh | bash -s -- -branch dev -port "22" && SOT setup
 ```
 
 Hinweise:
 - Der Einzeiler lädt das Setup-Skript aus diesem Repository und startet es mit Flags (siehe unten).
-- Das Setup-Skript klont intern das Toolkit-Repo nach `/etc/DevOpsToolkit` und verlinkt `environments/devops_cli.sh` nach `/usr/sbin/devops`.
+- Das Setup-Skript klont intern das Toolkit-Repo nach `/etc/DevOpsToolkit` und verlinkt `environments/devops_cli.sh` nach `/usr/sbin/SOT`.
 
 ## Installation & Flags
 
@@ -116,16 +116,16 @@ Beispiele nach Zielumgebung:
 
 ```bash
 # Produktion
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch production
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh | bash -s -- -branch production
 
 # Staging
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch staging
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh | bash -s -- -branch staging
 
 # Entwicklung
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh | bash -s -- -branch dev
 
 # Entwicklung + SSH-Key
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh | bash -s -- -branch dev -key "ssh-pub-key"
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh | bash -s -- -branch dev -key "ssh-pub-key"
 ```
 
 Verfügbare Flags im Setup:
@@ -137,17 +137,17 @@ Verfügbare Flags im Setup:
 - `-port <Port>`: SSH-Port.
 - `-tools "ansible docker ..."`: zusätzliche Tools installieren.
 
-## `devops` CLI: Nutzung & Verhalten
+## `SOT` CLI: Nutzung & Verhalten
 
 Aufrufschema:
 
 ```bash
-devops [ordner] <kommando> [args]
+SOT [ordner] <kommando> [args]
 ```
 
 Eigenschaften:
 - Liest `config.yaml` und exportiert die Werte als Variablen.
-- Listet verfügbare Kommandos über `devops help` (Scan von `scripts/`).
+- Listet verfügbare Kommandos über `SOT help` (Scan von `scripts/`).
 - Führt Skripte aus `scripts/` oder `scripts/<ordner>/` aus und übergibt Standardargumente, u. a.: `tools_dir`, `CONFIG_FILE`, `username`, `vault_file`, `vault_secret`, `opt_data_dir`, `clone_dir`, `systemlink_path`, `log_file`, `branch`.
 - Schreibt Befehlslogs nach `log_file` (Standard: `/var/log/devops_commands.log`).
 - Fallback auf `help`, wenn ein Kommando nicht gefunden wird.
@@ -155,7 +155,7 @@ Eigenschaften:
 Beispiel:
 
 ```bash
-devops debug update
+SOT debug update
 ```
 
 ## Konfiguration (`config.yaml`)
@@ -185,7 +185,7 @@ SOT kann optional automatisch auf das zentrale Ansible-Repository AAT verweisen 
 
 ```bash
 # URL, Zielpfad, Aktivierung steuern
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh \
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh \
   | bash -s -- -branch dev -aat_url "https://github.com/NiklasJavier/AAT.git" -aat_dir "/opt/AAT" -aat_enabled true
 ```
 
@@ -204,7 +204,7 @@ SOT kann optional das Terraform-Repository TID (Proxmox/Hetzner-Deployment) bere
 ### Setup-Flags für TID
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_devops_toolkit.sh \
+curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/setup_sot.sh \
   | bash -s -- -branch dev -tid_url "https://github.com/NiklasJavier/TID.git" -tid_dir "/opt/TID" -tid_enabled true
 ```
 
@@ -212,7 +212,7 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/s
 
 - Repo synchronisieren:
   ```bash
-  devops tid sync
+  SOT tid sync
   ```
 - Beispiel (im TID-Verzeichnis, je nach Konfiguration):
   ```bash
@@ -226,7 +226,7 @@ curl -fsSL https://raw.githubusercontent.com/NiklasJavier/SOT/dev/environments/s
 - Verwaltung über Skripte, z. B.:
 
 ```bash
-devops vault
+SOT vault
 ${opt_data_dir}/openVault.sh   # öffnet Vault mit gesichertem Key
 ```
 
@@ -239,13 +239,13 @@ Empfehlung: Key sicher speichern und nach Setup entfernen.
 - `scripts/debug/delete.sh`: Aufräumen des Toolkits (Entfernen, Backup der Secrets im `opt_data_dir`).
 - `scripts/debug/update.sh`: Aktualisiert das Toolkit, behält eigene Anpassungen.
 
-Ausführung jeweils über `devops`:
+Ausführung jeweils über `SOT`:
 
 ```bash
-devops setup
-devops vault
-devops debug delete
-devops debug update
+SOT setup
+SOT vault
+SOT debug delete
+SOT debug update
 ```
 
 ## Tools: Ansible & Docker-Vorlagen
@@ -257,7 +257,7 @@ devops debug update
 
 ```bash
 # Nach Setup alle verfügbaren Kommandos anzeigen
-devops help | cat
+SOT help | cat
 
 # Beispiel: Traefik-Template prüfen/bereitstellen (manuell anpassen und deployen)
 ls "$tools_dir/docker/templates/traefik" | cat
@@ -266,7 +266,7 @@ ls "$tools_dir/docker/templates/traefik" | cat
 ansible-playbook -i "$tools_dir/ansible/host/hosts.ini" "$tools_dir/ansible/host/playbooks/host_setup.yml"
 
 # AAT synchronisieren (holt/aktualisiert zentrales Ansible-Repo laut config.yaml)
-devops aat sync
+SOT aat sync
 ```
 
 ### Robustheit im Setup

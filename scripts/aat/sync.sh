@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # aat sync: Synchronize the AAT repository based on values in config.yaml
-# This script is invoked via: devops aat sync
-# The devops CLI appends standard arguments including tools_dir, CONFIG_FILE, username, vault_file, vault_secret, opt_data_dir, clone_dir, systemlink_path, log_file, branch
+# This script is invoked via: SOT aat sync
+# The SOT CLI appends standard arguments including tools_dir, CONFIG_FILE, username, vault_file, vault_secret, opt_data_dir, clone_dir, systemlink_path, log_file, branch
 
 set -euo pipefail
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # tid sync: Synchronize the TID (Terraform Infrastructure Deployment) repository
-# Usage via devops: devops tid sync
+# Usage via SOT: SOT tid sync
 
 set -euo pipefail
 

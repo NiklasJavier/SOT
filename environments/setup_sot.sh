@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Wrapper to maintain script name compatibility if needed.
+# This file is a copy of the previous setup_devops_toolkit.sh with the same logic.
+
 # Farben für die Ausgabe
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -32,14 +35,14 @@ OPT_DATA_DIR="/opt/$SYSTEM_NAME" # Datenverzeichnis, in dem Anwendungsdaten gesp
 
 SETTINGS_DIR="" 
 CONFIG_FILE="" # Konfigurationsdatei für das Setup in Settings-Verzeichnis
-DEVOPS_CLI_FILE="$ENV_DIR/devops_cli.sh"
+DEVOPS_CLI_FILE="$ENV_DIR/sot_cli.sh"
 
 VAULT_FILE="$OPT_DATA_DIR/vault.yml" # Vault-Datei für sensible Daten (Ansible)
 VAULT_SECRET="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 60)" # Geheimer Schlüssel für die Vault-Datei
 VAULT_CONTENT="$ENV_DIR/vault_content.j2" # Vorlage für den Inhalt der Vault-Datei
 VAULT_MAIL="$USERNAME@" # E-Mail-Adresse für die Vault-Datei
 
-SYSLINK_PATH="/usr/sbin/devops" # Pfad für den Symlink
+SYSLINK_PATH="/usr/sbin/SOT" # Pfad für den Symlink
 LOG_LEVEL="info" # Log-Level für die Protokollierung debug, info, warn, error
 LOG_FILE="/var/log/devops_commands.log"
 
@@ -201,11 +204,10 @@ BRANCH_DIR="$ENV_DIR/$BRANCH" # Branch-Verzeichnis festlegen
 SETTINGS_DIR="$BRANCH_DIR/.settings" # Einstellungsverzeichnis festlegen
 CONFIG_FILE="$SETTINGS_DIR/config.yaml" # Konfigurationsdatei festlegen
 
-
 checkSettingsDirExist() {
     if [ -d "$SETTINGS_DIR" ]; then
         echo -e "${RED}Settings directory exists: ${YELLOW}$SETTINGS_DIR${NC}"
-        echo -e "${RED}Please use ${YELLOW}'devops debug update' ${RED}to apply the latest changes or ${YELLOW}'devops debug delete' ${RED}to remove the current setup.${NC}"
+        echo -e "${RED}Please use ${YELLOW}'SOT debug update' ${RED}to apply the latest changes or ${YELLOW}'SOT debug delete' ${RED}to remove the current setup.${NC}"
         kill -INT $$
         else
         echo -e "${GREY}Settings directory does not exist: ${YELLOW}$SETTINGS_DIR${NC}"
@@ -213,14 +215,14 @@ checkSettingsDirExist() {
 }
 
 startOverview() {
-echo -e "${PINK}    ____            ____            ";
-echo -e "${PINK}   / __ \___ _   __/ __ \____  _____";
-echo -e "${PINK}  / / / / _ \ | / / / / / __ \/ ___/";
-echo -e "${PINK} / /_/ /  __/ |/ / /_/ / /_/ (__  ) ";
-echo -e "${PINK}/_____/\___/|___/\____/ .___/____/  ";
-echo -e "${PINK}                     /_/            ";
-echo -e "${PINK}                                    ";
-echo -e "${PINK}                                    ";
+echo -e "${PINK}    ____            ____            "
+echo -e "${PINK}   / __ \___ _   __/ __ \____  _____"
+echo -e "${PINK}  / / / / _ \ | / / / / / __ \/ ___/"
+echo -e "${PINK} / /_/ /  __/ |/ / /_/ / /_/ (__  ) "
+echo -e "${PINK}/_____/\___/|___/\____/ .___/____/  "
+echo -e "${PINK}                     /_/            "
+echo -e "${PINK}                                    "
+echo -e "${PINK}                                    "
 # Debugging-Ausgabe (kann entfernt werden) 
 echo -e "${GREY}Branch: ${YELLOW}$BRANCH ${NC}"
 echo -e "${GREY}Full HostSetup: ${YELLOW}$FULL ${NC}"
@@ -235,9 +237,11 @@ echo -e "${GREY}Einstellungsverzeichnis: ${YELLOW}$SETTINGS_DIR ${NC}"
 echo -e "${GREY}Konfigurationsdatei: ${YELLOW}$CONFIG_FILE ${NC}"
 echo -e "${GREY}Skriptverzeichnis: ${YELLOW}$SCRIPTS_DIR ${NC}"
 echo -e "${GREY}Pipeline-Verzeichnis: ${YELLOW}$PIPELINES_DIR ${NC}"
+### show AAT/TID
 echo -e "${GREY}AAT URL: ${YELLOW}$AAT_REPO_URL ${NC}"
 echo -e "${GREY}AAT DIR: ${YELLOW}$AAT_DIR ${NC}"
 echo -e "${GREY}AAT Enabled: ${YELLOW}$AAT_ENABLED ${NC}"
+
 echo -e "${GREY}TID URL: ${YELLOW}$TID_REPO_URL ${NC}"
 echo -e "${GREY}TID DIR: ${YELLOW}$TID_DIR ${NC}"
 echo -e "${GREY}TID Enabled: ${YELLOW}$TID_ENABLED ${NC}"
@@ -252,6 +256,7 @@ if [ "$EUID" -ne 0 ]; then
     echo -e "${GREY}Running as root...${NC}"
 fi
 }
+
 
 copyAndSetTheRepository() {
 # Überprüfen, ob Git installiert ist
@@ -523,7 +528,7 @@ echo -e "${GREY}# log_file: Pfad zur Logdatei + log_level: Log-Level${NC}"
 echo -e "${GREY}log_file: ${YELLOW}\"$LOG_FILE\" ${GREY}log_level: ${YELLOW}\"$LOG_LEVEL\"${NC}\n"
 
 echo -e "${GREY}*** Playbooks can be started via commands ***${NC}"
-echo -e "${GREY}>>> To do this, use '${RED}devops${GREY}' to see a list of all possible actions.${NC}\n"
+echo -e "${GREY}>>> To do this, use '${RED}SOT${GREY}' to see a list of all possible actions.${NC}\n"
 }
 
 methods=(
