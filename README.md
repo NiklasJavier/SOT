@@ -138,6 +138,14 @@ curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${SOTBRANCH}/setu
 
 > 💡 Standardbranch ist `production`. Für Tests empfiehlt sich `-branch dev`.
 
+### Playbook aus dem dezentralen AAT-Repository ausführen
+
+```bash
+SOT aat run /opt/AAT/playbooks/test-playbook.yml
+```
+
+Der Befehl startet das angegebene Playbook direkt aus dem synchronisierten AAT-Verzeichnis.
+
 ---
 
 ## Setup-Flags & Optionen
