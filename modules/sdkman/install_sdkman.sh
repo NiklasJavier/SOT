@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+SUDO=""
+if command -v sudo >/dev/null 2>&1 && [[ ${EUID:-0} -ne 0 ]]; then
+    SUDO="sudo"
+fi
+
 GREEN='\033[0;32m'
 GREY='\033[1;90m'
 RED='\033[0;31m'
@@ -22,6 +27,28 @@ install_sdkman() {
         curl -s "https://get.sdkman.io" | bash
     else
         echo -e "${RED}curl is required to install SDKMAN!${NC}"
+        exit 1
+    fi
+}
+
+ensure_unzip() {
+    if command -v unzip >/dev/null 2>&1; then
+        return
+    fi
+
+    echo -e "${GREY}Installing required dependency ${YELLOW}unzip${GREY}.${NC}"
+
+    if command -v apt-get >/dev/null 2>&1; then
+        $SUDO apt-get update
+        $SUDO apt-get install -y unzip
+    elif command -v yum >/dev/null 2>&1; then
+        $SUDO yum install -y unzip
+    elif command -v dnf >/dev/null 2>&1; then
+        $SUDO dnf install -y unzip
+    elif command -v pacman >/dev/null 2>&1; then
+        $SUDO pacman -Sy --noconfirm unzip
+    else
+        echo -e "${RED}Unable to install unzip automatically. Please install it manually before running this script.${NC}"
         exit 1
     fi
 }
@@ -61,6 +88,7 @@ install_candidates() {
     done
 }
 
+ensure_unzip
 install_sdkman
 
 if [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
