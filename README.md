@@ -119,7 +119,8 @@ curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${SOTBRANCH}/setu
   SOT integrations aat_sync --branch "$AATBRANCH" && \
   SOT integrations tid_sync --branch "$TIDBRANCH" && \
   SOT integrations validate_sync && \
-  SOT setup
+  SOT setup && \
+  SOT aat run /opt/AAT/playbooks/test-playbook.yml
 ```
 
 > 🔁 Für Tests kann `BRANCH=dev` oder `BRANCH=staging` gesetzt werden. Ohne Vorgabe wird `production` verwendet.
