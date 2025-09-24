@@ -235,6 +235,7 @@ Alle Skripte lesen `config.yaml` zeilenweise (`key: value`) und setzen daraus Sh
   Playbooks deaktiviert sind.【F:scripts/runner.sh†L131-L214】【F:scripts/runner.sh†L480-L552】
 - `SOT integrations validate_sync` prüft nach einem Sync, ob zentrale Dateien wie `playbooks/site.yml`
   verfügbar sind.【F:scripts/integrations/validate_sync.sh†L1-L86】
+- Einen vollständigen Überblick über die verfügbaren Playbooks liefert die [AAT Playbook-Übersicht](https://github.com/NiklasJavier/AAT/blob/main/docs/README.md).
 
 ### TID — Terraform Infrastructure Deployment
 
@@ -244,6 +245,7 @@ Alle Skripte lesen `config.yaml` zeilenweise (`key: value`) und setzen daraus Sh
   Var-Dateien).【F:scripts/runner.sh†L265-L364】【F:scripts/runner.sh†L586-L637】
 - `SOT runner terraform` erkennt Arbeitsverzeichnisse, `.tfvars`-Dateien und Workspaces automatisch
   und führt `plan`, `apply`, `destroy` inkl. Logging aus.【F:scripts/runner.sh†L294-L357】【F:scripts/runner.sh†L200-L206】
+- Die [TID Service-Übersicht](https://github.com/NiklasJavier/TID/blob/main/docs/README.md) beschreibt alle bereitgestellten Terraform-Services und deren Struktur.
 
 ### Snippets & Templates
 
