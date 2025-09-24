@@ -1,4 +1,7 @@
 # SECRETS
+{% set ansible_fact_data = ansible_facts | default({}) %}
+{% set default_ipv4 = ansible_fact_data.get('default_ipv4', {}) %}
+{% set default_ip = default_ipv4.get('address', '127.0.0.1') %}
 db_password: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters+digits') }}"
 api_key: "{{ lookup('password', '/dev/null length=20 chars=ascii_letters+digits') }}"
 api_key3: "{{ lookup('password', '/dev/null length=50 chars=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.*') }}"
@@ -6,16 +9,16 @@ api_key4: "{{ lookup('password', '/dev/null length=50 chars=ABCDEFGHIJKLMNOPQRST
 api_key5: "{{ lookup('password', '/dev/null length=50 chars=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.*') }}"
 api_key6: "{{ lookup('password', '/dev/null length=50 chars=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.*') }}"
 user_name: "{{ lookup('password', '/dev/null length=5 chars=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz') }}"
-server_name: "{{ inventory_hostname }}"
-server_ip: "{{ ansible_default_ipv4.address }}"
-server_email: "{{ sot_config.vault_mail }}{{ ansible_default_ipv4.address }}"
+server_name: "{{ inventory_hostname | default('localhost') }}"
+server_ip: "{{ default_ip }}"
+server_email: "{{ sot_config.vault_mail }}{{ default_ip }}"
 opt_data_dir: "{{ sot_config.opt_data_dir }}"
 system_name: "{{ sot_config.system_name }}"
 username: "{{ sot_config.username }}"
 log_level: "{{ sot_config.log_level }}"
 log_file: "{{ sot_config.log_file }}"
-os_family: "{{ ansible_facts['os_family'] }}"
-kernel_version: "{{ ansible_facts['kernel'] }}"
+os_family: "{{ ansible_fact_data.get('os_family', 'unknown_os_family') }}"
+kernel_version: "{{ ansible_fact_data.get('kernel', 'unknown_kernel_version') }}"
 
 
 
