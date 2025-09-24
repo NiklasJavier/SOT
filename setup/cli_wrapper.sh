@@ -7,57 +7,128 @@ set -euo pipefail
 
 SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 CONFIG_FILE=${CONFIG_FILE:-"$SCRIPT_ROOT/services/default_config.yml"}
+CONFIG_LOADER="$SCRIPT_ROOT/setup/config_loader.py"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "Configuration file not found: $CONFIG_FILE" >&2
   exit 1
 fi
 
-# Konfigurationsdatei laden, falls vorhanden
-while IFS= read -r line; do
-  line="${line%%#*}"
-  line="${line%%$'\r'}"
-  [[ -z "${line//[[:space:]]/}" ]] && continue
-
-  # Nur Zeilen verarbeiten, die ein ":" enthalten
-  if grep -q ':' <<<"$line"; then
-    # Den Namen und den Wert extrahieren
-    var_name=$(cut -d ':' -f 1 <<<"$line" | xargs | tr ' ' '_')
-    var_value=$(cut -d ':' -f 2- <<<"$line" | xargs)
-
-    # Entferne die Anführungszeichen, wenn sie vorhanden sind
-    var_value=$(sed 's/^"\(.*\)"$/\1/' <<<"$var_value")
-
-    # Die Variable setzen
-    eval "$var_name=\"$var_value\""
+if [[ ! -x "$CONFIG_LOADER" ]]; then
+  if [[ -f "$CONFIG_LOADER" ]]; then
+    chmod +x "$CONFIG_LOADER" 2>/dev/null || true
   fi
-done < "$CONFIG_FILE"
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required to parse $CONFIG_FILE." >&2
+  exit 1
+fi
+
+read_config() {
+  local -a selected_keys=(
+    branch
+    system_name
+    username
+    ssh_port
+    log_level
+    log_file
+    use_defaults
+    tools
+    ssh_key_function_enabled
+    ssh_key_public
+    clone_dir
+    modules_dir
+    scripts_dir
+    pipelines_dir
+    ansible_local_enabled
+    ansible_local_priority
+    ansible_local_dir
+    overrides_dir
+    opt_data_dir
+    systemlink_path
+    vault_file
+    vault_secret
+    vault_content
+    vault_mail
+    aat_enabled
+    aat_repo_url
+    aat_dir
+    aat_branch
+    aat_inventory_path
+    aat_inventory_vars
+    tid_enabled
+    tid_repo_url
+    tid_dir
+    tid_branch
+    tid_inventory_path
+    tid_inventory_vars
+    runner_enabled
+    runner_default_mode
+    runner_sync_before_run
+    runner_work_dir
+    runner_log_dir
+    runner_default_inventory
+    runner_aat_playbook_dir
+    runner_tid_stack_dir
+  )
+
+  while IFS= read -r assignment; do
+    [[ -z "$assignment" ]] && continue
+    eval "$assignment"
+  done < <(python3 "$CONFIG_LOADER" "$CONFIG_FILE" --select "${selected_keys[@]}")
+}
+
+read_config
+
+DEFAULT_CLONE_DIR="/opt/sot"
+DEFAULT_MODULES_DIR="$DEFAULT_CLONE_DIR/modules"
+DEFAULT_SCRIPTS_DIR="$DEFAULT_CLONE_DIR/scripts"
+DEFAULT_OPT_DATA_DIR="/var/lib/sot"
+DEFAULT_VAULT_FILE="/etc/sot/vault.yml"
+DEFAULT_LOG_FILE="/var/log/sot/cli.log"
+
+if [[ -z "${clone_dir:-}" || "$clone_dir" == "__GENERATE_CLONE_DIR__" ]]; then
+  clone_dir="$DEFAULT_CLONE_DIR"
+fi
+
+if [[ ! -d "$clone_dir" ]]; then
+  clone_dir="$SCRIPT_ROOT"
+fi
 
 if [[ -z "${modules_dir:-}" && -n "${tools_dir:-}" ]]; then
   modules_dir="$tools_dir"
 fi
 
-DEFAULT_ROOT="$SCRIPT_ROOT"
-
 if [[ -z "${modules_dir:-}" || "$modules_dir" == "__GENERATE_MODULES_DIR__" ]]; then
-  modules_dir="$DEFAULT_ROOT/modules"
+  modules_dir="$DEFAULT_MODULES_DIR"
+fi
+
+if [[ ! -d "$modules_dir" ]]; then
+  modules_dir="$clone_dir/modules"
 fi
 
 if [[ -z "${scripts_dir:-}" || "$scripts_dir" == "__GENERATE_SCRIPTS_DIR__" ]]; then
-  scripts_dir="$DEFAULT_ROOT/scripts"
+  scripts_dir="$DEFAULT_SCRIPTS_DIR"
 fi
 
-if [[ -z "${clone_dir:-}" || "$clone_dir" == "__GENERATE_CLONE_DIR__" ]]; then
-  clone_dir="$DEFAULT_ROOT"
+if [[ ! -d "$scripts_dir" ]]; then
+  scripts_dir="$clone_dir/scripts"
 fi
+
+compat_scripts_dir="$scripts_dir/compat"
 
 if [[ -z "${opt_data_dir:-}" || "$opt_data_dir" == "__GENERATE_OPT_DATA_DIR__" ]]; then
-  opt_data_dir="$DEFAULT_ROOT/.sot-data"
+  opt_data_dir="$DEFAULT_OPT_DATA_DIR"
+fi
+
+if ! mkdir -p "$opt_data_dir" 2>/dev/null; then
+  opt_data_dir="$SCRIPT_ROOT/.sot-data"
   mkdir -p "$opt_data_dir"
 fi
 
 if [[ -z "${vault_file:-}" || "$vault_file" == "__GENERATE_VAULT_FILE__" ]]; then
-  vault_file="$DEFAULT_ROOT/setup/vault_template.j2"
+  vault_file="$DEFAULT_VAULT_FILE"
 fi
 
 if [[ -z "${vault_secret:-}" || "$vault_secret" == "__GENERATE_VAULT_SECRET__" ]]; then
@@ -66,6 +137,10 @@ fi
 
 if [[ -z "${username:-}" || "$username" == "__GENERATE_USERNAME__" ]]; then
   username="${USER:-sot-user}"
+fi
+
+if [[ -z "${log_file:-}" ]]; then
+  log_file="$DEFAULT_LOG_FILE"
 fi
 
 if [[ -n "${log_file:-}" ]]; then
@@ -117,7 +192,7 @@ invoke_integration_runner() {
   local branch_value="${!branch_var:-}"
   local inventory_path_value="${!inventory_path_var:-host.ini}"
   local inventory_vars_value="${!inventory_vars_var:-}"
-  local sync_script="$SCRIPT_ROOT/scripts/integrations/${integration}_sync.sh"
+  local sync_script="$SCRIPT_ROOT/scripts/${integration}/sync.sh"
 
   case "$integration" in
     aat)
@@ -164,14 +239,14 @@ invoke_integration_runner() {
 
   if [[ ! -x "$runner_path" ]]; then
     echo "runner.sh not found or not executable for ${integration^^} at $repo_dir." >&2
-    echo "Please ensure the repository is synchronised (e.g. 'SOT integrations ${integration}_sync')." >&2
+    echo "Please ensure the repository is synchronised (e.g. 'SOT ${integration} sync')." >&2
     return 1
   fi
 
   if $synced; then
-    local validate_script="$SCRIPT_ROOT/scripts/integrations/validate_sync.sh"
+    local validate_script="$SCRIPT_ROOT/scripts/${integration}/validate.sh"
     if [[ -x "$validate_script" && -f "$CONFIG_FILE" && "$CONFIG_FILE" == *"config.yaml" ]]; then
-      "$validate_script" "$CONFIG_FILE" || echo "Warning: validate_sync reported issues." >&2
+      "$validate_script" "$CONFIG_FILE" || echo "Warning: ${integration} validation reported issues." >&2
     fi
   fi
 
@@ -270,11 +345,12 @@ show_help() {
   if [[ ! -d "$scripts_dir" ]]; then
     echo "  (Keine Skripte gefunden - scripts_dir: $scripts_dir)"
   else
-    find "$scripts_dir" -maxdepth 3 -type f -name "*.sh" -print0 | while IFS= read -r -d '' script; do
-      rel_path="${script#"$scripts_dir/"}"
-      rel_path="${rel_path%.sh}"
-      echo "$rel_path" | tr '/' ' '
-    done | sort
+    find "$scripts_dir" -maxdepth 3 \( -path "$compat_scripts_dir" -o -path "$compat_scripts_dir/*" \) -prune -o -type f -name "*.sh" -print0 |
+      while IFS= read -r -d '' script; do
+        rel_path="${script#"$scripts_dir/"}"
+        rel_path="${rel_path%.sh}"
+        echo "$rel_path" | tr '/' ' '
+      done | sort
   fi
 
   echo ""
@@ -302,6 +378,8 @@ resolve_command_path() {
   _resolved_path=""
   _consumed_args=0
 
+  local search_roots=("$scripts_dir" "$compat_scripts_dir")
+
   for ((i = ${#args[@]}; i > 0; i--)); do
     local parts=("${args[@]:0:i}")
     local joined="${parts[0]}"
@@ -309,12 +387,15 @@ resolve_command_path() {
       joined="$joined/$part"
     done
 
-    local candidate="$scripts_dir/$joined.sh"
-    if [[ -f "$candidate" ]]; then
-      _resolved_path="$candidate"
-      _consumed_args=$i
-      return 0
-    fi
+    for root in "${search_roots[@]}"; do
+      [[ -d "$root" ]] || continue
+      local candidate="$root/$joined.sh"
+      if [[ -f "$candidate" ]]; then
+        _resolved_path="$candidate"
+        _consumed_args=$i
+        return 0
+      fi
+    done
   done
 
   return 1
@@ -357,12 +438,51 @@ fi
 case "$1" in
   aat|tid)
     integration="$1"
-    shift
-    if invoke_integration_runner "$integration" "$@"; then
+    shift || true
+    original_args=("$@")
+    if [[ $# -gt 0 ]]; then
+      verb="$1"
+      candidate="$scripts_dir/$integration/$verb.sh"
+      if [[ -f "$candidate" ]]; then
+        shift || true
+        log_command "$integration $verb $*"
+        if execute_command "$candidate" "$@"; then
+          exit 0
+        else
+          exit $?
+        fi
+      fi
+    fi
+    if invoke_integration_runner "$integration" "${original_args[@]}"; then
       exit 0
     else
       exit $?
     fi
+    ;;
+  vault)
+    shift || true
+    if [[ $# -eq 0 ]]; then
+      >&2 echo "[compat] 'SOT vault' defaults to 'SOT vault open'. Use 'SOT vault open' explicitly."
+      log_command "vault open"
+      if execute_command "$scripts_dir/vault/open.sh"; then
+        exit 0
+      else
+        exit $?
+      fi
+    fi
+    verb="$1"
+    candidate="$scripts_dir/vault/$verb.sh"
+    shift || true
+    if [[ -f "$candidate" ]]; then
+      log_command "vault $verb $*"
+      if execute_command "$candidate" "$@"; then
+        exit 0
+      else
+        exit $?
+      fi
+    fi
+    echo "Unknown vault command '$verb'. Available: open, init, status." >&2
+    exit 1
     ;;
 esac
 

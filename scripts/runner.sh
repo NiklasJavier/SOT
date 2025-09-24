@@ -25,6 +25,31 @@ systemlink_path="${META_ARGS[7]}"
 log_file="${META_ARGS[8]}"
 branch="${META_ARGS[9]}"
 
+SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+CONFIG_LOADER="$SCRIPT_ROOT/setup/config_loader.py"
+
+if [[ ! -x "$CONFIG_LOADER" ]]; then
+  if [[ -f "$CONFIG_LOADER" ]]; then
+    chmod +x "$CONFIG_LOADER" 2>/dev/null || true
+  fi
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required to parse the configuration file." >&2
+  exit 1
+fi
+
+declare -A CFG
+while IFS= read -r assignment; do
+  [[ -z "$assignment" ]] && continue
+  eval "$assignment"
+done < <(python3 "$CONFIG_LOADER" "$config_file" --select \
+  aat_enabled aat_dir aat_repo_url aat_branch aat_inventory_path aat_inventory_vars \
+  tid_enabled tid_dir tid_repo_url tid_branch tid_inventory_path tid_inventory_vars \
+  runner_enabled runner_default_mode runner_sync_before_run runner_work_dir runner_log_dir \
+  runner_default_inventory runner_aat_playbook_dir runner_tid_stack_dir \
+  ansible_local_enabled ansible_local_priority ansible_local_dir overrides_dir)
+
 usage() {
   cat <<'USAGE'
 Usage: SOT runner <subcommand> [options]
@@ -75,52 +100,32 @@ if [[ ${#USER_ARGS[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# Minimal YAML parser (key: value)
-declare -A CFG
-while IFS= read -r line || [[ -n "$line" ]]; do
-  line="${line%%#*}"
-  line="${line%%$'\r'}"
-  [[ -z "${line//[[:space:]]/}" ]] && continue
-  if [[ "$line" == *":"* ]]; then
-    key=$(echo "$line" | cut -d ':' -f 1 | xargs)
-    value=$(echo "$line" | cut -d ':' -f 2- | xargs)
-    value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
-    CFG[$key]="$value"
-  fi
-done < "$config_file"
+AAT_ENABLED="${aat_enabled:-true}"
+AAT_DIR="${aat_dir:-/opt/AAT}"
+AAT_REPO_URL="${aat_repo_url:-https://github.com/NiklasJavier/AAT.git}"
+AAT_BRANCH="${aat_branch:-main}"
+AAT_INVENTORY_PATH="${aat_inventory_path:-host.ini}"
+AAT_INVENTORY_VARS="${aat_inventory_vars:-}"
 
-get_cfg() {
-  local key="$1"
-  local default="$2"
-  if [[ -n "${CFG[$key]:-}" ]]; then
-    echo "${CFG[$key]}"
-  else
-    echo "$default"
-  fi
-}
+TID_ENABLED="${tid_enabled:-true}"
+TID_DIR="${tid_dir:-/opt/TID}"
+TID_REPO_URL="${tid_repo_url:-https://github.com/NiklasJavier/TID.git}"
+TID_BRANCH="${tid_branch:-main}"
+TID_INVENTORY_PATH="${tid_inventory_path:-host.ini}"
+TID_INVENTORY_VARS="${tid_inventory_vars:-}"
 
-AAT_ENABLED=$(get_cfg "aat_enabled" "true")
-AAT_DIR=$(get_cfg "aat_dir" "/opt/AAT")
-AAT_REPO_URL=$(get_cfg "aat_repo_url" "https://github.com/NiklasJavier/AAT.git")
-
-TID_ENABLED=$(get_cfg "tid_enabled" "true")
-TID_DIR=$(get_cfg "tid_dir" "/opt/TID")
-TID_REPO_URL=$(get_cfg "tid_repo_url" "https://github.com/NiklasJavier/TID.git")
-
-RUNNER_ENABLED=$(get_cfg "runner_enabled" "true")
-RUNNER_DEFAULT_MODE=$(get_cfg "runner_default_mode" "aat")
-RUNNER_SYNC_BEFORE_RUN=$(get_cfg "runner_sync_before_run" "true")
-RUNNER_WORK_DIR=$(get_cfg "runner_work_dir" "")
-RUNNER_LOG_DIR=$(get_cfg "runner_log_dir" "")
-RUNNER_DEFAULT_INVENTORY=$(get_cfg "runner_default_inventory" "")
-RUNNER_AAT_PLAYBOOK_DIR=$(get_cfg "runner_aat_playbook_dir" "")
-RUNNER_TID_STACK_DIR=$(get_cfg "runner_tid_stack_dir" "")
-ANSIBLE_LOCAL_ENABLED=$(get_cfg "ansible_local_enabled" "true")
-ANSIBLE_LOCAL_PRIORITY=$(get_cfg "ansible_local_priority" "true")
-ANSIBLE_LOCAL_DIR=$(get_cfg "ansible_local_dir" "$modules_dir/ansible")
-OVERRIDES_DIR=$(get_cfg "overrides_dir" "$clone_dir/services/overrides")
-AAT_BRANCH=$(get_cfg "aat_branch" "main")
-TID_BRANCH=$(get_cfg "tid_branch" "main")
+RUNNER_ENABLED="${runner_enabled:-true}"
+RUNNER_DEFAULT_MODE="${runner_default_mode:-aat}"
+RUNNER_SYNC_BEFORE_RUN="${runner_sync_before_run:-true}"
+RUNNER_WORK_DIR="${runner_work_dir:-}"
+RUNNER_LOG_DIR="${runner_log_dir:-}"
+RUNNER_DEFAULT_INVENTORY="${runner_default_inventory:-}"
+RUNNER_AAT_PLAYBOOK_DIR="${runner_aat_playbook_dir:-}"
+RUNNER_TID_STACK_DIR="${runner_tid_stack_dir:-}"
+ANSIBLE_LOCAL_ENABLED="${ansible_local_enabled:-true}"
+ANSIBLE_LOCAL_PRIORITY="${ansible_local_priority:-true}"
+ANSIBLE_LOCAL_DIR="${ansible_local_dir:-$modules_dir/ansible}"
+OVERRIDES_DIR="${overrides_dir:-$clone_dir/services/overrides}"
 
 lower_branch="${branch,,}"
 
@@ -194,14 +199,14 @@ sync_repo() {
         echo "AAT-Integration ist deaktiviert und kann nicht synchronisiert werden." >&2
         return 1
       fi
-      bash "$clone_dir/scripts/integrations/aat_sync.sh" --branch "$AAT_BRANCH" "$config_file"
+      bash "$clone_dir/scripts/aat/sync.sh" --branch "$AAT_BRANCH" "$config_file"
       ;;
     tid)
       if ! is_true "$TID_ENABLED"; then
         echo "TID-Integration ist deaktiviert und kann nicht synchronisiert werden." >&2
         return 1
       fi
-      bash "$clone_dir/scripts/integrations/tid_sync.sh" --branch "$TID_BRANCH" "$config_file"
+      bash "$clone_dir/scripts/tid/sync.sh" --branch "$TID_BRANCH" "$config_file"
       ;;
   esac
 }

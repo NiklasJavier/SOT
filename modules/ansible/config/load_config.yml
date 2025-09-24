@@ -4,6 +4,10 @@
     file: "{{ playbook_dir }}/../../../services/default_config.yml"
     name: default_config
 
+- name: Extract default configuration map
+  ansible.builtin.set_fact:
+    default_config_map: "{{ default_config.sot | default(default_config) }}"
+
 - name: Ensure configuration overrides exist when provided
   ansible.builtin.stat:
     path: "{{ CONFIG_YAML }}"
@@ -22,9 +26,67 @@
   when: CONFIG_YAML is defined
   register: sot_custom_config
 
+- name: Extract override configuration map
+  ansible.builtin.set_fact:
+    custom_config_map: "{{ sot_custom_config.ansible_facts.sot | default(sot_custom_config.ansible_facts | default({})) }}"
+  when: CONFIG_YAML is defined
+
+- name: Ensure override map is defined
+  ansible.builtin.set_fact:
+    custom_config_map: {}
+  when: custom_config_map is not defined
+
 - name: Merge configuration defaults with overrides
   ansible.builtin.set_fact:
-    sot_config: "{{ default_config | combine(((sot_custom_config | default({'ansible_facts': {}})).ansible_facts), recursive=True) }}"
+    merged_config: "{{ default_config_map | combine(custom_config_map, recursive=True) }}"
+
+- name: Flatten configuration for consumers expecting legacy keys
+  ansible.builtin.set_fact:
+    sot_config:
+      branch: "{{ merged_config.branch | default('production') }}"
+      system_name: "{{ merged_config.user.system_name | default('__GENERATE_SYSTEM_NAME__') }}"
+      username: "{{ merged_config.user.username | default('__GENERATE_USERNAME__') }}"
+      ssh_port: "{{ merged_config.user.ssh_port | default('282') }}"
+      log_level: "{{ merged_config.logging.level | default('info') }}"
+      log_file: "{{ merged_config.logging.file | default('/var/log/sot/cli.log') }}"
+      use_defaults: "{{ merged_config.flags.use_defaults | default('false') }}"
+      tools: "{{ merged_config.tools.list | default('') }}"
+      ssh_key_function_enabled: "{{ merged_config.ssh.key_function_enabled | default('false') }}"
+      ssh_key_public: "{{ merged_config.ssh.public_key | default('') }}"
+      clone_dir: "{{ merged_config.paths.clone | default('/opt/sot') }}"
+      modules_dir: "{{ merged_config.paths.modules | default('/opt/sot/modules') }}"
+      scripts_dir: "{{ merged_config.paths.scripts | default('/opt/sot/scripts') }}"
+      pipelines_dir: "{{ merged_config.paths.pipelines | default('/opt/sot/pipelines') }}"
+      ansible_local_dir: "{{ merged_config.paths.ansible_local | default('/opt/sot/modules/ansible') }}"
+      ansible_local_enabled: "{{ (merged_config.ansible.local.enabled | default(true)) | bool | ternary('true', 'false') }}"
+      ansible_local_priority: "{{ (merged_config.ansible.local.priority | default(true)) | bool | ternary('true', 'false') }}"
+      overrides_dir: "{{ merged_config.paths.overrides | default('/etc/sot/overrides') }}"
+      opt_data_dir: "{{ merged_config.paths.opt_data | default('/var/lib/sot') }}"
+      systemlink_path: "{{ merged_config.paths.systemlink | default('/usr/sbin/SOT') }}"
+      vault_file: "{{ merged_config.vault.file | default('/etc/sot/vault.yml') }}"
+      vault_secret: "{{ merged_config.vault.secret | default('local-secret') }}"
+      vault_content: "{{ merged_config.vault.content | default('__GENERATE_VAULT_CONTENT__') }}"
+      vault_mail: "{{ merged_config.vault.mail | default('__GENERATE_VAULT_MAIL__') }}"
+      aat_enabled: "{{ (merged_config.aat.enabled | default(true)) | bool | ternary('true', 'false') }}"
+      aat_repo_url: "{{ merged_config.aat.repo | default('https://github.com/NiklasJavier/AAT.git') }}"
+      aat_dir: "{{ merged_config.aat.dir | default('/opt/AAT') }}"
+      aat_branch: "{{ merged_config.aat.branch | default('main') }}"
+      aat_inventory_path: "{{ merged_config.aat.inventory.path | default('host.ini') }}"
+      aat_inventory_vars: "{{ (merged_config.aat.inventory.vars | default([])) | join(' ') }}"
+      tid_enabled: "{{ (merged_config.tid.enabled | default(true)) | bool | ternary('true', 'false') }}"
+      tid_repo_url: "{{ merged_config.tid.repo | default('https://github.com/NiklasJavier/TID.git') }}"
+      tid_dir: "{{ merged_config.tid.dir | default('/opt/TID') }}"
+      tid_branch: "{{ merged_config.tid.branch | default('main') }}"
+      tid_inventory_path: "{{ merged_config.tid.inventory.path | default('host.ini') }}"
+      tid_inventory_vars: "{{ (merged_config.tid.inventory.vars | default([])) | join(' ') }}"
+      runner_enabled: "{{ (merged_config.runner.enabled | default(true)) | bool | ternary('true', 'false') }}"
+      runner_default_mode: "{{ merged_config.runner.mode | default('aat') }}"
+      runner_sync_before_run: "{{ (merged_config.runner.sync_before_run | default(true)) | bool | ternary('true', 'false') }}"
+      runner_work_dir: "{{ merged_config.runner.work_dir | default('/var/lib/sot/runner') }}"
+      runner_log_dir: "{{ merged_config.runner.log_dir | default('/var/log/sot/runner') }}"
+      runner_default_inventory: "{{ merged_config.runner.default_inventory | default('') }}"
+      runner_aat_playbook_dir: "{{ merged_config.runner.aat_playbook_dir | default('') }}"
+      runner_tid_stack_dir: "{{ merged_config.runner.tid_stack_dir | default('') }}"
 
 - name: Generate username when requested
   ansible.builtin.set_fact:
