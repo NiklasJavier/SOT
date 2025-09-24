@@ -1,5 +1,8 @@
 ---
 
+- name: Sammle Systeminformationen für Vault
+  ansible.builtin.setup:
+
 - name: Gebe den Pfad der Vault-Datei aus
   debug:
     msg: "Der Pfad zur Vault-Datei ist: {{ sot_config.vault_file }}"
