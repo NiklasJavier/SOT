@@ -82,6 +82,186 @@ log_command() {
   printf '%s - %s - %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "${USER:-unknown}" "$*" >> "$log_file"
 }
 
+is_true() {
+  case "${1,,}" in
+    true|1|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+CLI_METADATA_ARGS=(
+  "$modules_dir"
+  "$CONFIG_FILE"
+  "$username"
+  "$vault_file"
+  "$vault_secret"
+  "$opt_data_dir"
+  "$clone_dir"
+  "${systemlink_path:-}"
+  "${log_file:-}"
+  "${branch:-}"
+)
+
+invoke_integration_runner() {
+  local integration="$1"
+  shift || true
+
+  local enabled_var="${integration}_enabled"
+  local dir_var="${integration}_dir"
+  local branch_var="${integration}_branch"
+  local inventory_path_var="${integration}_inventory_path"
+  local inventory_vars_var="${integration}_inventory_vars"
+
+  local repo_dir="${!dir_var:-}"
+  local enabled_value="${!enabled_var:-true}"
+  local branch_value="${!branch_var:-}"
+  local inventory_path_value="${!inventory_path_var:-host.ini}"
+  local inventory_vars_value="${!inventory_vars_var:-}"
+  local sync_script="$SCRIPT_ROOT/scripts/integrations/${integration}_sync.sh"
+
+  case "$integration" in
+    aat)
+      [[ -n "$repo_dir" && "$repo_dir" != "__GENERATE_AAT_DIR__" ]] || repo_dir="/opt/AAT"
+      [[ -n "$branch_value" && "$branch_value" != "__GENERATE_AAT_BRANCH__" ]] || branch_value="main"
+      ;;
+    tid)
+      [[ -n "$repo_dir" && "$repo_dir" != "__GENERATE_TID_DIR__" ]] || repo_dir="/opt/TID"
+      [[ -n "$branch_value" && "$branch_value" != "__GENERATE_TID_BRANCH__" ]] || branch_value="main"
+      ;;
+    *)
+      echo "Unsupported integration namespace '$integration'." >&2
+      return 1
+      ;;
+  esac
+
+  if ! is_true "$enabled_value"; then
+    echo "${integration^^} integration is disabled in config.yaml." >&2
+    return 1
+  fi
+
+  local runner_path="$repo_dir/runner.sh"
+  local synced=false
+
+  if [[ ! -x "$runner_path" || ! -d "$repo_dir" ]]; then
+    if [[ -x "$sync_script" ]]; then
+      echo "Synchronising ${integration^^} repository before execution..."
+      local -a sync_args=("$sync_script")
+      if [[ -n "$branch_value" ]]; then
+        sync_args+=("--branch" "$branch_value")
+      fi
+      sync_args+=("${CLI_METADATA_ARGS[@]}")
+      if ! "${sync_args[@]}"; then
+        echo "Failed to synchronise ${integration^^} repository. Aborting." >&2
+        return 1
+      fi
+      synced=true
+    fi
+  fi
+
+  if [[ -f "$runner_path" && ! -x "$runner_path" ]]; then
+    chmod +x "$runner_path" 2>/dev/null || true
+  fi
+
+  if [[ ! -x "$runner_path" ]]; then
+    echo "runner.sh not found or not executable for ${integration^^} at $repo_dir." >&2
+    echo "Please ensure the repository is synchronised (e.g. 'SOT integrations ${integration}_sync')." >&2
+    return 1
+  fi
+
+  if $synced; then
+    local validate_script="$SCRIPT_ROOT/scripts/integrations/validate_sync.sh"
+    if [[ -x "$validate_script" && -f "$CONFIG_FILE" && "$CONFIG_FILE" == *"config.yaml" ]]; then
+      "$validate_script" "$CONFIG_FILE" || echo "Warning: validate_sync reported issues." >&2
+    fi
+  fi
+
+  export SOT_CONFIG_FILE="$CONFIG_FILE"
+  export SOT_MODULES_DIR="$modules_dir"
+  export SOT_SCRIPTS_DIR="$scripts_dir"
+  export SOT_OPT_DATA_DIR="$opt_data_dir"
+  export SOT_CLONE_DIR="$clone_dir"
+  export SOT_USERNAME="$username"
+  export SOT_BRANCH="${branch:-}"
+  export SOT_LOG_FILE="${log_file:-}"
+  export SOT_SSH_PORT="${ssh_port:-}"
+  export SOT_SYSTEM_NAME="${system_name:-}"
+  export SOT_INTEGRATION_NAME="$integration"
+
+  local previous_ansible_inventory="${ANSIBLE_INVENTORY:-}"
+  local temp_inventory=""
+  local inventory_source=""
+
+  if [[ -n "$inventory_path_value" ]]; then
+    if [[ "$inventory_path_value" = /* ]]; then
+      inventory_source="$inventory_path_value"
+    else
+      inventory_source="$repo_dir/$inventory_path_value"
+    fi
+  fi
+
+  if [[ -f "$inventory_source" ]]; then
+    temp_inventory=$(mktemp "${TMPDIR:-/tmp}/sot_${integration}_inventory_XXXXXX")
+    cp "$inventory_source" "$temp_inventory"
+
+    local appended_vars=false
+    local sanitized_vars="${inventory_vars_value//,/ }"
+    for var_name in $sanitized_vars; do
+      [[ -z "$var_name" ]] && continue
+      local config_key="${var_name//-/_}"
+      local var_value="${!config_key:-}"
+      if [[ -n "$var_value" ]]; then
+        if [[ $appended_vars == false ]]; then
+          printf '\n[all:vars]\n' >> "$temp_inventory"
+          appended_vars=true
+        fi
+        printf '%s=%s\n' "$var_name" "$var_value" >> "$temp_inventory"
+      fi
+    done
+
+    if [[ -n "$temp_inventory" ]]; then
+      export ANSIBLE_INVENTORY="$temp_inventory"
+    fi
+  fi
+
+  local -a runner_cmd=("$runner_path")
+  local -a log_args=("$integration")
+
+  if [[ $# -gt 0 ]]; then
+    if [[ "$1" == "help" ]]; then
+      shift || true
+      runner_cmd+=("--help")
+      log_args+=("help")
+      if [[ $# -gt 0 ]]; then
+        runner_cmd+=("$@")
+        log_args+=("$@")
+      fi
+    else
+      runner_cmd+=("$@")
+      log_args+=("$@")
+    fi
+  else
+    runner_cmd+=("--help")
+    log_args+=("--help")
+  fi
+
+  log_command "${log_args[*]}"
+  local result=0
+  if ! "${runner_cmd[@]}"; then
+    result=$?
+  fi
+
+  if [[ -n "$temp_inventory" ]]; then
+    rm -f "$temp_inventory"
+    if [[ -n "$previous_ansible_inventory" ]]; then
+      export ANSIBLE_INVENTORY="$previous_ansible_inventory"
+    else
+      unset ANSIBLE_INVENTORY
+    fi
+  fi
+
+  return "$result"
+}
+
 show_help() {
   echo "Usage: SOT [foldername] <command> [args]"
   echo ""
@@ -173,6 +353,18 @@ if [[ $1 == "help" ]]; then
   fi
   exit 0
 fi
+
+case "$1" in
+  aat|tid)
+    integration="$1"
+    shift
+    if invoke_integration_runner "$integration" "$@"; then
+      exit 0
+    else
+      exit $?
+    fi
+    ;;
+esac
 
 command_args=("$@")
 if resolve_command_path COMMAND_PATH consumed "${command_args[@]}"; then
