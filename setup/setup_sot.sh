@@ -720,115 +720,72 @@ writeConfigFile() {
 # Konfiguration in config.yaml speichern
 echo -e "${GREY}To $CONFIG_FILE...${NC}"
 
-# Speichern der Konfiguration
+AAT_INVENTORY_PATH="${AAT_INVENTORY_PATH:-host.ini}"
+AAT_INVENTORY_VARS="${AAT_INVENTORY_VARS:-ssh_port system_name}"
+TID_INVENTORY_PATH="${TID_INVENTORY_PATH:-host.ini}"
+TID_INVENTORY_VARS="${TID_INVENTORY_VARS:-ssh_port system_name}"
+
+# Speichern der Konfiguration im neuen Schema
 cat <<- EOL > "$CONFIG_FILE"
-# system_name: Der Name des Systems oder Servers, der für die Konfiguration verwendet wird.
-# Wenn der Benutzer keinen Namen eingibt, wird ein Standardname generiert.
-system_name: "$SYSTEM_NAME"
-
-# ssh_port: Der SSH-Port, über den die Verbindung zum Server hergestellt wird.
-# Standardmäßig wird Port 282 verwendet, falls der Benutzer keinen Port angibt.
-ssh_port: "$SSH_PORT"
-
-# log_level: Das gewünschte Log-Level für die Protokollierung der Anwendung.
-# Mögliche Optionen sind "debug", "info", "warn" und "error".
-# Wenn der Benutzer keinen Wert angibt, wird "info" verwendet.
-log_level: "$LOG_LEVEL"
-
-# opt: Das Datenverzeichnis, in dem Anwendungsdaten gespeichert werden.
-# Dieses Verzeichnis basiert standardmäßig auf dem system_name (z.B. /opt/$SYSTEM_NAME/data),
-# falls der Benutzer kein anderes Verzeichnis angibt.
-opt_data_dir: "$OPT_DATA_DIR"
-
-# use_defaults: Eine Flag-Variable, die angibt, ob das Skript im "Default-Modus" ausgeführt wird.
-# Wenn use_defaults auf "true" gesetzt ist, werden keine Eingabeaufforderungen an den Benutzer gestellt.
-# Stattdessen werden automatisch die Standardwerte verwendet.
-use_defaults: "$USE_DEFAULTS"
-
-# TOOLS: Diese Variable enthält die Liste der Tools, die installiert werden sollen.
-# Der Benutzer kann die Tools manuell eingeben (z.B. docker ansible terraform) oder, 
-# falls keine Eingabe erfolgt, wird der Standardwert verwendet, der alle Tools umfasst.
-# Wenn die Option USE_DEFAULTS=true gesetzt ist, werden automatisch alle Standardtools
-# ausgewählt, ohne eine Benutzereingabe zu erfordern.
-tools: "$TOOLS"
-
-# SSH_KEY_FUNCTION_ENABLED: Diese Variable gibt an, ob die SSH-Key-Funktion aktiviert ist.
-# Sie wird auf "false" gesetzt, wenn kein SSH-Key angegeben wird oder die Funktion
-# standardmäßig deaktiviert ist. Wenn ein gültiger SSH-Schlüssel eingegeben wird,
-# wird sie auf "true" gesetzt und die SSH-Key-Funktion wird aktiviert.
-ssh_key_function_enabled: "$SSH_KEY_FUNCTION_ENABLED"
-
-# SSH_KEY_PUBLIC: Diese Variable enthält den öffentlichen SSH-Schlüssel (Public Key),
-# den der Benutzer eingegeben hat. Wenn kein Schlüssel eingegeben wird, bleibt diese
-# Variable leer (""). Wenn ein gültiger SSH-Schlüssel eingegeben wird, wird dieser hier gespeichert.
-ssh_key_public: "$SSH_KEY_PUBLIC"
-
-# modules_dir: Speichert den Pfad zu dem Verzeichnis, in dem verschiedene Tools (z.B. Ansible, Docker, Terraform)
-# abgelegt sind. Dies ist der Ort, an dem alle Tool-spezifischen Dateien oder Konfigurationen gespeichert werden.
-modules_dir: "$MODULES_DIR"
-
-# scripts_dir: Speichert den Pfad zu dem Verzeichnis, in dem allgemeine Skripte abgelegt sind.
-# Hier befinden sich Automatisierungsskripte oder Hilfsskripte, die für verschiedene Aufgaben oder Prozesse genutzt werden.
-scripts_dir: "$SCRIPTS_DIR"
-
-# pipelines_dir: Speichert den Pfad zu dem Verzeichnis, in dem Pipeline-Konfigurationsdateien (z.B. CI/CD-Pipelines) gespeichert sind.
-# Dieses Verzeichnis enthält die Dateien für Jenkins, GitLab CI oder andere CI/CD-Tools, die in Automatisierungsprozesse integriert sind.
-pipelines_dir: "$PIPELINES_DIR"
-
-# Lokale Ansible-Steuerung: Aktiviert lokale Playbooks und priorisiert sie vor externen Integrationen.
-ansible_local_enabled: "$ANSIBLE_LOCAL_ENABLED"
-ansible_local_priority: "$ANSIBLE_LOCAL_PRIORITY"
-ansible_local_dir: "$ANSIBLE_LOCAL_DIR"
-
-# overrides_dir: Pfad für environment-spezifische Konfigurationsdateien innerhalb von services/overrides.
-overrides_dir: "$OVERRIDES_DIR"
-
-# Diese Variable wird verwendet, um den aktuellen Benutzer im System zu identifizieren.
-# Der Wert von $USERNAME wird zur Laufzeit aus der Umgebung übernommen, sodass keine manuelle Eingabe erforderlich ist.
-username: "$USERNAME"
-
-# Der Pfad zur Logdatei, in die alle Protokollmeldungen geschrieben werden, wird durch die Umgebungsvariable $LOG_FILE bestimmt.
-# Der Pfad kann z.B. auf "/var/log/myapp.log" oder einen anderen gewünschten Ort gesetzt werden.
-log_file: "$LOG_FILE"
-
-# Der Pfad zum System-Symlink, der auf eine bestimmte Datei oder ein Verzeichnis verweist, wird durch die Umgebungsvariable festgelegt.
-# Der Wert kann z.B. auf "/usr/local/bin/myapp" gesetzt sein, um auf eine ausführbare Datei zu verweisen.
-systemlink_path: "$SYSTEMLINK_PATH"
-
-vault_file: "$VAULT_FILE"
-
-vault_secret: "$VAULT_SECRET"
-
-vault_content: "$VAULT_CONTENT"
-
-vault_mail: "$VAULT_MAIL"
-
-clone_dir: "$CLONE_DIR"
-
-branch: "$BRANCH"
-
-# AAT (Ansible Automation Tools) Integration
-aat_enabled: "$AAT_ENABLED"
-aat_repo_url: "$AAT_REPO_URL"
-aat_dir: "$AAT_DIR"
-aat_branch: "$AAT_BRANCH"
-
-# TID (Terraform Infrastructure Deployment) Integration
-tid_enabled: "$TID_ENABLED"
-tid_repo_url: "$TID_REPO_URL"
-tid_dir: "$TID_DIR"
-tid_branch: "$TID_BRANCH"
-
-# Runner (dynamische Playbook/Terraform-Ausführung)
-runner_enabled: "$RUNNER_ENABLED"
-runner_default_mode: "$RUNNER_DEFAULT_MODE"
-runner_sync_before_run: "$RUNNER_SYNC_BEFORE_RUN"
-runner_work_dir: "$RUNNER_WORK_DIR"
-runner_log_dir: "$RUNNER_LOG_DIR"
-runner_default_inventory: "$RUNNER_DEFAULT_INVENTORY"
-runner_aat_playbook_dir: "$RUNNER_AAT_PLAYBOOK_DIR"
-runner_tid_stack_dir: "$RUNNER_TID_STACK_DIR"
-
+sot:
+  branch: "$BRANCH"
+  user:
+    system_name: "$SYSTEM_NAME"
+    username: "$USERNAME"
+    ssh_port: "$SSH_PORT"
+  logging:
+    level: "$LOG_LEVEL"
+    file: "$LOG_FILE"
+  flags:
+    use_defaults: "$USE_DEFAULTS"
+  tools:
+    list: "$TOOLS"
+  ssh:
+    key_function_enabled: "$SSH_KEY_FUNCTION_ENABLED"
+    public_key: "$SSH_KEY_PUBLIC"
+  paths:
+    clone: "$CLONE_DIR"
+    modules: "$MODULES_DIR"
+    scripts: "$SCRIPTS_DIR"
+    pipelines: "$PIPELINES_DIR"
+    ansible_local: "$ANSIBLE_LOCAL_DIR"
+    overrides: "$OVERRIDES_DIR"
+    opt_data: "$OPT_DATA_DIR"
+    systemlink: "$SYSTEMLINK_PATH"
+  vault:
+    file: "$VAULT_FILE"
+    secret: "$VAULT_SECRET"
+    content: "$VAULT_CONTENT"
+    mail: "$VAULT_MAIL"
+  ansible:
+    local:
+      enabled: "$ANSIBLE_LOCAL_ENABLED"
+      priority: "$ANSIBLE_LOCAL_PRIORITY"
+  runner:
+    enabled: "$RUNNER_ENABLED"
+    mode: "$RUNNER_DEFAULT_MODE"
+    sync_before_run: "$RUNNER_SYNC_BEFORE_RUN"
+    work_dir: "$RUNNER_WORK_DIR"
+    log_dir: "$RUNNER_LOG_DIR"
+    default_inventory: "$RUNNER_DEFAULT_INVENTORY"
+    aat_playbook_dir: "$RUNNER_AAT_PLAYBOOK_DIR"
+    tid_stack_dir: "$RUNNER_TID_STACK_DIR"
+  aat:
+    enabled: "$AAT_ENABLED"
+    repo: "$AAT_REPO_URL"
+    dir: "$AAT_DIR"
+    branch: "$AAT_BRANCH"
+    inventory:
+      path: "$AAT_INVENTORY_PATH"
+      vars: "$AAT_INVENTORY_VARS"
+  tid:
+    enabled: "$TID_ENABLED"
+    repo: "$TID_REPO_URL"
+    dir: "$TID_DIR"
+    branch: "$TID_BRANCH"
+    inventory:
+      path: "$TID_INVENTORY_PATH"
+      vars: "$TID_INVENTORY_VARS"
 EOL
 echo -e "${GREY}Configuration saved in $CONFIG_FILE.${NC}"
 }

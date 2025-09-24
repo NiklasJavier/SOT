@@ -52,25 +52,29 @@ else
   exit 1
 fi
 
-# Minimal YAML reader (key: value) — mirrors setup/cli_wrapper.sh approach
-while IFS= read -r line; do
-  if echo "$line" | grep -q ":"; then
-    key=$(echo "$line" | cut -d ':' -f 1 | xargs)
-    value=$(echo "$line" | cut -d ':' -f 2- | xargs)
-    value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
-    case "$key" in
-      aat_repo_url) AAT_REPO_URL="$value" ;;
-      aat_dir) AAT_DIR="$value" ;;
-      aat_enabled) AAT_ENABLED="$value" ;;
-      aat_branch) AAT_BRANCH="$value" ;;
-    esac
-  fi
-done < "$CONFIG_FILE_PATH"
+SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+CONFIG_LOADER="$SCRIPT_ROOT/setup/config_loader.py"
 
-AAT_ENABLED=${AAT_ENABLED:-"true"}
-AAT_REPO_URL=${AAT_REPO_URL:-"https://github.com/NiklasJavier/AAT.git"}
-AAT_DIR=${AAT_DIR:-"/opt/AAT"}
-AAT_BRANCH=${AAT_BRANCH:-"main"}
+if [[ ! -x "$CONFIG_LOADER" ]]; then
+  if [[ -f "$CONFIG_LOADER" ]]; then
+    chmod +x "$CONFIG_LOADER" 2>/dev/null || true
+  fi
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo -e "${RED}python3 is required to parse $CONFIG_FILE_PATH.${NC}"
+  exit 1
+fi
+
+while IFS= read -r assignment; do
+  [[ -z "$assignment" ]] && continue
+  eval "$assignment"
+done < <(python3 "$CONFIG_LOADER" "$CONFIG_FILE_PATH" --select aat_repo_url aat_dir aat_enabled aat_branch)
+
+AAT_ENABLED=${aat_enabled:-"true"}
+AAT_REPO_URL=${aat_repo_url:-"https://github.com/NiklasJavier/AAT.git"}
+AAT_DIR=${aat_dir:-"/opt/AAT"}
+AAT_BRANCH=${aat_branch:-"main"}
 
 if [[ -n "$BRANCH_OVERRIDE" ]]; then
   AAT_BRANCH="$BRANCH_OVERRIDE"

@@ -51,25 +51,29 @@ else
   exit 1
 fi
 
-# Minimal YAML reader (key: value) — mirrors setup/cli_wrapper.sh approach
-while IFS= read -r line; do
-  if echo "$line" | grep -q ":"; then
-    key=$(echo "$line" | cut -d ':' -f 1 | xargs)
-    value=$(echo "$line" | cut -d ':' -f 2- | xargs)
-    value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
-    case "$key" in
-      tid_repo_url) TID_REPO_URL="$value" ;;
-      tid_dir) TID_DIR="$value" ;;
-      tid_enabled) TID_ENABLED="$value" ;;
-      tid_branch) TID_BRANCH="$value" ;;
-    esac
-  fi
-done < "$CONFIG_FILE_PATH"
+SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+CONFIG_LOADER="$SCRIPT_ROOT/setup/config_loader.py"
 
-TID_ENABLED=${TID_ENABLED:-"true"}
-TID_REPO_URL=${TID_REPO_URL:-"https://github.com/NiklasJavier/TID.git"}
-TID_DIR=${TID_DIR:-"/opt/TID"}
-TID_BRANCH=${TID_BRANCH:-"main"}
+if [[ ! -x "$CONFIG_LOADER" ]]; then
+  if [[ -f "$CONFIG_LOADER" ]]; then
+    chmod +x "$CONFIG_LOADER" 2>/dev/null || true
+  fi
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo -e "${RED}python3 is required to parse $CONFIG_FILE_PATH.${NC}"
+  exit 1
+fi
+
+while IFS= read -r assignment; do
+  [[ -z "$assignment" ]] && continue
+  eval "$assignment"
+done < <(python3 "$CONFIG_LOADER" "$CONFIG_FILE_PATH" --select tid_repo_url tid_dir tid_enabled tid_branch)
+
+TID_ENABLED=${tid_enabled:-"true"}
+TID_REPO_URL=${tid_repo_url:-"https://github.com/NiklasJavier/TID.git"}
+TID_DIR=${tid_dir:-"/opt/TID"}
+TID_BRANCH=${tid_branch:-"main"}
 
 if [[ -n "$BRANCH_OVERRIDE" ]]; then
   TID_BRANCH="$BRANCH_OVERRIDE"

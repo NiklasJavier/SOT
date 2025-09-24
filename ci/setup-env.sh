@@ -46,27 +46,65 @@ VAULT_MAIL_VALUE=${SOT_VAULT_MAIL:-"ci@example.com"}
 BRANCH_NAME=${SOT_BRANCH:-"ci"}
 
 cat > "$CONFIG_FILE_PATH" <<EOF_CONFIG
-system_name: "ci-system"
-username: "ci-user"
-ssh_port: "2222"
-log_level: "debug"
-log_file: "$LOG_FILE_PATH"
-use_defaults: "true"
-tools: "ansible docker sdkman"
-clone_dir: "$ROOT_DIR"
-modules_dir: "$ROOT_DIR/modules"
-scripts_dir: "$ROOT_DIR/scripts"
-pipelines_dir: "$ROOT_DIR/ci/pipelines"
-opt_data_dir: "$CI_TMP_DIR"
-systemlink_path: "$CI_TMP_DIR/SOT"
-vault_file: "$VAULT_FILE_PATH"
-vault_secret: "$VAULT_SECRET_VALUE"
-vault_content: "$ROOT_DIR/setup/vault_template.j2"
-vault_mail: "$VAULT_MAIL_VALUE"
-branch: "$BRANCH_NAME"
-aat_enabled: "false"
-tid_enabled: "false"
-runner_enabled: "false"
+sot:
+  branch: "$BRANCH_NAME"
+  user:
+    system_name: "ci-system"
+    username: "ci-user"
+    ssh_port: "2222"
+  logging:
+    level: "debug"
+    file: "$LOG_FILE_PATH"
+  flags:
+    use_defaults: "true"
+  tools:
+    list: "ansible docker sdkman"
+  ssh:
+    key_function_enabled: "false"
+    public_key: ""
+  paths:
+    clone: "$ROOT_DIR"
+    modules: "$ROOT_DIR/modules"
+    scripts: "$ROOT_DIR/scripts"
+    pipelines: "$ROOT_DIR/ci/pipelines"
+    ansible_local: "$ROOT_DIR/modules/ansible"
+    overrides: "$ROOT_DIR/services/overrides"
+    opt_data: "$CI_TMP_DIR"
+    systemlink: "$CI_TMP_DIR/SOT"
+  vault:
+    file: "$VAULT_FILE_PATH"
+    secret: "$VAULT_SECRET_VALUE"
+    content: "$ROOT_DIR/setup/vault_template.j2"
+    mail: "$VAULT_MAIL_VALUE"
+  ansible:
+    local:
+      enabled: "true"
+      priority: "true"
+  runner:
+    enabled: "false"
+    mode: "aat"
+    sync_before_run: "true"
+    work_dir: "$CI_TMP_DIR/runner"
+    log_dir: "$CI_TMP_DIR/runner/logs"
+    default_inventory: ""
+    aat_playbook_dir: ""
+    tid_stack_dir: ""
+  aat:
+    enabled: "false"
+    repo: "https://github.com/NiklasJavier/AAT.git"
+    dir: "$ROOT_DIR/aat"
+    branch: "main"
+    inventory:
+      path: "host.ini"
+      vars: "ssh_port system_name"
+  tid:
+    enabled: "false"
+    repo: "https://github.com/NiklasJavier/TID.git"
+    dir: "$ROOT_DIR/tid"
+    branch: "main"
+    inventory:
+      path: "host.ini"
+      vars: "ssh_port system_name"
 EOF_CONFIG
 
 # Ensure referenced artefacts exist so CLI commands succeed.
