@@ -33,6 +33,8 @@ jobs:
         run: bash setup/cli_wrapper.sh help
         env:
           CONFIG_FILE: ${{ env.CONFIG_FILE }}
+      - name: Run AAT test playbook
+        run: SOT aat run /opt/AAT/playbooks/test-playbook.yml
       - name: Run CLI smoke suite
         run: ci/run-cli-tests.sh
       - name: Validate configuration
