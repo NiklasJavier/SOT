@@ -20,11 +20,11 @@ _SOT_CLI_REGISTRY_LOADED=1
 
 # Kategorien mit Emoji und Farbe
 declare -A CLI_CATEGORIES=(
-    ["system"]="🖥️ |System"
+    ["system"]="🖥️ |System & Extensions"
     ["vault"]="🔐|Vault & Secrets"
     ["sync"]="🔄|Synchronisation"
     ["run"]="▶️ |Ausführung"
-    ["maintenance"]="🔧|Wartung"
+    ["maintenance"]="🔧|Wartung & Updates"
     ["plugins"]="🔌|Plugins & Module"
     ["info"]="ℹ️ |Information"
 )
@@ -202,9 +202,17 @@ show_categorized_help() {
     
     # Footer
     printf "\n"
+    printf "  %sSchnellzugriff (Aliasse):%s\n" "${GREY:-}" "${NC:-}"
+    printf "    %ssot u%s          = sot update\n" "${YELLOW:-}" "${NC:-}"
+    printf "    %ssot d%s          = sot doctor\n" "${YELLOW:-}" "${NC:-}"
+    printf "    %ssot ex%s         = sot extensions\n" "${YELLOW:-}" "${NC:-}"
+    printf "    %ssot ex install%s = sot extensions install\n" "${YELLOW:-}" "${NC:-}"
+    printf "    %ssot v%s          = sot vault edit\n" "${YELLOW:-}" "${NC:-}"
+    printf "\n"
     printf "  %sTipps:%s\n" "${GREY:-}" "${NC:-}"
-    printf "    %sSOT help <command>%s  Detaillierte Hilfe zu einem Befehl\n" "${YELLOW:-}" "${NC:-}"
-    printf "    %sSOT --interactive%s   Interaktives Menü starten\n" "${YELLOW:-}" "${NC:-}"
+    printf "    %ssot help <cmd>%s    Detaillierte Hilfe zu einem Befehl\n" "${YELLOW:-}" "${NC:-}"
+    printf "    %ssot aliases%s       Alle Aliasse anzeigen\n" "${YELLOW:-}" "${NC:-}"
+    printf "    %ssot --interactive%s Interaktives Menü starten\n" "${YELLOW:-}" "${NC:-}"
     printf "\n"
 }
 

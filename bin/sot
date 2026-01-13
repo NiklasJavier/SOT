@@ -148,14 +148,20 @@ init_command_registry() {
     
     # Maintenance
     register_command "update" "$commands_dir/maintenance/update.sh" "maintenance" \
-        "SOT aktualisieren" \
-        "SOT update [--force]" \
-        "SOT update"
+        "SOT und Extensions aktualisieren" \
+        "sot update [--force] [--sot-only] [--extensions-only]" \
+        "sot update"
     
     register_command "delete" "$commands_dir/maintenance/delete.sh" "maintenance" \
-        "SOT entfernen" \
-        "SOT delete [--no-backup]" \
-        "SOT delete"
+        "SOT vollständig deinstallieren" \
+        "sot delete [--force] [--keep-extensions] [--no-backup]" \
+        "sot delete"
+    
+    # Extensions (neues System für AAT, TID, etc.)
+    register_command "extensions" "$commands_dir/extensions.sh" "system" \
+        "Extensions verwalten (AAT, TID, ...)" \
+        "sot ex [list|install|remove|sync] [name]" \
+        "sot ex install aat"
     
     # Dynamische Sync-Befehle für alle Integrationen
     local name
