@@ -5,6 +5,7 @@ bin-release/
 [Oo]bj/
 !bin/
 !ci/bin/
+.ci
 
 # Other files and folders
 .settings/
