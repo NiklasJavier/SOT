@@ -134,11 +134,18 @@ task_create_settings_folder() {
     touch -f "$SETTINGS_DIR/config.yaml"
 }
 
-# Edit CLI wrapper file to include config path
+# Edit CLI wrapper file to include config path and SOT_ROOT
 task_edit_cli_wrapper() {
+    # SOT_ROOT einfügen (ersetzt Placeholder)
+    local sot_root_line="SOT_ROOT=\"$SOT_ROOT\""
+    sed -i "s|# __SOT_ROOT_PLACEHOLDER__|$sot_root_line|g" "$CLI_WRAPPER_FILE"
+    info "SOT_ROOT wurde in $CLI_WRAPPER_FILE gesetzt: $SOT_ROOT"
+    
+    # Config-Pfad einfügen (nach dem SOT_ROOT Kommentar)
     local cli_config_line="CONFIG_FILE=\"$CONFIG_FILE\""
-    sed -i "5i $cli_config_line" "$CLI_WRAPPER_FILE"
-    info "Zeile wurde in $CLI_WRAPPER_FILE an Position 5 eingefügt."
+    # Füge nach der SOT_ROOT Zeile ein
+    sed -i "/^SOT_ROOT=/a $cli_config_line" "$CLI_WRAPPER_FILE"
+    info "CONFIG_FILE wurde in $CLI_WRAPPER_FILE gesetzt."
 }
 
 # Create symlinks for CLI access

@@ -9,42 +9,51 @@
 #
 # Server Operation Toolkit - Command Line Interface v2.0
 # =============================================================================
+# SOT_ROOT wird vom Setup-Script hier eingefügt:
+# __SOT_ROOT_PLACEHOLDER__
 set -euo pipefail
 
 # =============================================================================
 # Pfad-Initialisierung
 # =============================================================================
-# Symlink auflösen und echten Pfad finden
-_get_real_path() {
-    local target="${BASH_SOURCE[0]}"
-    
-    # Versuche realpath (am zuverlässigsten)
-    if command -v realpath &>/dev/null; then
-        realpath "$target"
-        return
-    fi
-    
-    # Versuche readlink -f (Linux)
-    if readlink -f "$target" &>/dev/null; then
-        readlink -f "$target"
-        return
-    fi
-    
-    # Fallback: Manuelle Auflösung
-    local dir
-    while [[ -L "$target" ]]; do
-        dir="$(cd "$(dirname "$target")" && pwd)"
-        target="$(readlink "$target")"
-        [[ "$target" != /* ]] && target="$dir/$target"
-    done
-    
-    # Absoluten Pfad zurückgeben
-    cd "$(dirname "$target")" && echo "$(pwd)/$(basename "$target")"
-}
 
-_REAL_SCRIPT="$(_get_real_path)"
-SCRIPT_DIR="$(dirname "$_REAL_SCRIPT")"
-SCRIPT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# Wenn SOT_ROOT nicht vom Setup gesetzt wurde, versuche es zu ermitteln
+if [[ -z "${SOT_ROOT:-}" ]]; then
+    # Symlink auflösen und echten Pfad finden
+    _get_real_path() {
+        local target="${BASH_SOURCE[0]}"
+        
+        # Versuche realpath (am zuverlässigsten)
+        if command -v realpath &>/dev/null; then
+            realpath "$target"
+            return
+        fi
+        
+        # Versuche readlink -f (Linux)
+        if readlink -f "$target" &>/dev/null 2>&1; then
+            readlink -f "$target"
+            return
+        fi
+        
+        # Fallback: Manuelle Auflösung
+        local dir
+        while [[ -L "$target" ]]; do
+            dir="$(cd "$(dirname "$target")" && pwd)"
+            target="$(readlink "$target")"
+            [[ "$target" != /* ]] && target="$dir/$target"
+        done
+        
+        # Absoluten Pfad zurückgeben
+        cd "$(dirname "$target")" && echo "$(pwd)/$(basename "$target")"
+    }
+
+    _REAL_SCRIPT="$(_get_real_path)"
+    SCRIPT_DIR="$(dirname "$_REAL_SCRIPT")"
+    SOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+
+# Legacy-Kompatibilität
+SCRIPT_ROOT="${SOT_ROOT}"
 
 # Shared Libraries laden
 # shellcheck source=../lib/init.sh
