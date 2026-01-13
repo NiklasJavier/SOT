@@ -14,8 +14,45 @@ set -euo pipefail
 # =============================================================================
 # Pfad-Initialisierung
 # =============================================================================
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Standard-Installationspfad als Fallback
+DEFAULT_SOT_ROOT="/opt/SOT"
+
+# Versuche SOT_ROOT zu ermitteln
+if [[ -z "${SOT_ROOT:-}" ]]; then
+    # Prüfe bekannte Installationspfade
+    if [[ -f "$DEFAULT_SOT_ROOT/lib/init.sh" ]]; then
+        SOT_ROOT="$DEFAULT_SOT_ROOT"
+    elif [[ -f "/opt/AAT/lib/init.sh" ]]; then
+        SOT_ROOT="/opt/AAT"
+    else
+        # Versuche Symlink aufzulösen
+        _script="${BASH_SOURCE[0]}"
+        if command -v realpath &>/dev/null; then
+            _real="$(realpath "$_script" 2>/dev/null || true)"
+            [[ -n "$_real" ]] && SOT_ROOT="$(dirname "$(dirname "$_real")")"
+        fi
+        if [[ -z "${SOT_ROOT:-}" ]] && command -v readlink &>/dev/null; then
+            _real="$(readlink -f "$_script" 2>/dev/null || true)"
+            [[ -n "$_real" ]] && SOT_ROOT="$(dirname "$(dirname "$_real")")"
+        fi
+    fi
+fi
+
+# Fallback
+SOT_ROOT="${SOT_ROOT:-$DEFAULT_SOT_ROOT}"
+
+# Prüfe ob SOT_ROOT gültig ist
+if [[ ! -f "$SOT_ROOT/lib/init.sh" ]]; then
+    echo "FEHLER: SOT Installation nicht gefunden!" >&2
+    echo "Erwartet: $SOT_ROOT/lib/init.sh" >&2
+    echo "Bitte SOT neu installieren oder SOT_ROOT setzen." >&2
+    exit 1
+fi
+
+# Legacy-Kompatibilität
+SCRIPT_DIR="$SOT_ROOT/bin"
+SCRIPT_ROOT="$SOT_ROOT"
 
 # Shared Libraries laden
 # shellcheck source=../lib/init.sh
