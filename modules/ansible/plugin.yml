@@ -1,0 +1,52 @@
+# =============================================================================
+# Ansible Plugin Metadata
+# =============================================================================
+# Konfiguriert das Ansible-Modul für das SOT Plugin-System
+# =============================================================================
+
+name: Ansible
+description: Ansible Automatisierung für Host- und Container-Setup
+version: 2.0.0
+type: tool
+enabled: true
+
+# Haupt-Installer
+installer: install_ansible.sh
+
+# Verfügbare Befehle
+commands:
+  - trigger_playbook
+  - vault
+
+# Abhängigkeiten (andere Plugins)
+dependencies:
+  - python3
+
+# System-Requirements
+requirements:
+  packages:
+    - python3
+    - python3-pip
+
+# Konfiguration
+config:
+  inventory: inventory/hosts.ini
+  vault_file: vault/secrets.yml
+  ansible_cfg: ansible.cfg
+
+# Playbooks die dieses Plugin bereitstellt
+playbooks:
+  - name: host_setup
+    file: playbooks/host_setup.yml
+    description: Basis-Setup für neue Hosts
+  - name: container_setup
+    file: playbooks/container_setup.yml
+    description: Docker Container Provisionierung
+
+# Rollen die dieses Plugin bereitstellt
+roles:
+  - common
+  - protection
+  - vault
+  - variables
+  - read_vault_parameter

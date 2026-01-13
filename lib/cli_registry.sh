@@ -25,6 +25,7 @@ declare -A CLI_CATEGORIES=(
     ["sync"]="🔄|Synchronisation"
     ["run"]="▶️ |Ausführung"
     ["maintenance"]="🔧|Wartung"
+    ["plugins"]="🔌|Plugins & Module"
     ["info"]="ℹ️ |Information"
 )
 
@@ -180,7 +181,7 @@ show_categorized_help() {
     printf "  %sUsage:%s SOT %s<command>%s %s[options]%s\n" "${GREY:-}" "${NC:-}" "${GREEN:-}" "${NC:-}" "${YELLOW:-}" "${NC:-}"
     
     # Kategorien in definierter Reihenfolge ausgeben
-    for category in system vault sync run maintenance info; do
+    for category in system vault sync run maintenance plugins info; do
         local cmds="${category_commands[$category]:-}"
         [[ -z "$cmds" ]] && continue
         
@@ -262,7 +263,7 @@ show_interactive_menu() {
     printf "  %s\n\n" "$(printf '─%.0s' {1..30})"
     
     # Menü aufbauen
-    for category in system vault sync run maintenance; do
+    for category in system vault sync run maintenance plugins; do
         local cat_info="${CLI_CATEGORIES[$category]:-ℹ️ |$category}"
         local emoji="${cat_info%%|*}"
         local name="${cat_info#*|}"

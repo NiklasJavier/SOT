@@ -1,0 +1,39 @@
+# =============================================================================
+# SDKMAN Plugin Metadata
+# =============================================================================
+# Konfiguriert das SDKMAN-Modul für das SOT Plugin-System
+# =============================================================================
+
+name: SDKMAN
+description: SDKMAN SDK-Manager für Java, Gradle, Maven und andere Tools
+version: 1.0.0
+type: tool
+enabled: true
+
+# Haupt-Installer
+installer: install_sdkman.sh
+
+# Keine eigenen Befehle (nutzt direkt sdk Befehl nach Installation)
+# commands: (leer)
+
+# System-Requirements
+requirements:
+  packages:
+    - curl
+    - zip
+    - unzip
+
+# SDKs die standardmäßig installiert werden können
+sdks:
+  - java
+  - gradle
+  - maven
+  - kotlin
+  - groovy
+
+# Post-Install Hinweise
+notes: |
+  Nach der Installation:
+  1. Terminal neu starten oder 'source ~/.sdkman/bin/sdkman-init.sh'
+  2. 'sdk list' für verfügbare SDKs
+  3. 'sdk install java' für Java Installation

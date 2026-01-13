@@ -22,6 +22,8 @@ SCRIPT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "$SCRIPT_ROOT/lib/init.sh"
 # shellcheck source=../lib/cli_registry.sh
 source "$SCRIPT_ROOT/lib/cli_registry.sh"
+# shellcheck source=../lib/plugins.sh
+source "$SCRIPT_ROOT/lib/plugins.sh"
 
 # =============================================================================
 # Konfiguration laden
@@ -68,9 +70,13 @@ CLI_METADATA_ARGS=(
 )
 
 # =============================================================================
-# Integrationen entdecken
+# Integrationen & Plugins entdecken
 # =============================================================================
 discover_integrations
+
+# Plugin-System initialisieren mit korrektem Pfad
+MODULES_DIR="$modules_dir"
+discover_plugins
 
 # =============================================================================
 # CLI-Befehle registrieren
@@ -127,6 +133,43 @@ init_command_registry() {
         "Alle Integrationen validieren" \
         "SOT validate" \
         "SOT validate"
+    
+    # Plugin-Befehle
+    register_command "plugins" "" "plugins" \
+        "Plugin-System verwalten" \
+        "SOT plugins [list|info|enable|disable] [name]" \
+        "SOT plugins list"
+    
+    # Dynamische Plugin-Befehle registrieren
+    local plugin
+    for plugin in "${DISCOVERED_PLUGINS[@]}"; do
+        local plugin_desc="${PLUGIN_DESCRIPTIONS[$plugin]:-$plugin Plugin}"
+        local plugin_cmds="${PLUGIN_COMMANDS[$plugin]:-}"
+        
+        # Haupt-Plugin-Befehl
+        register_command "$plugin" "" "plugins" \
+            "$plugin_desc" \
+            "SOT $plugin [command] [options]" \
+            "SOT $plugin info"
+        
+        # Sub-Commands des Plugins
+        if [[ -n "$plugin_cmds" ]]; then
+            for cmd in $plugin_cmds; do
+                register_command "$plugin $cmd" "" "plugins" \
+                    "$plugin: $cmd" \
+                    "SOT $plugin $cmd [options]" \
+                    "SOT $plugin $cmd"
+            done
+        fi
+        
+        # Install-Befehl falls Installer vorhanden
+        if [[ -n "${PLUGIN_INSTALLERS[$plugin]:-}" ]]; then
+            register_command "$plugin install" "" "plugins" \
+                "$plugin installieren" \
+                "SOT $plugin install [options]" \
+                "SOT $plugin install"
+        fi
+    done
     
     # Info
     register_command "help" "" "info" \
@@ -476,6 +519,12 @@ main() {
             handle_integrations_meta_command "$@"
             ;;
         
+        # Plugin-Meta-Befehl
+        plugins)
+            shift
+            handle_plugins_command "$@"
+            ;;
+        
         # Validate-Shortcut
         validate)
             validate_all_integrations
@@ -500,6 +549,17 @@ main() {
             if integration_exists "$cmd"; then
                 shift
                 handle_integration_command "$cmd" "$@"
+            # Prüfen ob es ein Plugin ist
+            elif plugin_exists "$cmd"; then
+                shift
+                if [[ $# -eq 0 ]]; then
+                    show_plugin_info "$cmd"
+                elif [[ "$1" == "install" ]]; then
+                    shift
+                    install_plugin "$cmd" "$@"
+                else
+                    run_plugin_command "$cmd" "$@"
+                fi
             else
                 # Fallback: Standard-Befehlsauflösung
                 resolve_and_execute "$@"

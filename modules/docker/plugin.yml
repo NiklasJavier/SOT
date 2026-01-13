@@ -1,0 +1,45 @@
+# =============================================================================
+# Docker Plugin Metadata
+# =============================================================================
+# Konfiguriert das Docker-Modul für das SOT Plugin-System
+# =============================================================================
+
+name: Docker
+description: Docker Installation und Container-Template-Management
+version: 1.0.0
+type: service
+enabled: true
+
+# Haupt-Installer
+installer: install_docker.sh
+
+# Keine eigenen Befehle (nutzt docker direkt)
+# commands: (leer)
+
+# System-Requirements
+requirements:
+  packages:
+    - curl
+    - gnupg
+  services:
+    - docker
+
+# Templates die dieses Plugin bereitstellt
+templates:
+  - name: grafana
+    description: Grafana Monitoring Dashboard
+    compose: templates/grafana/docker-compose.yml
+    dockerfile: templates/grafana/Dockerfile
+  - name: portainer
+    description: Docker Management UI
+    compose: templates/portainer/docker-compose.yml
+    dockerfile: templates/portainer/Dockerfile
+  - name: traefik
+    description: Reverse Proxy und Load Balancer
+    compose: templates/traefik/docker-compose.yml
+    dockerfile: templates/traefik/Dockerfile
+
+# Docker-spezifische Konfiguration
+docker:
+  compose_version: "3.8"
+  default_network: sot_network
