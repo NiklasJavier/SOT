@@ -52,31 +52,71 @@ if (( ${#unique_sdkman_specs[@]} )); then
     sdkman_arg="$(IFS=','; echo "${unique_sdkman_specs[*]}")"
 fi
 
-echo -e "${GREY}Ensuring SDKMAN! is installed${NC}"
-if [ -f "$MODULES_DIR/sdkman/install.sh" ]; then
-    bash "$MODULES_DIR/sdkman/install.sh" "$sdkman_arg"
-else
-    echo -e "${RED}SDKMAN! installation script not found: $MODULES_DIR/sdkman/install.sh${NC}"
-fi
+# =============================================================================
+# Tool Installation mit Progress-Anzeige
+# =============================================================================
 
-# Überprüfen, welche Tools ausgewählt wurden und die entsprechenden Installationsskripte ausführen
+# Zähle zu installierende Tools
+TOOL_COUNT=1  # SDKMAN ist immer dabei
+[[ "$TOOLS" =~ (^|[[:space:]])docker([[:space:]]|$) ]] && ((++TOOL_COUNT))
+[[ "$TOOLS" =~ (^|[[:space:]])ansible([[:space:]]|$) ]] && ((++TOOL_COUNT))
+TOOL_CURRENT=0
+
+# Progress-Funktion
+show_tool_progress() {
+    local current="$1"
+    local total="$2"
+    local label="$3"
+    local percent=$((current * 100 / total))
+    local filled=$((percent * 25 / 100))
+    local empty=$((25 - filled))
+    
+    local bar=""
+    for ((i=0; i<filled; i++)); do bar+="█"; done
+    for ((i=0; i<empty; i++)); do bar+="░"; done
+    
+    printf "  ${GREEN}[%s]${NC} %3d%% %s\n" "$bar" "$percent" "$label"
+}
+
+echo ""
+echo -e "  ${BOLD}┌────────────────────────────────────────────┐${NC}"
+echo -e "  ${BOLD}│${NC}      ${GREEN}Tool Installation${NC}                    ${BOLD}│${NC}"
+echo -e "  ${BOLD}└────────────────────────────────────────────┘${NC}"
+echo ""
+
+# SDKMAN Installation
+((++TOOL_CURRENT))
+show_tool_progress "$TOOL_CURRENT" "$TOOL_COUNT" "SDKMAN! wird installiert..."
+if [ -f "$MODULES_DIR/sdkman/install.sh" ]; then
+    bash "$MODULES_DIR/sdkman/install.sh" "$sdkman_arg" 2>&1 | sed 's/^/    /'
+    echo -e "  ${GREEN}✓${NC} SDKMAN! installiert"
+else
+    echo -e "  ${RED}✗${NC} SDKMAN! Installationsskript nicht gefunden: $MODULES_DIR/sdkman/install.sh"
+fi
 
 # Docker Installation
 if [[ "$TOOLS" =~ (^|[[:space:]])docker([[:space:]]|$) ]]; then
-    echo -e "${GREY}Installing Docker...${NC}"
+    ((++TOOL_CURRENT))
+    show_tool_progress "$TOOL_CURRENT" "$TOOL_COUNT" "Docker wird installiert..."
     if [ -f "$MODULES_DIR/docker/install.sh" ]; then
-        bash "$MODULES_DIR/docker/install.sh"
+        bash "$MODULES_DIR/docker/install.sh" 2>&1 | sed 's/^/    /'
+        echo -e "  ${GREEN}✓${NC} Docker installiert"
     else
-        echo -e "${RED}Docker installation script not found: $MODULES_DIR/docker/install.sh${NC}"
+        echo -e "  ${RED}✗${NC} Docker Installationsskript nicht gefunden: $MODULES_DIR/docker/install.sh"
     fi
 fi
 
 # Ansible Installation
 if [[ "$TOOLS" =~ (^|[[:space:]])ansible([[:space:]]|$) ]]; then
-    echo -e "${GREY}Installing Ansible...${NC}"
+    ((++TOOL_CURRENT))
+    show_tool_progress "$TOOL_CURRENT" "$TOOL_COUNT" "Ansible wird installiert..."
     if [ -f "$MODULES_DIR/ansible/install.sh" ]; then
-        bash "$MODULES_DIR/ansible/install.sh"
+        bash "$MODULES_DIR/ansible/install.sh" 2>&1 | sed 's/^/    /'
+        echo -e "  ${GREEN}✓${NC} Ansible installiert"
     else
-        echo -e "${RED}Ansible installation script not found: $MODULES_DIR/ansible/install.sh${NC}"
+        echo -e "  ${RED}✗${NC} Ansible Installationsskript nicht gefunden: $MODULES_DIR/ansible/install.sh"
     fi
 fi
+
+echo ""
+echo -e "  ${GREEN}✓ Tool-Installation abgeschlossen${NC}"

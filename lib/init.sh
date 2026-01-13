@@ -21,6 +21,7 @@ source "$SOT_LIB_DIR/core/colors.sh"
 source "$SOT_LIB_DIR/core/yaml_parser.sh"
 source "$SOT_LIB_DIR/core/helpers.sh"
 source "$SOT_LIB_DIR/cli/integrations.sh"
+source "$SOT_LIB_DIR/cli/progress.sh"
 
 # Set SOT_ROOT if not already set
 if [[ -z "${SOT_ROOT:-}" ]]; then

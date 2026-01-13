@@ -84,8 +84,15 @@ install_candidates() {
     source "$SDKMAN_DIR/bin/sdkman-init.sh"
 
     IFS=',' read -ra requested <<< "$CANDIDATE_SPEC"
+    local total=${#requested[@]}
+    local current=0
+    
+    echo -e "    ${GREY}┌── SDKMAN Candidates ($total)${NC}"
+    
     for entry in "${requested[@]}"; do
         [[ -z "$entry" ]] && continue
+        ((++current))
+        
         name="${entry%%=*}"
         version="${entry#*=}"
         if [[ -z "$name" ]]; then
@@ -96,18 +103,29 @@ install_candidates() {
             version=""
         fi
 
+        local display_name="$name"
+        [[ -n "$version" && "$version" != "$name" ]] && display_name="$name $version"
+        
+        # Progress anzeigen
+        local percent=$((current * 100 / total))
+        printf "    ${GREY}├── [%3d%%]${NC} %s..." "$percent" "$display_name"
+
         if [[ -n "$version" && "$version" != "$name" ]]; then
-            echo -e "${GREY}Installing ${YELLOW}$name $version${GREY} via SDKMAN!${NC}"
-            if ! yes | sdk install "$name" "$version"; then
-                echo -e "${RED}Failed to install $name $version via SDKMAN!${NC}"
+            if yes | sdk install "$name" "$version" > /dev/null 2>&1; then
+                printf "\r    ${GREY}├──${NC} ${GREEN}✓${NC} %s\n" "$display_name"
+            else
+                printf "\r    ${GREY}├──${NC} ${RED}✗${NC} %s ${RED}(fehlgeschlagen)${NC}\n" "$display_name"
             fi
         else
-            echo -e "${GREY}Installing latest ${YELLOW}$name${GREY} via SDKMAN!${NC}"
-            if ! yes | sdk install "$name"; then
-                echo -e "${RED}Failed to install $name via SDKMAN!${NC}"
+            if yes | sdk install "$name" > /dev/null 2>&1; then
+                printf "\r    ${GREY}├──${NC} ${GREEN}✓${NC} %s\n" "$display_name"
+            else
+                printf "\r    ${GREY}├──${NC} ${RED}✗${NC} %s ${RED}(fehlgeschlagen)${NC}\n" "$display_name"
             fi
         fi
     done
+    
+    echo -e "    ${GREY}└── Fertig${NC}"
 }
 
 ensure_unzip
