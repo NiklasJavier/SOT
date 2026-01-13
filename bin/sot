@@ -22,6 +22,8 @@ SCRIPT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "$SCRIPT_ROOT/lib/init.sh"
 # shellcheck source=../lib/cli/registry.sh
 source "$SCRIPT_ROOT/lib/cli/registry.sh"
+# shellcheck source=../lib/cli/aliases.sh
+source "$SCRIPT_ROOT/lib/cli/aliases.sh"
 # shellcheck source=../lib/plugins/manager.sh
 source "$SCRIPT_ROOT/lib/plugins/manager.sh"
 
@@ -87,6 +89,11 @@ init_command_registry() {
         "Server-Konfiguration ausführen" \
         "SOT setup [--check] [--tags <tags>]" \
         "SOT setup --tags ssh,firewall"
+    
+    register_command "doctor" "$commands_dir/doctor.sh" "system" \
+        "System-Diagnose und Health-Check" \
+        "SOT doctor [--fix] [--summary]" \
+        "SOT doctor --fix"
     
     # Vault-Befehle
     register_command "vault" "$commands_dir/vault.sh" "vault" \
@@ -181,6 +188,11 @@ init_command_registry() {
         "Version anzeigen" \
         "SOT version" \
         "SOT version"
+    
+    register_command "aliases" "" "info" \
+        "Verfügbare Shortcuts anzeigen" \
+        "SOT aliases" \
+        "SOT aliases"
 }
 
 # =============================================================================
@@ -493,6 +505,12 @@ main() {
         return 0
     fi
     
+    # Alias-Auflösung: Prüfe ob erstes Argument ein Alias ist
+    if expand_alias_args "$@"; then
+        # Alias wurde gefunden und erweitert
+        set -- "${EXPANDED_ARGS[@]}"
+    fi
+    
     case "$1" in
         # Meta-Befehle
         -h|--help|help)
@@ -511,6 +529,17 @@ main() {
         --completion)
             shift
             generate_completion "${1:-bash}"
+            ;;
+        
+        # Alias-Hilfe
+        aliases|shortcuts)
+            show_aliases
+            ;;
+        
+        # Doctor-Befehl
+        doctor)
+            shift
+            execute_script "$commands_dir/doctor.sh" "$@"
             ;;
         
         # Integrations-Meta-Befehl
