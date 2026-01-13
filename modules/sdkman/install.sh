@@ -53,6 +53,28 @@ ensure_unzip() {
     fi
 }
 
+ensure_zip() {
+    if command -v zip >/dev/null 2>&1; then
+        return
+    fi
+
+    echo -e "${GREY}Installing required dependency ${YELLOW}zip${GREY}.${NC}"
+
+    if command -v apt-get >/dev/null 2>&1; then
+        $SUDO apt-get update -qq
+        $SUDO apt-get install -y zip
+    elif command -v yum >/dev/null 2>&1; then
+        $SUDO yum install -y zip
+    elif command -v dnf >/dev/null 2>&1; then
+        $SUDO dnf install -y zip
+    elif command -v pacman >/dev/null 2>&1; then
+        $SUDO pacman -Sy --noconfirm zip
+    else
+        echo -e "${RED}Unable to install zip automatically. Please install it manually before running this script.${NC}"
+        exit 1
+    fi
+}
+
 install_candidates() {
     if [[ -z "$CANDIDATE_SPEC" ]]; then
         return
@@ -89,6 +111,7 @@ install_candidates() {
 }
 
 ensure_unzip
+ensure_zip
 install_sdkman
 
 if [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
