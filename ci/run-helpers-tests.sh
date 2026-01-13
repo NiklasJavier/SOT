@@ -3,6 +3,7 @@
 # SOT Test Suite: Shared Library Functions
 # =============================================================================
 # Tests for lib/helpers.sh functions
+# shellcheck disable=SC2015  # Using && || pattern intentionally for test assertions
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

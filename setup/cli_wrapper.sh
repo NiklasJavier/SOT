@@ -144,7 +144,7 @@ init_command_registry() {
 # Banner & Version
 # =============================================================================
 show_banner() {
-    printf "${CYAN:-}"
+    printf '%s' "${CYAN:-}"
     cat << 'BANNER'
 
    ███████╗ ██████╗ ████████╗
@@ -155,8 +155,8 @@ show_banner() {
    ╚══════╝ ╚═════╝    ╚═╝   
 
 BANNER
-    printf "${NC:-}"
-    printf "  ${GREY:-}Server Operation Toolkit${NC:-}\n"
+    printf '%s' "${NC:-}"
+    printf '  %sServer Operation Toolkit%s\n' "${GREY:-}" "${NC:-}"
 }
 
 show_version() {
@@ -185,7 +185,8 @@ show_help() {
     show_categorized_help
     
     # Quickstart-Tipps
-    printf "  ${GREY:-}Tipp: Mit${NC:-} ${YELLOW:-}SOT --interactive${NC:-} ${GREY:-}das interaktive Menü starten${NC:-}\n\n"
+    printf '  %sTipp: Mit%s %sSOT --interactive%s %sdas interaktive Menü starten%s\n\n' \
+        "${GREY:-}" "${NC:-}" "${YELLOW:-}" "${NC:-}" "${GREY:-}" "${NC:-}"
 }
 
 show_legacy_command_help() {
@@ -323,7 +324,11 @@ invoke_integration_runner() {
     # Cleanup
     if [[ -n "$temp_inventory" ]]; then
         rm -f "$temp_inventory"
-        [[ -n "$previous_ansible_inventory" ]] && export ANSIBLE_INVENTORY="$previous_ansible_inventory" || unset ANSIBLE_INVENTORY
+        if [[ -n "$previous_ansible_inventory" ]]; then
+            export ANSIBLE_INVENTORY="$previous_ansible_inventory"
+        else
+            unset ANSIBLE_INVENTORY
+        fi
     fi
     
     return "$result"
@@ -391,7 +396,7 @@ resolve_and_execute() {
     fi
     
     err "Befehl '${user_args[*]}' nicht gefunden."
-    printf "\n  ${GREY:-}Verfügbare Befehle:${NC:-} SOT help\n\n"
+    printf '\n  %sVerfügbare Befehle:%s SOT help\n\n' "${GREY:-}" "${NC:-}"
     return 127
 }
 
@@ -419,7 +424,7 @@ run_interactive_mode() {
                 ((idx++))
             done
             
-            printf "\n  ${GREY:-}[Enter] für Menü, [q] zum Beenden${NC:-} "
+            printf '\n  %s[Enter] für Menü, [q] zum Beenden%s ' "${GREY:-}" "${NC:-}"
             read -r -n1 key
             [[ "$key" == "q" ]] && break
             clear
@@ -429,7 +434,7 @@ run_interactive_mode() {
         fi
     done
     
-    printf "\n  ${GREY:-}Auf Wiedersehen!${NC:-}\n\n"
+    printf '\n  %sAuf Wiedersehen!%s\n\n' "${GREY:-}" "${NC:-}"
 }
 
 # =============================================================================

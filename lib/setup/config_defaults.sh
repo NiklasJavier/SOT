@@ -107,9 +107,9 @@ generate_dynamic_defaults() {
     if [[ -z "$USERNAME" || "$USERNAME" == "__GENERATE_USERNAME__" ]]; then
         # Use openssl for better macOS compatibility
         if command -v openssl &>/dev/null; then
-            USERNAME="$(openssl rand -base64 20 | tr -dc 'A-Z' | head -c 11)"
+            USERNAME="$(openssl rand -base64 20 | tr -dc '[:upper:]' | head -c 11)"
         else
-            USERNAME="$(LC_ALL=C tr -dc 'A-Z' < /dev/urandom | head -c 11)"
+            USERNAME="$(LC_ALL=C tr -dc '[:upper:]' < /dev/urandom | head -c 11)"
         fi
     fi
 

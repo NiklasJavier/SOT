@@ -3,6 +3,7 @@
 # SOT Test Suite: Setup Library Functions
 # =============================================================================
 # Tests for lib/setup/*.sh modules
+# shellcheck disable=SC2015  # Using && || pattern intentionally for test assertions
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

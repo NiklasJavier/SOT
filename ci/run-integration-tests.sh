@@ -3,6 +3,7 @@
 # SOT Test Suite: Integration Tests
 # =============================================================================
 # End-to-end tests for CLI and script interactions
+# shellcheck disable=SC2015  # Using && || pattern intentionally for test assertions
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
