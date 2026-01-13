@@ -25,18 +25,57 @@ vault_secret: __GENERATE_VAULT_SECRET__
 vault_content: __GENERATE_VAULT_CONTENT__
 vault_mail: __GENERATE_VAULT_MAIL__
 branch: "production"
+
+# =============================================================================
+# Integrationen (Dynamisches System)
+# =============================================================================
+# Jede Integration benötigt:
+#   <name>_enabled      - "true" oder "false"
+#   <name>_repo_url     - Git Repository URL
+#   <name>_dir          - Lokales Verzeichnis
+#   <name>_branch       - Git Branch
+#   <name>_type         - ansible|terraform|custom|script
+#   <name>_runner       - Entry-Point Skript (default: runner.sh)
+#   <name>_description  - Beschreibung für CLI
+#
+# Optional für Ansible-Integrationen:
+#   <name>_inventory_path - Pfad zum Inventory
+#   <name>_inventory_vars - Variablen für Inventory
+
+# AAT - Ansible Automation Tools
 aat_enabled: "true"
 aat_repo_url: "https://github.com/NiklasJavier/AAT.git"
 aat_dir: "/opt/AAT"
 aat_branch: "main"
+aat_type: "ansible"
+aat_runner: "runner.sh"
+aat_description: "Ansible Automation Tools"
 aat_inventory_path: "host.ini"
 aat_inventory_vars: "ssh_port system_name"
+
+# TID - Terraform Infrastructure Deployment
 tid_enabled: "true"
 tid_repo_url: "https://github.com/NiklasJavier/TID.git"
 tid_dir: "/opt/TID"
 tid_branch: "main"
+tid_type: "terraform"
+tid_runner: "runner.sh"
+tid_description: "Terraform Infrastructure Deployment"
 tid_inventory_path: "host.ini"
 tid_inventory_vars: "ssh_port system_name"
+
+# Beispiel für weitere Integration (auskommentiert):
+# mytools_enabled: "false"
+# mytools_repo_url: "https://github.com/example/mytools.git"
+# mytools_dir: "/opt/MYTOOLS"
+# mytools_branch: "main"
+# mytools_type: "script"
+# mytools_runner: "run.sh"
+# mytools_description: "Meine Custom Tools"
+
+# =============================================================================
+# Runner-Konfiguration
+# =============================================================================
 runner_enabled: "true"
 runner_default_mode: "aat"
 runner_sync_before_run: "true"

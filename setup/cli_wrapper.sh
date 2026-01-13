@@ -68,6 +68,11 @@ CLI_METADATA_ARGS=(
 )
 
 # =============================================================================
+# Integrationen entdecken
+# =============================================================================
+discover_integrations
+
+# =============================================================================
 # CLI-Befehle registrieren
 # =============================================================================
 init_command_registry() {
@@ -86,7 +91,7 @@ init_command_registry() {
     # Runner
     register_command "runner" "$scripts_dir/runner.sh" "run" \
         "Ansible/Terraform Playbooks ausführen" \
-        "SOT runner <aat|tid> <playbook> [options]" \
+        "SOT runner <integration> <playbook> [options]" \
         "SOT runner aat site.yml --tags setup"
     
     # Maintenance
@@ -100,19 +105,26 @@ init_command_registry() {
         "SOT delete [--no-backup]" \
         "SOT delete"
     
-    # Sync-Befehle
-    register_command "aat sync" "$scripts_dir/integrations/aat_sync.sh" "sync" \
-        "AAT-Repository synchronisieren" \
-        "SOT aat sync [--branch <b>]" \
-        "SOT aat sync --branch develop"
+    # Dynamische Sync-Befehle für alle Integrationen
+    local name
+    for name in "${!INTEGRATIONS[@]}"; do
+        local name_upper="${name^^}"
+        local desc="${INTEGRATION_DESCRIPTIONS[$name]:-$name_upper Integration}"
+        
+        register_command "$name sync" "" "sync" \
+            "$name_upper synchronisieren" \
+            "SOT $name sync [--branch <b>]" \
+            "SOT $name sync --branch develop"
+    done
     
-    register_command "tid sync" "$scripts_dir/integrations/tid_sync.sh" "sync" \
-        "TID-Repository synchronisieren" \
-        "SOT tid sync [--branch <b>]" \
-        "SOT tid sync"
+    # Meta-Befehle für Integrationen
+    register_command "integrations" "" "sync" \
+        "Integrationen verwalten" \
+        "SOT integrations [list|validate|add]" \
+        "SOT integrations list"
     
-    register_command "validate" "$scripts_dir/integrations/validate_sync.sh" "sync" \
-        "Integration-Status validieren" \
+    register_command "validate" "" "sync" \
+        "Alle Integrationen validieren" \
         "SOT validate" \
         "SOT validate"
     
@@ -453,18 +465,15 @@ main() {
             generate_completion "${1:-bash}"
             ;;
         
-        # Integration-Befehle
-        aat|tid)
-            local integration="$1"
+        # Integrations-Meta-Befehl
+        integrations)
             shift
-            
-            if [[ "${1:-}" == "sync" ]]; then
-                shift
-                local sync_script="$scripts_dir/integrations/${integration}_sync.sh"
-                execute_script "$sync_script" "$@"
-            else
-                invoke_integration_runner "$integration" "$@"
-            fi
+            handle_integrations_meta_command "$@"
+            ;;
+        
+        # Validate-Shortcut
+        validate)
+            validate_all_integrations
             ;;
         
         # Shortcuts
@@ -478,9 +487,18 @@ main() {
             execute_script "$scripts_dir/maintenance/delete.sh" "$@"
             ;;
         
-        # Alle anderen
+        # Dynamische Integration-Handler
         *)
-            resolve_and_execute "$@"
+            local cmd="$1"
+            
+            # Prüfen ob es eine registrierte Integration ist
+            if integration_exists "$cmd"; then
+                shift
+                handle_integration_command "$cmd" "$@"
+            else
+                # Fallback: Standard-Befehlsauflösung
+                resolve_and_execute "$@"
+            fi
             ;;
     esac
 }

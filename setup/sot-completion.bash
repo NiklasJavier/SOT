@@ -13,10 +13,19 @@ _sot_completions() {
     _init_completion -n : || return
 
     # Basis-Befehle
-    local commands="setup vault runner update delete validate help version"
-    local integrations="aat tid"
-    local maintenance_cmds="update delete"
-    local sync_cmds="sync"
+    local commands="setup vault runner update delete validate integrations help version"
+    
+    # Dynamische Integrationen aus Config laden (falls verfügbar)
+    local integrations=""
+    local config_file="${SOT_CONFIG_FILE:-/etc/DevOpsToolkit/services/default_config.yml}"
+    if [[ -f "$config_file" ]]; then
+        integrations=$(grep -oE '^[a-z]+_enabled:' "$config_file" 2>/dev/null | \
+            sed 's/_enabled://' | \
+            grep -vE '^(runner|vault|ansible|ssh)$' | \
+            tr '\n' ' ')
+    fi
+    # Fallback auf bekannte Integrationen
+    [[ -z "$integrations" ]] && integrations="aat tid"
     
     case $cword in
         1)
@@ -29,13 +38,13 @@ _sot_completions() {
                     # Hilfe für alle Befehle
                     COMPREPLY=($(compgen -W "$commands $integrations" -- "$cur"))
                     ;;
-                aat|tid)
-                    # Integration-Unterbefehle
-                    COMPREPLY=($(compgen -W "sync help" -- "$cur"))
+                integrations)
+                    # Integrations-Unterbefehle
+                    COMPREPLY=($(compgen -W "list validate add help" -- "$cur"))
                     ;;
                 runner)
-                    # Runner-Unterbefehle
-                    COMPREPLY=($(compgen -W "aat ansible tid terraform" -- "$cur"))
+                    # Runner-Unterbefehle (dynamische Integrationen)
+                    COMPREPLY=($(compgen -W "$integrations" -- "$cur"))
                     ;;
                 vault)
                     # Vault-Aktionen
@@ -48,22 +57,34 @@ _sot_completions() {
                 --completion)
                     COMPREPLY=($(compgen -W "bash zsh" -- "$cur"))
                     ;;
+                *)
+                    # Dynamische Integration erkannt?
+                    if [[ " $integrations " =~ " ${words[1]} " ]]; then
+                        COMPREPLY=($(compgen -W "sync validate help" -- "$cur"))
+                    fi
+                    ;;
             esac
             ;;
         3)
             case "${words[1]}" in
-                aat|tid)
-                    if [[ "${words[2]}" == "sync" ]]; then
-                        COMPREPLY=($(compgen -W "--branch --help" -- "$cur"))
-                    fi
-                    ;;
                 runner)
-                    # Playbook-Vorschläge (könnte erweitert werden)
+                    # Playbook-Vorschläge
                     COMPREPLY=($(compgen -W "site.yml main.yml setup.yml --help" -- "$cur"))
                     ;;
                 setup)
                     if [[ "${words[2]}" == "--tags" ]]; then
                         COMPREPLY=($(compgen -W "ssh firewall docker users packages security" -- "$cur"))
+                    fi
+                    ;;
+                integrations)
+                    if [[ "${words[2]}" == "add" ]]; then
+                        COMPREPLY=($(compgen -W "ansible terraform custom script" -- "$cur"))
+                    fi
+                    ;;
+                *)
+                    # Dynamische Integration mit sync
+                    if [[ " $integrations " =~ " ${words[1]} " && "${words[2]}" == "sync" ]]; then
+                        COMPREPLY=($(compgen -W "--branch --help" -- "$cur"))
                     fi
                     ;;
             esac

@@ -20,9 +20,11 @@ export SOT_LIB_DIR
 source "$SOT_LIB_DIR/colors.sh"
 source "$SOT_LIB_DIR/yaml_parser.sh"
 source "$SOT_LIB_DIR/helpers.sh"
+source "$SOT_LIB_DIR/integrations.sh"
 
 # Set SOT_ROOT if not already set
 if [[ -z "${SOT_ROOT:-}" ]]; then
   SOT_ROOT="$(cd "$SOT_LIB_DIR/.." && pwd)"
   export SOT_ROOT
 fi
+
