@@ -11,6 +11,9 @@ SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 # shellcheck source=../../lib/init.sh
 source "$SCRIPT_ROOT/lib/init.sh"
 
+# Configuration
+GIT_TIMEOUT="${SOT_GIT_TIMEOUT:-120}"  # 2 minutes default timeout for git operations
+
 BRANCH_OVERRIDE=""
 FILTERED_ARGS=()
 
@@ -19,7 +22,7 @@ while [[ $# -gt 0 ]]; do
     --branch)
       shift
       if [[ $# -eq 0 ]]; then
-        echo -e "${RED}--branch requires a value.${NC}"
+        err "--branch requires a value."
         exit 1
       fi
       BRANCH_OVERRIDE="$1"
@@ -33,16 +36,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 set -- "${FILTERED_ARGS[@]}"
-
-find_config_file_arg() {
-  for arg in "$@"; do
-    if [[ -f "$arg" && "$arg" == *"config.yaml"* ]]; then
-      echo "$arg"
-      return 0
-    fi
-  done
-  return 1
-}
 
 CONFIG_FILE_PATH=""
 if CONFIG_FILE_PATH=$(find_config_file_arg "$@"); then
@@ -62,28 +55,29 @@ if [[ -n "$BRANCH_OVERRIDE" ]]; then
   AAT_BRANCH="$BRANCH_OVERRIDE"
 fi
 
-if [[ "$AAT_ENABLED" != "true" ]]; then
-  echo -e "${GREY}AAT integration disabled (aat_enabled != true). Nothing to do.${NC}"
+if ! is_true "$AAT_ENABLED"; then
+  info "AAT integration disabled (aat_enabled != true). Nothing to do."
   exit 0
 fi
 
 if ! command -v git >/dev/null 2>&1; then
-  echo -e "${RED}git is required to sync AAT. Please install git and retry.${NC}"
+  err "git is required to sync AAT. Please install git and retry."
   exit 1
 fi
 
-echo -e "${GREY}Syncing AAT at ${YELLOW}$AAT_DIR${GREY} from ${YELLOW}$AAT_REPO_URL${GREY} (branch ${YELLOW}$AAT_BRANCH${GREY})...${NC}"
-mkdir -p "$AAT_DIR"
+info "Syncing AAT at ${YELLOW}$AAT_DIR${NC} from ${YELLOW}$AAT_REPO_URL${NC} (branch ${YELLOW}$AAT_BRANCH${NC})..."
+ensure_dir "$AAT_DIR"
+
 if [[ -d "$AAT_DIR/.git" ]]; then
-  if ! git -C "$AAT_DIR" fetch origin "$AAT_BRANCH"; then
-    echo -e "${YELLOW}Warning: 'git fetch' failed. Removing local repository for a clean clone...${NC}"
+  if ! run_with_timeout "$GIT_TIMEOUT" git -C "$AAT_DIR" fetch origin "$AAT_BRANCH"; then
+    warn "'git fetch' failed or timed out. Removing local repository for a clean clone..."
     rm -rf "$AAT_DIR"
   else
-    if ! git -C "$AAT_DIR" checkout "$AAT_BRANCH" >/dev/null 2>&1; then
-      echo -e "${YELLOW}Warning: branch '$AAT_BRANCH' is unavailable locally. Re-cloning...${NC}"
+    if ! run_with_timeout "$GIT_TIMEOUT" git -C "$AAT_DIR" checkout "$AAT_BRANCH" >/dev/null 2>&1; then
+      warn "branch '$AAT_BRANCH' is unavailable locally. Re-cloning..."
       rm -rf "$AAT_DIR"
-    elif ! git -C "$AAT_DIR" pull --ff-only origin "$AAT_BRANCH"; then
-      echo -e "${YELLOW}Warning: 'git pull' failed. Re-cloning repository...${NC}"
+    elif ! run_with_timeout "$GIT_TIMEOUT" git -C "$AAT_DIR" pull --ff-only origin "$AAT_BRANCH"; then
+      warn "'git pull' failed or timed out. Re-cloning repository..."
       rm -rf "$AAT_DIR"
     fi
   fi
@@ -91,12 +85,12 @@ fi
 
 if [[ ! -d "$AAT_DIR/.git" ]]; then
   rm -rf "$AAT_DIR"
-  if ! git clone --depth 1 --single-branch --branch "$AAT_BRANCH" "$AAT_REPO_URL" "$AAT_DIR"; then
-    echo -e "${RED}Failed to clone AAT repository.${NC}"
+  if ! run_with_timeout "$GIT_TIMEOUT" git clone --depth 1 --single-branch --branch "$AAT_BRANCH" "$AAT_REPO_URL" "$AAT_DIR"; then
+    err "Failed to clone AAT repository (timeout: ${GIT_TIMEOUT}s)."
     exit 1
   fi
 fi
 
-echo -e "${GREY}AAT sync completed.${NC}"
+success "AAT sync completed."
 
 

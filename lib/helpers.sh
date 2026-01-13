@@ -131,3 +131,40 @@ info() {
 success() {
   echo -e "${GREEN:-}$*${NC:-}"
 }
+
+# Find config.yaml file from command line arguments
+# Arguments:
+#   $@ - Command line arguments
+# Returns:
+#   Path to config.yaml on stdout, 0 on success, 1 if not found
+find_config_file_arg() {
+  local arg
+  for arg in "$@"; do
+    if [[ -f "$arg" && "$arg" == *"config.yaml"* ]]; then
+      echo "$arg"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Run a command with timeout
+# Arguments:
+#   $1 - Timeout in seconds
+#   $@ - Command to run
+# Returns:
+#   Exit code of command, or 124 on timeout
+run_with_timeout() {
+  local timeout_secs="$1"
+  shift
+  
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$timeout_secs" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    # macOS with coreutils installed
+    gtimeout "$timeout_secs" "$@"
+  else
+    # Fallback: run without timeout
+    "$@"
+  fi
+}

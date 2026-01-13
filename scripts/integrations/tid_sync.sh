@@ -10,6 +10,9 @@ SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 # shellcheck source=../../lib/init.sh
 source "$SCRIPT_ROOT/lib/init.sh"
 
+# Configuration
+GIT_TIMEOUT="${SOT_GIT_TIMEOUT:-120}"  # 2 minutes default timeout for git operations
+
 BRANCH_OVERRIDE=""
 FILTERED_ARGS=()
 
@@ -33,16 +36,6 @@ done
 
 set -- "${FILTERED_ARGS[@]}"
 
-find_config_file_arg() {
-  for arg in "$@"; do
-    if [[ -f "$arg" && "$arg" == *"config.yaml"* ]]; then
-      echo "$arg"
-      return 0
-    fi
-  done
-  return 1
-}
-
 CONFIG_FILE_PATH=""
 if CONFIG_FILE_PATH=$(find_config_file_arg "$@"); then
   :
@@ -61,28 +54,29 @@ if [[ -n "$BRANCH_OVERRIDE" ]]; then
   TID_BRANCH="$BRANCH_OVERRIDE"
 fi
 
-if [[ "$TID_ENABLED" != "true" ]]; then
+if ! is_true "$TID_ENABLED"; then
   info "TID integration disabled (tid_enabled != true). Nothing to do."
   exit 0
 fi
 
 if ! command -v git >/dev/null 2>&1; then
-  echo -e "${RED}git is required to sync TID. Please install git and retry.${NC}"
+  err "git is required to sync TID. Please install git and retry."
   exit 1
 fi
 
-echo -e "${GREY}Syncing TID at ${YELLOW}$TID_DIR${GREY} from ${YELLOW}$TID_REPO_URL${GREY} (branch ${YELLOW}$TID_BRANCH${GREY})...${NC}"
-mkdir -p "$TID_DIR"
+info "Syncing TID at ${YELLOW}$TID_DIR${NC} from ${YELLOW}$TID_REPO_URL${NC} (branch ${YELLOW}$TID_BRANCH${NC})..."
+ensure_dir "$TID_DIR"
+
 if [[ -d "$TID_DIR/.git" ]]; then
-  if ! git -C "$TID_DIR" fetch origin "$TID_BRANCH"; then
-    echo -e "${YELLOW}Warning: 'git fetch' failed. Removing local repository for a clean clone...${NC}"
+  if ! run_with_timeout "$GIT_TIMEOUT" git -C "$TID_DIR" fetch origin "$TID_BRANCH"; then
+    warn "'git fetch' failed or timed out. Removing local repository for a clean clone..."
     rm -rf "$TID_DIR"
   else
-    if ! git -C "$TID_DIR" checkout "$TID_BRANCH" >/dev/null 2>&1; then
-      echo -e "${YELLOW}Warning: branch '$TID_BRANCH' is unavailable locally. Re-cloning...${NC}"
+    if ! run_with_timeout "$GIT_TIMEOUT" git -C "$TID_DIR" checkout "$TID_BRANCH" >/dev/null 2>&1; then
+      warn "branch '$TID_BRANCH' is unavailable locally. Re-cloning..."
       rm -rf "$TID_DIR"
-    elif ! git -C "$TID_DIR" pull --ff-only origin "$TID_BRANCH"; then
-      echo -e "${YELLOW}Warning: 'git pull' failed. Re-cloning repository...${NC}"
+    elif ! run_with_timeout "$GIT_TIMEOUT" git -C "$TID_DIR" pull --ff-only origin "$TID_BRANCH"; then
+      warn "'git pull' failed or timed out. Re-cloning repository..."
       rm -rf "$TID_DIR"
     fi
   fi
@@ -90,12 +84,12 @@ fi
 
 if [[ ! -d "$TID_DIR/.git" ]]; then
   rm -rf "$TID_DIR"
-  if ! git clone --depth 1 --single-branch --branch "$TID_BRANCH" "$TID_REPO_URL" "$TID_DIR"; then
-    echo -e "${RED}Failed to clone TID repository.${NC}"
+  if ! run_with_timeout "$GIT_TIMEOUT" git clone --depth 1 --single-branch --branch "$TID_BRANCH" "$TID_REPO_URL" "$TID_DIR"; then
+    err "Failed to clone TID repository (timeout: ${GIT_TIMEOUT}s)."
     exit 1
   fi
 fi
 
-echo -e "${GREY}TID sync completed.${NC}"
+success "TID sync completed."
 
 

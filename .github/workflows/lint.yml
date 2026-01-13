@@ -7,18 +7,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Install lint dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y yamllint shellcheck
+          
       - name: YAML lint
         run: yamllint .
+        
       - name: Shell lint
         shell: bash
         env:
-          SHELLCHECK_OPTS: >-
-            -e SC1091 -e SC2001 -e SC2006 -e SC2034 -e SC2086 -e SC2145
-            -e SC2154 -e SC2162 -e SC2181
+          # Minimale Exceptions (mit Begründung):
+          # SC1091: source von dynamischen Pfaden (lib/init.sh) - gewollt
+          # SC2034: "unused variables" - oft in sourced libs definiert
+          # SC2154: "referenced but not assigned" - in sourced libs definiert
+          SHELLCHECK_OPTS: "-e SC1091 -e SC2034 -e SC2154"
         run: |
           shopt -s globstar
           shellcheck **/*.sh

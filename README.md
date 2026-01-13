@@ -6,8 +6,10 @@
 ![Shell](https://img.shields.io/badge/shell-bash%205.0+-121011.svg?logo=gnu-bash&logoColor=white)
 ![Ansible](https://img.shields.io/badge/automation-ansible-EE0000.svg?logo=ansible&logoColor=white)
 ![Docker](https://img.shields.io/badge/containers-docker-2496ED.svg?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-69%2B%20passing-brightgreen.svg)
-![Security](https://img.shields.io/badge/security-scanned-blueviolet.svg)
+
+[![Tests](https://github.com/NiklasJavier/SOT/actions/workflows/test.yml/badge.svg)](https://github.com/NiklasJavier/SOT/actions/workflows/test.yml)
+[![Security](https://github.com/NiklasJavier/SOT/actions/workflows/security.yml/badge.svg)](https://github.com/NiklasJavier/SOT/actions/workflows/security.yml)
+[![Lint](https://github.com/NiklasJavier/SOT/actions/workflows/lint.yml/badge.svg)](https://github.com/NiklasJavier/SOT/actions/workflows/lint.yml)
 
 **Reproduzierbares Setup- und Operations-Framework für Linux-Server**
 
