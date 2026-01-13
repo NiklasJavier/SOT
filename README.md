@@ -75,9 +75,9 @@ export TIDBRANCH="main"
 # Installation
 curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${SOTBRANCH}/setup/setup_sot.sh" \
   | bash -s -- -branch "$SOTBRANCH" -port 22 && \
-  SOT integrations aat_sync --branch "$AATBRANCH" && \
-  SOT integrations tid_sync --branch "$TIDBRANCH" && \
-  SOT integrations validate_sync && \
+  SOT aat sync --branch "$AATBRANCH" && \
+  SOT tid sync --branch "$TIDBRANCH" && \
+  SOT validate && \
   SOT setup
 ```
 
@@ -131,7 +131,9 @@ SOT [unterordner] <befehl> [optionen]
 | 🔐 **Vault** | `SOT vault [view\|edit\|rekey]` | Vault interaktiv bearbeiten |
 | 🔄 **Sync** | `SOT aat sync` | AAT-Repository synchronisieren |
 | 🔄 **Sync** | `SOT tid sync` | TID-Repository synchronisieren |
-| 🔄 **Sync** | `SOT validate` | Integration-Status prüfen |
+| 🔄 **Sync** | `SOT integrations list` | Alle Integrationen anzeigen |
+| 🔄 **Sync** | `SOT integrations add <name> <type>` | Neue Integration hinzufügen |
+| 🔄 **Sync** | `SOT validate` | Alle Integrationen validieren |
 | ▶️ **Run** | `SOT runner aat <playbook>` | Ansible-Playbook ausführen |
 | ▶️ **Run** | `SOT runner tid <stack>` | Terraform-Stack ausführen |
 | 🔧 **Wartung** | `SOT update` | SOT aktualisieren |
@@ -227,6 +229,35 @@ runner:
 
 ## 🧩 Module & Integrationen
 
+SOT verwendet ein **dynamisches Integrations-Framework**, das automatisch alle konfigurierten
+Repositories erkennt und CLI-Befehle dafür generiert.
+
+### Dynamische Integrationen
+
+```bash
+# Alle Integrationen anzeigen
+SOT integrations list
+
+# Neue Integration hinzufügen (generiert Config-Template)
+SOT integrations add mytools ansible
+SOT integrations add infra terraform
+SOT integrations add scripts custom
+
+# Integration synchronisieren
+SOT <name> sync [--branch <branch>]
+
+# Alle Integrationen validieren
+SOT validate
+```
+
+**Unterstützte Typen:**
+| Typ | Runner | Beschreibung |
+|-----|--------|--------------|
+| `ansible` | `ansible-playbook` | Ansible-Playbooks mit Inventory-Support |
+| `terraform` | `terraform` | Terraform-Stacks mit Workspace-Isolation |
+| `custom` | Konfigurierbarer Runner | Eigene Ausführungslogik |
+| `script` | `bash` | Einfache Shell-Skripte |
+
 ### Lokale Ansible-Module
 
 - `modules/ansible/` ist die erste Anlaufstelle für Playbooks, Inventare und Rollen
@@ -235,7 +266,7 @@ runner:
 
 ### AAT — Ansible Automation Tools
 
-- `SOT integrations aat_sync` aktualisiert das externe Repository
+- `SOT aat sync` aktualisiert das externe Repository
 - Fallback: Nur wenn kein lokales Playbook gefunden wird
 - [AAT Playbook-Übersicht](https://github.com/NiklasJavier/AAT/blob/main/docs/README.md)
 
@@ -244,6 +275,26 @@ runner:
 - Terraform-Code lebt vollständig im TID-Repository
 - `SOT runner terraform` führt Stacks aus (plan, apply, destroy)
 - [TID Service-Übersicht](https://github.com/NiklasJavier/TID/blob/main/docs/README.md)
+
+### Neue Integration hinzufügen
+
+```bash
+# 1. Config-Template generieren
+SOT integrations add mytools ansible
+
+# 2. Generierte Werte in config.yaml anpassen:
+#    mytools_enabled: "true"
+#    mytools_repo_url: "https://github.com/user/mytools.git"
+#    mytools_dir: "/opt/MyTools"
+#    mytools_branch: "main"
+#    mytools_type: "ansible"
+
+# 3. Repository synchronisieren
+SOT mytools sync
+
+# 4. Validieren
+SOT validate
+```
 
 ---
 
@@ -256,6 +307,8 @@ SOT/
 │   ├── colors.sh               # Terminal-Farben
 │   ├── yaml_parser.sh          # YAML-Parser (v1 & v2)
 │   ├── helpers.sh              # Hilfsfunktionen
+│   ├── cli_registry.sh         # CLI-Befehlsregistrierung
+│   ├── integrations.sh         # Dynamisches Integrations-Framework
 │   └── setup/                  # Setup-Module
 │       ├── args_parser.sh      # CLI-Argumente
 │       ├── config_defaults.sh  # Defaults
@@ -264,17 +317,20 @@ SOT/
 │       └── runner.sh           # Task-Runner
 │
 ├── setup/                      # 🔧 Bootstrap & CLI
-│   ├── cli_wrapper.sh          # SOT CLI
+│   ├── cli_wrapper.sh          # SOT CLI (Haupt-Entrypoint)
 │   ├── setup_sot.sh            # Setup-Script
 │   ├── install_tools.sh        # Tool-Installer
-│   └── vault_template.j2       # Vault-Template
+│   ├── vault_template.j2       # Vault-Template
+│   ├── sot-completion.bash     # Bash Shell-Completion
+│   └── sot-completion.zsh      # Zsh Shell-Completion
 │
 ├── scripts/                    # 📜 CLI-Befehle
 │   ├── setup.sh                # Host-Setup
 │   ├── runner.sh               # Ansible/Terraform-Runner
 │   ├── vault.sh                # Vault-Interaktion
-│   ├── maintenance/            # Wartung (update, delete)
-│   └── integrations/           # AAT/TID-Sync
+│   ├── debug/                  # Debug-Skripte
+│   └── integrations/           # Dynamisches Sync-Framework
+│       └── sync.sh             # Generisches Sync-Skript
 │
 ├── modules/                    # 🧩 Module
 │   ├── ansible/                # Ansible (Playbooks, Rollen)
