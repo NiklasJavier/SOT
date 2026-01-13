@@ -56,7 +56,7 @@ is_critical_task() {
     return 1
 }
 
-# Run a single task with progress indication
+# Run a single task - DIRECT execution without output redirection
 # Arguments:
 #   $1 - Task function name
 #   $2 - Current task number
@@ -68,42 +68,23 @@ run_task() {
     local label
     label=$(get_task_label "$task")
     
-    # Zeige Progress-Bar mit aktuellem Task
-    progress_bar "$current" "$total" "$label"
+    # Zeige Task-Info direkt
+    printf "  [%d/%d] %s... " "$current" "$total" "$label"
     
-    # Task ausführen (Ausgabe in temp Datei für Fehlerbehandlung)
-    local output_file
-    output_file=$(mktemp)
-    local exit_code=0
-    
-    "$task" > "$output_file" 2>&1 || exit_code=$?
-    
-    if [[ $exit_code -eq 0 ]]; then
-        # Erfolg
-        progress_bar "$current" "$total" "${GREEN:-}✓${NC:-} $label"
-        printf "\n"
+    # Task DIREKT ausführen - keine Umleitung, keine Subshell
+    if "$task"; then
+        printf "${GREEN:-}✓${NC:-}\n"
     else
-        # Fehler
-        progress_bar "$current" "$total" "${RED:-}✗${NC:-} $label"
-        printf "\n"
-        # Zeige Fehlerausgabe
-        if [[ -s "$output_file" ]]; then
-            printf "    ${RED:-}Fehler:${NC:-}\n"
-            sed 's/^/    /' "$output_file"
-        fi
-        
+        printf "${RED:-}✗${NC:-}\n"
         # Bei kritischen Tasks abbrechen
         if is_critical_task "$task"; then
-            rm -f "$output_file"
             printf "\n  ${RED:-}Setup abgebrochen.${NC:-}\n\n"
             exit 1
         fi
     fi
-    
-    rm -f "$output_file"
 }
 
-# Run multiple tasks in sequence with overall progress
+# Run multiple tasks in sequence
 # Arguments:
 #   $@ - Array of task function names
 run_tasks() {
@@ -115,11 +96,10 @@ run_tasks() {
     
     # Header
     printf "\n"
-    printf "  ${BOLD:-}╔══════════════════════════════════════════════════════════════╗${NC:-}\n"
-    printf "  ${BOLD:-}║${NC:-}          ${GREEN:-}SOT Setup${NC:-} - Installation wird durchgeführt          ${BOLD:-}║${NC:-}\n"
-    printf "  ${BOLD:-}╚══════════════════════════════════════════════════════════════╝${NC:-}\n"
+    printf "  ╔══════════════════════════════════════════════════════════════╗\n"
+    printf "  ║          ${GREEN:-}SOT Setup${NC:-} - Installation wird durchgeführt          ║\n"
+    printf "  ╚══════════════════════════════════════════════════════════════╝\n"
     printf "\n"
-    printf "  ${GREY:-}$total Aufgaben werden ausgeführt...${NC:-}\n\n"
     
     for task in "${tasks[@]}"; do
         ((++current))
@@ -135,14 +115,14 @@ run_tasks() {
     
     # Footer
     printf "\n"
-    printf "  ${BOLD:-}╔══════════════════════════════════════════════════════════════╗${NC:-}\n"
-    printf "  ${BOLD:-}║${NC:-}  ${GREEN:-}✓ Installation abgeschlossen${NC:-}                                 ${BOLD:-}║${NC:-}\n"
+    printf "  ╔══════════════════════════════════════════════════════════════╗\n"
+    printf "  ║  ${GREEN:-}✓ Installation abgeschlossen${NC:-}                                 ║\n"
     if [[ $minutes -gt 0 ]]; then
-        printf "  ${BOLD:-}║${NC:-}  ${GREY:-}Dauer: %d Minute(n) %d Sekunde(n)${NC:-}                              ${BOLD:-}║${NC:-}\n" "$minutes" "$seconds"
+        printf "  ║  Dauer: %d Minute(n) %d Sekunde(n)                              ║\n" "$minutes" "$seconds"
     else
-        printf "  ${BOLD:-}║${NC:-}  ${GREY:-}Dauer: %d Sekunde(n)${NC:-}                                          ${BOLD:-}║${NC:-}\n" "$seconds"
+        printf "  ║  Dauer: %d Sekunde(n)                                          ║\n" "$seconds"
     fi
-    printf "  ${BOLD:-}╚══════════════════════════════════════════════════════════════╝${NC:-}\n"
+    printf "  ╚══════════════════════════════════════════════════════════════╝\n"
     printf "\n"
 }
 
