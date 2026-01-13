@@ -20,7 +20,7 @@ export SOT_LIB_DIR
 source "$SOT_LIB_DIR/core/colors.sh"
 source "$SOT_LIB_DIR/core/yaml_parser.sh"
 source "$SOT_LIB_DIR/core/helpers.sh"
-source "$SOT_LIB_DIR/cli/integrations.sh"
+
 source "$SOT_LIB_DIR/cli/progress.sh"
 
 # Load extensions manager (optional - only if exists)
