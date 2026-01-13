@@ -6,10 +6,10 @@
 
 set -euo pipefail
 
-GREY='\033[1;90m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+# Load shared library
+SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# shellcheck source=../../lib/init.sh
+source "$SCRIPT_ROOT/lib/init.sh"
 
 BRANCH_OVERRIDE=""
 FILTERED_ARGS=()
@@ -48,29 +48,15 @@ CONFIG_FILE_PATH=""
 if CONFIG_FILE_PATH=$(find_config_file_arg "$@"); then
   :
 else
-  echo -e "${RED}config.yaml not found in provided arguments. Aborting.${NC}"
+  err "config.yaml not found in provided arguments. Aborting."
   exit 1
 fi
 
-# Minimal YAML reader (key: value) — mirrors setup/cli_wrapper.sh approach
-while IFS= read -r line; do
-  if echo "$line" | grep -q ":"; then
-    key=$(echo "$line" | cut -d ':' -f 1 | xargs)
-    value=$(echo "$line" | cut -d ':' -f 2- | xargs)
-    value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
-    case "$key" in
-      aat_repo_url) AAT_REPO_URL="$value" ;;
-      aat_dir) AAT_DIR="$value" ;;
-      aat_enabled) AAT_ENABLED="$value" ;;
-      aat_branch) AAT_BRANCH="$value" ;;
-    esac
-  fi
-done < "$CONFIG_FILE_PATH"
-
-AAT_ENABLED=${AAT_ENABLED:-"true"}
-AAT_REPO_URL=${AAT_REPO_URL:-"https://github.com/NiklasJavier/AAT.git"}
-AAT_DIR=${AAT_DIR:-"/opt/AAT"}
-AAT_BRANCH=${AAT_BRANCH:-"main"}
+# Use shared YAML parser to extract needed values
+AAT_REPO_URL=$(get_yaml_value "$CONFIG_FILE_PATH" "aat_repo_url" "https://github.com/NiklasJavier/AAT.git")
+AAT_DIR=$(get_yaml_value "$CONFIG_FILE_PATH" "aat_dir" "/opt/AAT")
+AAT_ENABLED=$(get_yaml_value "$CONFIG_FILE_PATH" "aat_enabled" "true")
+AAT_BRANCH=$(get_yaml_value "$CONFIG_FILE_PATH" "aat_branch" "main")
 
 if [[ -n "$BRANCH_OVERRIDE" ]]; then
   AAT_BRANCH="$BRANCH_OVERRIDE"

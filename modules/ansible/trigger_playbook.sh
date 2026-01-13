@@ -1,10 +1,9 @@
 #!/bin/bash
 
-# Farben für die Ausgabe
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # Keine Farbe
+# Load shared library
+SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# shellcheck source=../../lib/init.sh
+source "$SCRIPT_ROOT/lib/init.sh"
 
 modules_dir="$1"      # Modul-Verzeichnis
 config_file="$2"       # Konfigurationsdatei

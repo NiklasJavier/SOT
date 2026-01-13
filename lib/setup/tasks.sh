@@ -1,0 +1,284 @@
+#!/bin/bash
+# SOT Setup Library: Setup Tasks
+# Individual setup tasks that can be run independently
+#
+# Usage: source "$SETUP_LIB_DIR/tasks.sh"
+
+# Prevent multiple sourcing
+[[ -n "${_SOT_SETUP_TASKS_LOADED:-}" ]] && return 0
+_SOT_SETUP_TASKS_LOADED=1
+
+# Check if settings directory already exists
+# Returns: 0 if doesn't exist, exits if exists
+task_check_settings_dir() {
+    if [[ -d "$SETTINGS_DIR" ]]; then
+        err "Settings directory exists: ${YELLOW}$SETTINGS_DIR${NC}"
+        err "Please use ${YELLOW}'SOT debug update'${RED} to apply the latest changes or ${YELLOW}'SOT debug delete'${RED} to remove the current setup."
+        kill -INT $$
+    else
+        info "Settings directory does not exist: ${YELLOW}$SETTINGS_DIR${NC}"
+    fi
+}
+
+# Display startup banner and configuration overview
+task_show_overview() {
+    echo -e "${PINK}    ____            ____            "
+    echo -e "${PINK}   / __ \\___ _   __/ __ \\____  _____"
+    echo -e "${PINK}  / / / / _ \\ | / / / / / __ \\/ ___/"
+    echo -e "${PINK} / /_/ /  __/ |/ / /_/ / /_/ (__  ) "
+    echo -e "${PINK}/_____/\\___/|___/\\____/ .___/____/  "
+    echo -e "${PINK}                     /_/            "
+    echo -e "${PINK}                                    "
+    
+    echo -e "${GREY}Branch: ${YELLOW}$BRANCH ${NC}"
+    echo -e "${GREY}Full HostSetup: ${YELLOW}${FULL:-false} ${NC}"
+    echo -e "${GREY}Verwendete Tools: ${YELLOW}$TOOLS ${NC}"
+    echo -e "${GREY}Port: ${YELLOW}$SSH_PORT ${NC}"
+    echo -e "${GREY}Benutzername: ${YELLOW}$USERNAME ${NC}"
+    echo -e "${GREY}Systemname: ${YELLOW}$SYSTEM_NAME ${NC}"
+    echo -e "${GREY}SSH Key aktiviert: ${YELLOW}${SSH_KEY_FUNCTION_ENABLED:-false} ${NC}"
+    echo -e "${GREY}SSH Key Public: ${YELLOW}${SSH_KEY_PUBLIC:-} ${NC}"
+    echo -e "${GREY}Branch-Verzeichnis: ${YELLOW}$BRANCH_DIR ${NC}"
+    echo -e "${GREY}Einstellungsverzeichnis: ${YELLOW}$SETTINGS_DIR ${NC}"
+    echo -e "${GREY}Konfigurationsdatei: ${YELLOW}$CONFIG_FILE ${NC}"
+    echo -e "${GREY}Skriptverzeichnis: ${YELLOW}$SCRIPTS_DIR ${NC}"
+    echo -e "${GREY}Pipeline-Verzeichnis: ${YELLOW}$PIPELINES_DIR ${NC}"
+    echo -e "${GREY}Systemlink: ${YELLOW}$SYSTEMLINK_PATH ${NC}"
+    echo -e "${GREY}AAT URL: ${YELLOW}$AAT_REPO_URL ${NC}"
+    echo -e "${GREY}AAT DIR: ${YELLOW}$AAT_DIR ${NC}"
+    echo -e "${GREY}AAT Enabled: ${YELLOW}$AAT_ENABLED ${NC}"
+    echo -e "${GREY}TID URL: ${YELLOW}$TID_REPO_URL ${NC}"
+    echo -e "${GREY}TID DIR: ${YELLOW}$TID_DIR ${NC}"
+    echo -e "${GREY}TID Enabled: ${YELLOW}$TID_ENABLED ${NC}"
+    echo -e "${GREY}Runner Enabled: ${YELLOW}$RUNNER_ENABLED ${NC}"
+    echo -e "${GREY}Runner Default Mode: ${YELLOW}$RUNNER_DEFAULT_MODE ${NC}"
+    echo -e "${GREY}Runner Sync Before Run: ${YELLOW}$RUNNER_SYNC_BEFORE_RUN ${NC}"
+    echo -e "${GREY}Runner Workdir: ${YELLOW}$RUNNER_WORK_DIR ${NC}"
+    echo -e "${GREY}Runner Logdir: ${YELLOW}$RUNNER_LOG_DIR ${NC}"
+}
+
+# Check if running as root
+# Returns: 0 if root, exits otherwise
+task_check_root() {
+    if [[ "$EUID" -ne 0 ]]; then
+        err "Please run as root."
+        exit 1
+    else
+        info "Running as root..."
+    fi
+}
+
+# Clone or update the main repository
+task_clone_repository() {
+    # Ensure git is installed
+    if ! command -v git &> /dev/null; then
+        info "Git is not installed. Installing Git..."
+        sudo apt-get update
+        sudo apt-get install -y git
+        
+        if ! command -v git &> /dev/null; then
+            err "Git installation failed. Aborting..."
+            exit 1
+        else
+            info "Git installed successfully."
+        fi
+    else
+        info "Git is already installed."
+    fi
+
+    # Create directory if needed
+    if [[ ! -d "$CLONE_DIR" ]]; then
+        info "Creating directory $CLONE_DIR..."
+        sudo mkdir -p "$CLONE_DIR"
+    fi
+
+    # Clone or pull
+    if [[ -d "$CLONE_DIR/.git" ]]; then
+        info "Repository already exists. Pulling latest changes..."
+        cd "$CLONE_DIR" || exit
+        sudo git pull
+    else
+        info "Cloning the repository into $CLONE_DIR with branch $BRANCH..."
+        sudo git clone -b "$BRANCH" --single-branch "$REPO_URL" "$CLONE_DIR"
+        
+        if [[ $? -ne 0 ]]; then
+            err "Failed to clone the repository. Aborting..."
+            exit 1
+        fi
+    fi
+}
+
+# Create settings and environment folders
+task_create_settings_folder() {
+    # Branch-specific folder
+    if [[ ! -d "$BRANCH_DIR" ]]; then
+        info "Creating branch-specific folder: $BRANCH_DIR..."
+        mkdir -p "$BRANCH_DIR"
+    else
+        info "Branch-specific folder already exists: $BRANCH_DIR..."
+    fi
+
+    # Settings folder
+    if [[ ! -d "$SETTINGS_DIR" ]]; then
+        info "Creating .settings folder in $BRANCH_DIR..."
+        mkdir -p "$SETTINGS_DIR"
+    else
+        info ".settings folder already exists in $BRANCH_DIR..."
+    fi
+
+    # Overrides directory
+    if [[ ! -d "$OVERRIDES_DIR" ]]; then
+        info "Creating overrides directory at $OVERRIDES_DIR..."
+        mkdir -p "$OVERRIDES_DIR"
+    fi
+
+    # Create config file
+    touch -f "$SETTINGS_DIR/config.yaml"
+}
+
+# Edit CLI wrapper file to include config path
+task_edit_cli_wrapper() {
+    local cli_config_line="CONFIG_FILE=\"$CONFIG_FILE\""
+    sed -i "5i $cli_config_line" "$CLI_WRAPPER_FILE"
+    info "Zeile wurde in $CLI_WRAPPER_FILE an Position 5 eingefügt."
+}
+
+# Create symlinks for CLI access
+task_create_cli_symlink() {
+    _ensure_symlink() {
+        local link_path="$1"
+
+        if [[ -L "$link_path" ]]; then
+            if [[ "$(readlink "$link_path")" != "$CLI_WRAPPER_FILE" ]]; then
+                info "Symlink $link_path existiert und zeigt auf einen anderen Pfad. Aktualisierung..."
+                sudo ln -sf "$CLI_WRAPPER_FILE" "$link_path"
+            else
+                info "Symlink $link_path existiert bereits und zeigt auf das richtige Ziel."
+            fi
+        else
+            info "Symlink $link_path existiert nicht. Erstellen..."
+            sudo ln -s "$CLI_WRAPPER_FILE" "$link_path"
+        fi
+    }
+
+    _ensure_symlink "$SYSTEMLINK_PATH"
+
+    # Create lowercase variant if different
+    local lowercase_link_dir
+    local lowercase_link_path
+    lowercase_link_dir="$(dirname "$SYSTEMLINK_PATH")"
+    lowercase_link_path="${lowercase_link_dir}/$(basename "$SYSTEMLINK_PATH" | tr '[:upper:]' '[:lower:]')"
+
+    if [[ "$lowercase_link_path" != "$SYSTEMLINK_PATH" ]]; then
+        _ensure_symlink "$lowercase_link_path"
+    fi
+}
+
+# Make all scripts executable
+task_make_scripts_executable() {
+    info "Making all scripts in $CLONE_DIR executable..."
+    sudo find "$CLONE_DIR" -type f -name "*.sh" -exec chmod +x {} \;
+    info "Setup completed! Repository cloned to $CLONE_DIR and scripts are now executable."
+}
+
+# Clone or update AAT repository
+task_clone_aat() {
+    if [[ "$AAT_ENABLED" != "true" ]]; then
+        info "AAT integration disabled. Skipping AAT clone/update."
+        return 0
+    fi
+
+    if ! command -v git &> /dev/null; then
+        warn "Git not installed; cannot manage AAT. Continuing..."
+        return 0
+    fi
+
+    info "Ensuring AAT repository at ${YELLOW}$AAT_DIR${GREY} from ${YELLOW}$AAT_REPO_URL${GREY}..."
+    
+    if [[ -d "$AAT_DIR/.git" ]]; then
+        info "AAT repo exists. Pulling latest changes..."
+        sudo git -C "$AAT_DIR" pull || warn "Could not pull AAT. Continuing..."
+    else
+        sudo mkdir -p "$AAT_DIR"
+        sudo git clone "$AAT_REPO_URL" "$AAT_DIR" || warn "Could not clone AAT. Continuing..."
+    fi
+}
+
+# Clone or update TID repository
+task_clone_tid() {
+    if [[ "$TID_ENABLED" != "true" ]]; then
+        info "TID integration disabled. Skipping TID clone/update."
+        return 0
+    fi
+
+    if ! command -v git &> /dev/null; then
+        warn "Git not installed; cannot manage TID. Continuing..."
+        return 0
+    fi
+
+    info "Ensuring TID repository at ${YELLOW}$TID_DIR${GREY} from ${YELLOW}$TID_REPO_URL${GREY}..."
+    
+    if [[ -d "$TID_DIR/.git" ]]; then
+        info "TID repo exists. Pulling latest changes..."
+        sudo git -C "$TID_DIR" pull || warn "Could not pull TID. Continuing..."
+    else
+        sudo mkdir -p "$TID_DIR"
+        sudo git clone "$TID_REPO_URL" "$TID_DIR" || warn "Could not clone TID. Continuing..."
+    fi
+}
+
+# Install available tools
+task_install_tools() {
+    local install_script=""
+
+    if [[ -f "$CLONE_DIR/setup/install_tools.sh" ]]; then
+        install_script="$CLONE_DIR/setup/install_tools.sh"
+    elif [[ -f "$SCRIPT_DIR/install_tools.sh" ]]; then
+        install_script="$SCRIPT_DIR/install_tools.sh"
+    fi
+
+    if [[ -n "$install_script" ]]; then
+        info "Switching to $install_script"
+        bash "$install_script" "$MODULES_DIR" "$TOOLS"
+        info "Returned from install_tools.sh, continuing..."
+    else
+        err "install_tools.sh not found under $CLONE_DIR/setup or $SCRIPT_DIR."
+        exit 1
+    fi
+}
+
+# Show final overview after setup
+task_show_final_overview() {
+    info "The initialization of the repo was successful."
+    info "The following parameters have been set, but can still be adjusted under ${YELLOW}$CONFIG_FILE${GREY}."
+    echo -e "${GREY}Nutze Standardwerte: ${YELLOW}\"$USE_DEFAULTS\" ${GREY}tools: ${YELLOW}\"$TOOLS\"${NC}\n"
+
+    echo -e "${GREY}# system_name: System-/Servername (Standard: generiert) + username: Aktueller Benutzer${NC}"
+    echo -e "${GREY}system_name: ${YELLOW}\"$SYSTEM_NAME\" ${GREY}username: ${YELLOW}\"$USERNAME\"${NC}\n"
+
+    echo -e "${GREY}# ssh_port: SSH-Port (Standard: 282).${NC}"
+    echo -e "${GREY}ssh_port: ${YELLOW}\"$SSH_PORT\"${NC}\n"
+
+    echo -e "${GREY}# ssh_key_function_enabled: SSH-Key-Funktion aktiv (true/false).${NC}"
+    echo -e "${GREY}ssh_key_function_enabled: ${YELLOW}\"${SSH_KEY_FUNCTION_ENABLED:-false}\"${NC}"
+    echo -e "${GREY}ssh_key_public: ${YELLOW}\"${SSH_KEY_PUBLIC:-}\"${NC}\n"
+
+    echo -e "${GREY}# Datenverzeichnisse:${NC}"
+    echo -e "${GREY}opt_data_dir: ${YELLOW}\"$OPT_DATA_DIR\"${NC}"
+    echo -e "${GREY}modules_dir: ${YELLOW}\"$MODULES_DIR\"${NC}"
+    echo -e "${GREY}scripts_dir: ${YELLOW}\"$SCRIPTS_DIR\"${NC}"
+    echo -e "${GREY}pipelines_dir: ${YELLOW}\"$PIPELINES_DIR\"${NC}\n"
+
+    echo -e "${GREY}# runner: orchestrierte Setups (AAT/TID)${NC}"
+    echo -e "${GREY}runner_enabled: ${YELLOW}\"$RUNNER_ENABLED\"${NC}"
+    echo -e "${GREY}runner_default_mode: ${YELLOW}\"$RUNNER_DEFAULT_MODE\"${NC}"
+    echo -e "${GREY}runner_sync_before_run: ${YELLOW}\"$RUNNER_SYNC_BEFORE_RUN\"${NC}"
+    echo -e "${GREY}runner_work_dir: ${YELLOW}\"$RUNNER_WORK_DIR\"${NC}"
+    echo -e "${GREY}runner_log_dir: ${YELLOW}\"$RUNNER_LOG_DIR\"${NC}\n"
+
+    echo -e "${GREY}# log_file: Pfad zur Logdatei + log_level: Log-Level${NC}"
+    echo -e "${GREY}log_file: ${YELLOW}\"$LOG_FILE\" ${GREY}log_level: ${YELLOW}\"$LOG_LEVEL\"${NC}\n"
+
+    echo -e "${GREY}*** Playbooks can be started via commands ***${NC}"
+    echo -e "${GREY}>>> To do this, use '${RED}SOT${GREY}' to see a list of all possible actions.${NC}\n"
+}

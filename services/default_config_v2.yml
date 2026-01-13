@@ -1,0 +1,113 @@
+# =============================================================================
+# SOT (Server Operation Toolkit) - Default Configuration
+# =============================================================================
+# 
+# This is the default configuration template. Values marked with __GENERATE_*__
+# are dynamically derived by the setup script.
+#
+# Configuration is organized into logical sections for better maintainability.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SYSTEM
+# General system identification and setup parameters
+# -----------------------------------------------------------------------------
+system:
+  name: __GENERATE_SYSTEM_NAME__
+  username: __GENERATE_USERNAME__
+  branch: "production"
+  use_defaults: "false"
+
+# -----------------------------------------------------------------------------
+# SSH
+# SSH connection and authentication settings
+# -----------------------------------------------------------------------------
+ssh:
+  port: "282"
+  key_enabled: "false"
+  key_public: ""
+
+# -----------------------------------------------------------------------------
+# LOGGING
+# Logging configuration for SOT operations
+# -----------------------------------------------------------------------------
+logging:
+  level: "info"
+  file: "/var/log/devops_commands.log"
+
+# -----------------------------------------------------------------------------
+# PATHS
+# Directory paths for SOT components
+# -----------------------------------------------------------------------------
+paths:
+  clone_dir: "/etc/DevOpsToolkit"
+  modules_dir: __GENERATE_MODULES_DIR__
+  scripts_dir: __GENERATE_SCRIPTS_DIR__
+  pipelines_dir: __GENERATE_PIPELINES_DIR__
+  data_dir: __GENERATE_OPT_DATA_DIR__
+  overrides_dir: __GENERATE_OVERRIDES_DIR__
+  systemlink: "/usr/sbin/SOT"
+
+# -----------------------------------------------------------------------------
+# TOOLS
+# Tools to install during setup
+# -----------------------------------------------------------------------------
+tools:
+  install: "ansible docker sdkman"
+
+# -----------------------------------------------------------------------------
+# ANSIBLE
+# Local Ansible configuration
+# -----------------------------------------------------------------------------
+ansible:
+  local_enabled: "true"
+  local_priority: "true"
+  local_dir: __GENERATE_ANSIBLE_LOCAL_DIR__
+
+# -----------------------------------------------------------------------------
+# VAULT
+# Ansible Vault configuration for secrets management
+# -----------------------------------------------------------------------------
+vault:
+  file: __GENERATE_VAULT_FILE__
+  secret: __GENERATE_VAULT_SECRET__
+  content: __GENERATE_VAULT_CONTENT__
+  mail: __GENERATE_VAULT_MAIL__
+
+# -----------------------------------------------------------------------------
+# AAT (Ansible Automation Tools)
+# External Ansible repository integration
+# -----------------------------------------------------------------------------
+aat:
+  enabled: "true"
+  repo_url: "https://github.com/NiklasJavier/AAT.git"
+  dir: "/opt/AAT"
+  branch: "main"
+  inventory_path: "host.ini"
+  inventory_vars: "ssh_port system_name"
+
+# -----------------------------------------------------------------------------
+# TID (Terraform Infrastructure Deployment)
+# External Terraform repository integration
+# -----------------------------------------------------------------------------
+tid:
+  enabled: "true"
+  repo_url: "https://github.com/NiklasJavier/TID.git"
+  dir: "/opt/TID"
+  branch: "main"
+  inventory_path: "host.ini"
+  inventory_vars: "ssh_port system_name"
+
+# -----------------------------------------------------------------------------
+# RUNNER
+# Dynamic playbook/terraform execution configuration
+# -----------------------------------------------------------------------------
+runner:
+  enabled: "true"
+  default_mode: "aat"
+  sync_before_run: "true"
+  work_dir: __GENERATE_RUNNER_WORK_DIR__
+  log_dir: __GENERATE_RUNNER_LOG_DIR__
+  default_inventory: ""
+  aat_playbook_dir: ""
+  tid_stack_dir: ""

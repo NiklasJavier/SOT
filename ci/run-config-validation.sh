@@ -10,8 +10,13 @@ source "$SCRIPT_DIR/setup-env.sh"
 VALIDATOR="$ROOT_DIR/config/validators/validate_config.sh"
 DEFAULT_CONFIG="$ROOT_DIR/services/default_config.yml"
 
-yamllint -d "{extends: relaxed, rules: {line-length: disable}}" "$DEFAULT_CONFIG"
+# yamllint is optional - only run if available
+if command -v yamllint &>/dev/null; then
+  yamllint -d "{extends: relaxed, rules: {line-length: disable}}" "$DEFAULT_CONFIG"
+else
+  echo "⚠️  yamllint not installed, skipping YAML lint checks"
+fi
 
-bash "$VALIDATOR" "$CONFIG_FILE"
+bash "$VALIDATOR" "$CONFIG_FILE_PATH"
 
 echo "Configuration validation completed successfully."

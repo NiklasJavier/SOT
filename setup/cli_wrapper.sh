@@ -6,32 +6,20 @@
 set -euo pipefail
 
 SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+
+# Load shared library
+# shellcheck source=../lib/init.sh
+source "$SCRIPT_ROOT/lib/init.sh"
+
 CONFIG_FILE=${CONFIG_FILE:-"$SCRIPT_ROOT/services/default_config.yml"}
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
-  echo "Configuration file not found: $CONFIG_FILE" >&2
+  err "Configuration file not found: $CONFIG_FILE"
   exit 1
 fi
 
-# Konfigurationsdatei laden, falls vorhanden
-while IFS= read -r line; do
-  line="${line%%#*}"
-  line="${line%%$'\r'}"
-  [[ -z "${line//[[:space:]]/}" ]] && continue
-
-  # Nur Zeilen verarbeiten, die ein ":" enthalten
-  if grep -q ':' <<<"$line"; then
-    # Den Namen und den Wert extrahieren
-    var_name=$(cut -d ':' -f 1 <<<"$line" | xargs | tr ' ' '_')
-    var_value=$(cut -d ':' -f 2- <<<"$line" | xargs)
-
-    # Entferne die Anführungszeichen, wenn sie vorhanden sind
-    var_value=$(sed 's/^"\(.*\)"$/\1/' <<<"$var_value")
-
-    # Die Variable setzen
-    eval "$var_name=\"$var_value\""
-  fi
-done < "$CONFIG_FILE"
+# Konfigurationsdatei laden mit shared YAML parser
+parse_yaml_to_vars "$CONFIG_FILE"
 
 if [[ -z "${modules_dir:-}" && -n "${tools_dir:-}" ]]; then
   modules_dir="$tools_dir"
@@ -78,16 +66,11 @@ if [[ -n "${log_file:-}" ]]; then
 fi
 
 log_command() {
-  [[ -z "${log_file:-}" ]] && return 0
-  printf '%s - %s - %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "${USER:-unknown}" "$*" >> "$log_file"
+  # Use shared helper (re-export for backwards compatibility)
+  log_command "$@"
 }
 
-is_true() {
-  case "${1,,}" in
-    true|1|yes|on) return 0 ;;
-    *) return 1 ;;
-  esac
-}
+# Note: is_true is now provided by lib/helpers.sh
 
 CLI_METADATA_ARGS=(
   "$modules_dir"

@@ -2,9 +2,14 @@
 
 set -euo pipefail
 
+# Determine script root and load shared library
+SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=../lib/init.sh
+source "$SCRIPT_ROOT/lib/init.sh"
+
 APPENDED_ARGS_COUNT=10
 if [[ $# -lt ${APPENDED_ARGS_COUNT} ]]; then
-  echo "runner: expected CLI metadata arguments from SOT. Please invoke via 'SOT runner'." >&2
+  err "runner: expected CLI metadata arguments from SOT. Please invoke via 'SOT runner'."
   exit 1
 fi
 
@@ -63,32 +68,19 @@ Subcommands
 USAGE
 }
 
-is_true() {
-  case "${1,,}" in
-    true|1|yes|on) return 0 ;;
-    *) return 1 ;;
-  esac
-}
+# Note: is_true is now provided by lib/helpers.sh
 
 if [[ ${#USER_ARGS[@]} -eq 0 ]]; then
   usage
   exit 0
 fi
 
-# Minimal YAML parser (key: value)
+# Parse config using smart loader (supports both flat and nested formats)
 declare -A CFG
-while IFS= read -r line || [[ -n "$line" ]]; do
-  line="${line%%#*}"
-  line="${line%%$'\r'}"
-  [[ -z "${line//[[:space:]]/}" ]] && continue
-  if [[ "$line" == *":"* ]]; then
-    key=$(echo "$line" | cut -d ':' -f 1 | xargs)
-    value=$(echo "$line" | cut -d ':' -f 2- | xargs)
-    value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
-    CFG[$key]="$value"
-  fi
-done < "$config_file"
+load_config "$config_file" CFG
 
+# Helper to get config value with fallback
+# Supports both old flat keys (aat_enabled) and new nested keys (aat.enabled -> aat_enabled)
 get_cfg() {
   local key="$1"
   local default="$2"
@@ -99,28 +91,37 @@ get_cfg() {
   fi
 }
 
-AAT_ENABLED=$(get_cfg "aat_enabled" "true")
-AAT_DIR=$(get_cfg "aat_dir" "/opt/AAT")
-AAT_REPO_URL=$(get_cfg "aat_repo_url" "https://github.com/NiklasJavier/AAT.git")
+# Load AAT config (supports both formats)
+AAT_ENABLED=$(get_cfg "aat_enabled" "$(get_cfg "aat.enabled" "true")")
+AAT_DIR=$(get_cfg "aat_dir" "$(get_cfg "aat.dir" "/opt/AAT")")
+AAT_REPO_URL=$(get_cfg "aat_repo_url" "$(get_cfg "aat.repo_url" "https://github.com/NiklasJavier/AAT.git")")
 
-TID_ENABLED=$(get_cfg "tid_enabled" "true")
-TID_DIR=$(get_cfg "tid_dir" "/opt/TID")
-TID_REPO_URL=$(get_cfg "tid_repo_url" "https://github.com/NiklasJavier/TID.git")
+# Load TID config
+TID_ENABLED=$(get_cfg "tid_enabled" "$(get_cfg "tid.enabled" "true")")
+TID_DIR=$(get_cfg "tid_dir" "$(get_cfg "tid.dir" "/opt/TID")")
+TID_REPO_URL=$(get_cfg "tid_repo_url" "$(get_cfg "tid.repo_url" "https://github.com/NiklasJavier/TID.git")")
 
-RUNNER_ENABLED=$(get_cfg "runner_enabled" "true")
-RUNNER_DEFAULT_MODE=$(get_cfg "runner_default_mode" "aat")
-RUNNER_SYNC_BEFORE_RUN=$(get_cfg "runner_sync_before_run" "true")
-RUNNER_WORK_DIR=$(get_cfg "runner_work_dir" "")
-RUNNER_LOG_DIR=$(get_cfg "runner_log_dir" "")
-RUNNER_DEFAULT_INVENTORY=$(get_cfg "runner_default_inventory" "")
-RUNNER_AAT_PLAYBOOK_DIR=$(get_cfg "runner_aat_playbook_dir" "")
-RUNNER_TID_STACK_DIR=$(get_cfg "runner_tid_stack_dir" "")
-ANSIBLE_LOCAL_ENABLED=$(get_cfg "ansible_local_enabled" "true")
-ANSIBLE_LOCAL_PRIORITY=$(get_cfg "ansible_local_priority" "true")
-ANSIBLE_LOCAL_DIR=$(get_cfg "ansible_local_dir" "$modules_dir/ansible")
-OVERRIDES_DIR=$(get_cfg "overrides_dir" "$clone_dir/services/overrides")
-AAT_BRANCH=$(get_cfg "aat_branch" "main")
-TID_BRANCH=$(get_cfg "tid_branch" "main")
+# Load Runner config
+RUNNER_ENABLED=$(get_cfg "runner_enabled" "$(get_cfg "runner.enabled" "true")")
+RUNNER_DEFAULT_MODE=$(get_cfg "runner_default_mode" "$(get_cfg "runner.default_mode" "aat")")
+RUNNER_SYNC_BEFORE_RUN=$(get_cfg "runner_sync_before_run" "$(get_cfg "runner.sync_before_run" "true")")
+RUNNER_WORK_DIR=$(get_cfg "runner_work_dir" "$(get_cfg "runner.work_dir" "")")
+RUNNER_LOG_DIR=$(get_cfg "runner_log_dir" "$(get_cfg "runner.log_dir" "")")
+RUNNER_DEFAULT_INVENTORY=$(get_cfg "runner_default_inventory" "$(get_cfg "runner.default_inventory" "")")
+RUNNER_AAT_PLAYBOOK_DIR=$(get_cfg "runner_aat_playbook_dir" "$(get_cfg "runner.aat_playbook_dir" "")")
+RUNNER_TID_STACK_DIR=$(get_cfg "runner_tid_stack_dir" "$(get_cfg "runner.tid_stack_dir" "")")
+
+# Load Ansible config
+ANSIBLE_LOCAL_ENABLED=$(get_cfg "ansible_local_enabled" "$(get_cfg "ansible.local_enabled" "true")")
+ANSIBLE_LOCAL_PRIORITY=$(get_cfg "ansible_local_priority" "$(get_cfg "ansible.local_priority" "true")")
+ANSIBLE_LOCAL_DIR=$(get_cfg "ansible_local_dir" "$(get_cfg "ansible.local_dir" "$modules_dir/ansible")")
+
+# Load paths config
+OVERRIDES_DIR=$(get_cfg "overrides_dir" "$(get_cfg "paths.overrides_dir" "$clone_dir/services/overrides")")
+
+# Load branch config
+AAT_BRANCH=$(get_cfg "aat_branch" "$(get_cfg "aat.branch" "main")")
+TID_BRANCH=$(get_cfg "tid_branch" "$(get_cfg "tid.branch" "main")")
 
 lower_branch="${branch,,}"
 

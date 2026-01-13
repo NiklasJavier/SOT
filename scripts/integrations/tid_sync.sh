@@ -5,10 +5,10 @@
 
 set -euo pipefail
 
-GREY='\033[1;90m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+# Load shared library
+SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# shellcheck source=../../lib/init.sh
+source "$SCRIPT_ROOT/lib/init.sh"
 
 BRANCH_OVERRIDE=""
 FILTERED_ARGS=()
@@ -18,7 +18,7 @@ while [[ $# -gt 0 ]]; do
     --branch)
       shift
       if [[ $# -eq 0 ]]; then
-        echo -e "${RED}--branch requires a value.${NC}"
+        err "--branch requires a value."
         exit 1
       fi
       BRANCH_OVERRIDE="$1"
@@ -47,36 +47,22 @@ CONFIG_FILE_PATH=""
 if CONFIG_FILE_PATH=$(find_config_file_arg "$@"); then
   :
 else
-  echo -e "${RED}config.yaml not found in provided arguments. Aborting.${NC}"
+  err "config.yaml not found in provided arguments. Aborting."
   exit 1
 fi
 
-# Minimal YAML reader (key: value) — mirrors setup/cli_wrapper.sh approach
-while IFS= read -r line; do
-  if echo "$line" | grep -q ":"; then
-    key=$(echo "$line" | cut -d ':' -f 1 | xargs)
-    value=$(echo "$line" | cut -d ':' -f 2- | xargs)
-    value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
-    case "$key" in
-      tid_repo_url) TID_REPO_URL="$value" ;;
-      tid_dir) TID_DIR="$value" ;;
-      tid_enabled) TID_ENABLED="$value" ;;
-      tid_branch) TID_BRANCH="$value" ;;
-    esac
-  fi
-done < "$CONFIG_FILE_PATH"
-
-TID_ENABLED=${TID_ENABLED:-"true"}
-TID_REPO_URL=${TID_REPO_URL:-"https://github.com/NiklasJavier/TID.git"}
-TID_DIR=${TID_DIR:-"/opt/TID"}
-TID_BRANCH=${TID_BRANCH:-"main"}
+# Use shared YAML parser to extract needed values
+TID_REPO_URL=$(get_yaml_value "$CONFIG_FILE_PATH" "tid_repo_url" "https://github.com/NiklasJavier/TID.git")
+TID_DIR=$(get_yaml_value "$CONFIG_FILE_PATH" "tid_dir" "/opt/TID")
+TID_ENABLED=$(get_yaml_value "$CONFIG_FILE_PATH" "tid_enabled" "true")
+TID_BRANCH=$(get_yaml_value "$CONFIG_FILE_PATH" "tid_branch" "main")
 
 if [[ -n "$BRANCH_OVERRIDE" ]]; then
   TID_BRANCH="$BRANCH_OVERRIDE"
 fi
 
 if [[ "$TID_ENABLED" != "true" ]]; then
-  echo -e "${GREY}TID integration disabled (tid_enabled != true). Nothing to do.${NC}"
+  info "TID integration disabled (tid_enabled != true). Nothing to do."
   exit 0
 fi
 
