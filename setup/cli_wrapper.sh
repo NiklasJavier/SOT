@@ -17,39 +17,36 @@ set -euo pipefail
 # Pfad-Initialisierung
 # =============================================================================
 
-# Wenn SOT_ROOT nicht vom Setup gesetzt wurde, versuche es zu ermitteln
-if [[ -z "${SOT_ROOT:-}" ]]; then
-    # Symlink auflösen und echten Pfad finden
-    _get_real_path() {
-        local target="${BASH_SOURCE[0]}"
-        
-        # Versuche realpath (am zuverlässigsten)
-        if command -v realpath &>/dev/null; then
-            realpath "$target"
-            return
-        fi
-        
-        # Versuche readlink -f (Linux)
-        if readlink -f "$target" &>/dev/null 2>&1; then
-            readlink -f "$target"
-            return
-        fi
-        
-        # Fallback: Manuelle Auflösung
-        local dir
-        while [[ -L "$target" ]]; do
-            dir="$(cd "$(dirname "$target")" && pwd)"
-            target="$(readlink "$target")"
-            [[ "$target" != /* ]] && target="$dir/$target"
-        done
-        
-        # Absoluten Pfad zurückgeben
-        cd "$(dirname "$target")" && echo "$(pwd)/$(basename "$target")"
-    }
+# Standard-Installationspfad als Fallback
+DEFAULT_SOT_ROOT="/opt/SOT"
 
-    _REAL_SCRIPT="$(_get_real_path)"
-    SCRIPT_DIR="$(dirname "$_REAL_SCRIPT")"
-    SOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# Wenn SOT_ROOT nicht gesetzt, versuche es zu finden
+if [[ -z "${SOT_ROOT:-}" ]]; then
+    # Prüfe bekannte Installationspfade
+    if [[ -f "$DEFAULT_SOT_ROOT/lib/init.sh" ]]; then
+        SOT_ROOT="$DEFAULT_SOT_ROOT"
+    elif [[ -f "/opt/AAT/lib/init.sh" ]]; then
+        SOT_ROOT="/opt/AAT"
+    else
+        # Letzter Versuch: Symlink auflösen
+        _script="${BASH_SOURCE[0]}"
+        if command -v realpath &>/dev/null && [[ -L "$_script" ]]; then
+            _real="$(realpath "$_script" 2>/dev/null)" && SOT_ROOT="$(dirname "$(dirname "$_real")")"
+        elif [[ -L "$_script" ]]; then
+            _real="$(readlink -f "$_script" 2>/dev/null)" && SOT_ROOT="$(dirname "$(dirname "$_real")")"
+        fi
+    fi
+fi
+
+# Fallback wenn nichts gefunden
+SOT_ROOT="${SOT_ROOT:-$DEFAULT_SOT_ROOT}"
+
+# Prüfe ob SOT_ROOT gültig ist
+if [[ ! -f "$SOT_ROOT/lib/init.sh" ]]; then
+    echo "FEHLER: SOT Installation nicht gefunden!" >&2
+    echo "Erwartet: $SOT_ROOT/lib/init.sh" >&2
+    echo "Bitte SOT neu installieren oder SOT_ROOT setzen." >&2
+    exit 1
 fi
 
 # Legacy-Kompatibilität
