@@ -177,8 +177,7 @@ settingsEnvironmentFolder() { task_create_settings_folder; }
 editCliWrapperFile() { task_edit_cli_wrapper; }
 createCliWrapperSbinLink() { task_create_cli_symlink; }
 makeScriptExecutable() { task_make_scripts_executable; }
-cloneOrUpdateAAT() { task_clone_aat; }
-cloneOrUpdateTID() { task_clone_tid; }
+syncExtensions() { task_sync_extensions; }
 writeConfigFile() { write_config_file; }
 installAvailableTools() { task_install_tools; }
 initalScriptOverview() { task_show_final_overview; }
@@ -197,8 +196,7 @@ SETUP_TASKS=(
     editCliWrapperFile
     createCliWrapperSbinLink
     makeScriptExecutable
-    cloneOrUpdateAAT
-    cloneOrUpdateTID
+    syncExtensions
     writeConfigFile
     installAvailableTools
     initalScriptOverview

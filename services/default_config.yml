@@ -41,9 +41,21 @@ branch: "production"
 # Optional für Ansible-Integrationen:
 #   <name>_inventory_path - Pfad zum Inventory
 #   <name>_inventory_vars - Variablen für Inventory
+#
+# HINWEIS: Extensions sind OPTIONAL. Setze <name>_enabled auf "false"
+#          um eine Extension zu deaktivieren. Das Setup überspringt
+#          dann automatisch das Klonen/Aktualisieren dieser Extension.
+#
+# Neue Extension hinzufügen:
+#   1. Kopiere den AAT/TID Block
+#   2. Ersetze den Prefix (<name>_)
+#   3. Passe die Werte an
+#   4. Starte `sot extensions sync` zum Installieren
 
-# AAT - Ansible Automation Tools
-aat_enabled: "true"
+# =============================================================================
+# Extension: AAT - Ansible Automation Tools (OPTIONAL)
+# =============================================================================
+aat_enabled: "false"
 aat_repo_url: "https://github.com/NiklasJavier/AAT.git"
 aat_dir: "/opt/AAT"
 aat_branch: "main"
@@ -53,8 +65,10 @@ aat_description: "Ansible Automation Tools"
 aat_inventory_path: "host.ini"
 aat_inventory_vars: "ssh_port system_name"
 
-# TID - Terraform Infrastructure Deployment
-tid_enabled: "true"
+# =============================================================================
+# Extension: TID - Terraform Infrastructure Deployment (OPTIONAL)
+# =============================================================================
+tid_enabled: "false"
 tid_repo_url: "https://github.com/NiklasJavier/TID.git"
 tid_dir: "/opt/TID"
 tid_branch: "main"
@@ -64,7 +78,9 @@ tid_description: "Terraform Infrastructure Deployment"
 tid_inventory_path: "host.ini"
 tid_inventory_vars: "ssh_port system_name"
 
-# Beispiel für weitere Integration (auskommentiert):
+# =============================================================================
+# Beispiel für weitere Extension (auskommentiert)
+# =============================================================================
 # mytools_enabled: "false"
 # mytools_repo_url: "https://github.com/example/mytools.git"
 # mytools_dir: "/opt/MYTOOLS"

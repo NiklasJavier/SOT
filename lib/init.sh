@@ -23,6 +23,9 @@ source "$SOT_LIB_DIR/core/helpers.sh"
 source "$SOT_LIB_DIR/cli/integrations.sh"
 source "$SOT_LIB_DIR/cli/progress.sh"
 
+# Load extensions manager (optional - only if exists)
+[[ -f "$SOT_LIB_DIR/extensions/manager.sh" ]] && source "$SOT_LIB_DIR/extensions/manager.sh"
+
 # Set SOT_ROOT if not already set
 if [[ -z "${SOT_ROOT:-}" ]]; then
   SOT_ROOT="$(cd "$SOT_LIB_DIR/.." && pwd)"

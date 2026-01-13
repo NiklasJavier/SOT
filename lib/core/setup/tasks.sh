@@ -186,50 +186,21 @@ task_make_scripts_executable() {
     info "Setup completed! Repository cloned to $CLONE_DIR and scripts are now executable."
 }
 
-# Clone or update AAT repository
-task_clone_aat() {
-    if [[ "$AAT_ENABLED" != "true" ]]; then
-        info "AAT integration disabled. Skipping AAT clone/update."
-        return 0
-    fi
-
-    if ! command -v git &> /dev/null; then
-        warn "Git not installed; cannot manage AAT. Continuing..."
-        return 0
-    fi
-
-    info "Ensuring AAT repository at ${YELLOW}$AAT_DIR${GREY} from ${YELLOW}$AAT_REPO_URL${GREY}..."
-    
-    if [[ -d "$AAT_DIR/.git" ]]; then
-        info "AAT repo exists. Pulling latest changes..."
-        sudo git -C "$AAT_DIR" pull || warn "Could not pull AAT. Continuing..."
+# Sync all enabled extensions (AAT, TID, etc.)
+# This is a generic task that handles ALL extensions based on config
+task_sync_extensions() {
+    # Load extensions manager if not already loaded
+    local ext_manager="$SOT_ROOT/lib/extensions/manager.sh"
+    if [[ -f "$ext_manager" ]]; then
+        # shellcheck source=../../extensions/manager.sh
+        source "$ext_manager"
     else
-        sudo mkdir -p "$AAT_DIR"
-        sudo git clone "$AAT_REPO_URL" "$AAT_DIR" || warn "Could not clone AAT. Continuing..."
-    fi
-}
-
-# Clone or update TID repository
-task_clone_tid() {
-    if [[ "$TID_ENABLED" != "true" ]]; then
-        info "TID integration disabled. Skipping TID clone/update."
+        warn "Extensions-Manager nicht gefunden. Überspringe Extension-Sync."
         return 0
     fi
-
-    if ! command -v git &> /dev/null; then
-        warn "Git not installed; cannot manage TID. Continuing..."
-        return 0
-    fi
-
-    info "Ensuring TID repository at ${YELLOW}$TID_DIR${GREY} from ${YELLOW}$TID_REPO_URL${GREY}..."
     
-    if [[ -d "$TID_DIR/.git" ]]; then
-        info "TID repo exists. Pulling latest changes..."
-        sudo git -C "$TID_DIR" pull || warn "Could not pull TID. Continuing..."
-    else
-        sudo mkdir -p "$TID_DIR"
-        sudo git clone "$TID_REPO_URL" "$TID_DIR" || warn "Could not clone TID. Continuing..."
-    fi
+    # Sync all enabled extensions
+    extension_sync_all
 }
 
 # Install available tools
