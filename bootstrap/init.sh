@@ -3,9 +3,9 @@
 # Initializes and configures the Server Operation Toolkit
 #
 # Usage: 
-#   curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/setup_sot.sh" | bash -s -- [options]
+#   curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/bootstrap/init.sh" | bash -s -- [options]
 #   # oder lokal:
-#   sudo ./setup_sot.sh [options]
+#   sudo ./init.sh [options]
 #
 # Options:
 #   -branch <name>          Branch to use (default: production)
@@ -98,7 +98,7 @@ if [[ "$_BOOTSTRAP_MODE" == "true" ]]; then
     echo ""
     
     # Lokales Script ausführen mit allen Argumenten
-    exec bash "$DEFAULT_CLONE_DIR/setup/setup_sot.sh" "$@"
+    exec bash "$DEFAULT_CLONE_DIR/bootstrap/init.sh" "$@"
 fi
 
 # =============================================================================
@@ -111,15 +111,15 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Load setup library (includes all dependencies)
-# shellcheck source=../lib/core/setup/init.sh
-source "$SOT_ROOT/lib/core/setup/init.sh"
+# Load bootstrap library (includes all dependencies)
+# shellcheck source=../lib/core/bootstrap/init.sh
+source "$SOT_ROOT/lib/core/bootstrap/init.sh"
 
 # =============================================================================
 # DEFAULT VALUES
 # =============================================================================
 
-DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../services/default_config.yml}"
+DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../config/default_config.yml}"
 DEFAULT_BRANCH_HINT="production"
 
 BRANCH=""
@@ -178,7 +178,7 @@ editCliWrapperFile() { task_edit_cli_wrapper; }
 createCliWrapperSbinLink() { task_create_cli_symlink; }
 makeScriptExecutable() { task_make_scripts_executable; }
 writeConfigFile() { write_config_file; }
-installAvailableTools() { task_install_tools; }
+installDependencies() { task_install_dependencies; }
 initalScriptOverview() { task_show_final_overview; }
 
 # =============================================================================
@@ -198,7 +198,7 @@ SETUP_TASKS=(
     createCliWrapperSbinLink
     makeScriptExecutable
     writeConfigFile
-    installAvailableTools
+    installDependencies
     initalScriptOverview
 )
 

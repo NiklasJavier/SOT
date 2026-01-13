@@ -15,20 +15,20 @@ SOT/
 │   │   ├── colors.sh       # Farbdefinitionen
 │   │   ├── yaml_parser.sh  # YAML-Parser
 │   │   ├── helpers.sh      # Hilfsfunktionen
-│   │   └── setup/          # Setup-spezifische Module
+│   │   └── bootstrap/      # Bootstrap-spezifische Module
 │   ├── cli/                # CLI-System
 │   │   ├── registry.sh     # Befehlsregistrierung
 │   │   └── integrations.sh # Integrations-Framework
 │   └── plugins/            # Plugin-System
 │       └── manager.sh      # Plugin-Manager
 ├── commands/               # CLI-Befehle
-│   ├── setup.sh, vault.sh, runner.sh
+│   ├── bootstrap.sh, vault.sh, runner.sh
 │   ├── maintenance/        # Wartung (update, delete)
 │   └── integrations/       # AAT/TID Sync
 ├── completions/            # Shell-Completions
 ├── modules/                # Plugin-Module (ansible, docker, sdkman)
-├── setup/                  # Bootstrap-Skripte
-├── services/               # Konfigurationsdateien
+├── bootstrap/              # Bootstrap-Skripte
+├── config/                 # Konfigurationsdateien
 ├── tests/                  # Unit- und Integrations-Tests
 ├── docs/                   # Dokumentation
 └── config/validators/      # Validatoren
@@ -167,7 +167,7 @@ SECRET=$(tr -dc '[:upper:]' < /dev/urandom | head -c 11)
 # Einzelne Suites
 ./ci/run-helpers-tests.sh
 ./ci/run-yaml-tests.sh
-./ci/run-setup-tests.sh
+./ci/run-bootstrap-tests.sh
 ./ci/run-integration-tests.sh
 ```
 

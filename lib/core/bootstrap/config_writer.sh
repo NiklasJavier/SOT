@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SOT Setup Library: Config Writer
+# SOT Bootstrap Library: Config Writer
 # Generates the config.yaml file in the new structured format
 #
 # Usage: source "$SETUP_LIB_DIR/config_writer.sh"

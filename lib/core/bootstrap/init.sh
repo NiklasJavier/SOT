@@ -2,7 +2,7 @@
 # SOT Setup Library: Initialization
 # Loads all setup library components
 #
-# Usage: source "$SOT_ROOT/lib/core/setup/init.sh"
+# Usage: source "$SOT_ROOT/lib/core/bootstrap/init.sh"
 
 # Prevent multiple sourcing
 [[ -n "${_SOT_SETUP_LIB_INIT_LOADED:-}" ]] && return 0

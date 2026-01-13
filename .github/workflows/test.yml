@@ -26,7 +26,7 @@ jobs:
       - name: Run YAML parser tests
         run: bash tests/unit/yaml.sh
 
-      - name: Run setup library tests
+      - name: Run bootstrap library tests
         run: bash tests/unit/setup.sh
 
   # ==========================================================================
@@ -54,7 +54,7 @@ jobs:
       - name: Setup SOT (local)
         run: |
           set -euo pipefail
-          sudo bash setup/setup_sot.sh -branch "$SOT_BRANCH" -port "22"
+          sudo bash bootstrap/init.sh -branch "$SOT_BRANCH" -port "22"
 
       - name: Run integration tests
         run: bash tests/integration/integration.sh
@@ -88,7 +88,7 @@ jobs:
 
       - name: Setup SOT (local)
         run: |
-          sudo bash setup/setup_sot.sh -branch "${{ github.ref_name }}" -port "22"
+          sudo bash bootstrap/init.sh -branch "${{ github.ref_name }}" -port "22"
 
       - name: Run all tests
         run: bash tests/run-all.sh

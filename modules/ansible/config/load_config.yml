@@ -1,7 +1,7 @@
 ---
 - name: Load default configuration values
   ansible.builtin.include_vars:
-    file: "{{ playbook_dir }}/../../../services/default_config.yml"
+    file: "{{ playbook_dir }}/../../../config/default_config.yml"
     name: default_config
 
 - name: Ensure configuration overrides exist when provided
@@ -76,7 +76,7 @@
 
 - name: Determine vault content template path
   ansible.builtin.set_fact:
-    sot_config: "{{ sot_config | combine({'vault_content': sot_config.clone_dir + '/setup/vault_template.j2'}) }}"
+    sot_config: "{{ sot_config | combine({'vault_content': sot_config.clone_dir + '/bootstrap/vault_template.j2'}) }}"
   when: sot_config.vault_content is not defined or sot_config.vault_content | length == 0 or sot_config.vault_content == '__GENERATE_VAULT_CONTENT__'
 
 - name: Provide default vault notification address
@@ -86,7 +86,7 @@
 
 - name: Determine overrides directory when required
   ansible.builtin.set_fact:
-    sot_config: "{{ sot_config | combine({'overrides_dir': sot_config.clone_dir + '/services/overrides'}) }}"
+    sot_config: "{{ sot_config | combine({'overrides_dir': sot_config.clone_dir + '/config/overrides'}) }}"
   when: sot_config.overrides_dir is not defined or sot_config.overrides_dir | length == 0 or sot_config.overrides_dir == '__GENERATE_OVERRIDES_DIR__'
 
 - name: Expose configuration values as individual facts

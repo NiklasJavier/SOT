@@ -16,7 +16,7 @@ Dieses Verzeichnis enthält Docker-bezogene Skripte und Templates für das Serve
 Das Docker-Modul wird automatisch installiert, wenn `-tools "docker"` beim Setup angegeben wird:
 
 ```bash
-SOT setup -tools "docker"
+SOT bootstrap -tools "docker"
 ```
 
 Oder manuell:

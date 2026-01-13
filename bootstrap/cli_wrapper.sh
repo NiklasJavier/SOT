@@ -9,6 +9,8 @@
 #
 # Server Operation Toolkit - Command Line Interface v2.0
 # =============================================================================
+# SOT_ROOT wird vom Setup-Script hier eingefügt:
+# __SOT_ROOT_PLACEHOLDER__
 set -euo pipefail
 
 # =============================================================================
@@ -18,7 +20,7 @@ set -euo pipefail
 # Standard-Installationspfad als Fallback
 DEFAULT_SOT_ROOT="/opt/SOT"
 
-# Versuche SOT_ROOT zu ermitteln
+# Wenn SOT_ROOT nicht gesetzt, versuche es zu finden
 if [[ -z "${SOT_ROOT:-}" ]]; then
     # Prüfe bekannte Installationspfade
     if [[ -f "$DEFAULT_SOT_ROOT/lib/init.sh" ]]; then
@@ -26,20 +28,17 @@ if [[ -z "${SOT_ROOT:-}" ]]; then
     elif [[ -f "/opt/AAT/lib/init.sh" ]]; then
         SOT_ROOT="/opt/AAT"
     else
-        # Versuche Symlink aufzulösen
+        # Letzter Versuch: Symlink auflösen
         _script="${BASH_SOURCE[0]}"
-        if command -v realpath &>/dev/null; then
-            _real="$(realpath "$_script" 2>/dev/null || true)"
-            [[ -n "$_real" ]] && SOT_ROOT="$(dirname "$(dirname "$_real")")"
-        fi
-        if [[ -z "${SOT_ROOT:-}" ]] && command -v readlink &>/dev/null; then
-            _real="$(readlink -f "$_script" 2>/dev/null || true)"
-            [[ -n "$_real" ]] && SOT_ROOT="$(dirname "$(dirname "$_real")")"
+        if command -v realpath &>/dev/null && [[ -L "$_script" ]]; then
+            _real="$(realpath "$_script" 2>/dev/null)" && SOT_ROOT="$(dirname "$(dirname "$_real")")"
+        elif [[ -L "$_script" ]]; then
+            _real="$(readlink -f "$_script" 2>/dev/null)" && SOT_ROOT="$(dirname "$(dirname "$_real")")"
         fi
     fi
 fi
 
-# Fallback
+# Fallback wenn nichts gefunden
 SOT_ROOT="${SOT_ROOT:-$DEFAULT_SOT_ROOT}"
 
 # Prüfe ob SOT_ROOT gültig ist
@@ -51,18 +50,13 @@ if [[ ! -f "$SOT_ROOT/lib/init.sh" ]]; then
 fi
 
 # Legacy-Kompatibilität
-SCRIPT_DIR="$SOT_ROOT/bin"
-SCRIPT_ROOT="$SOT_ROOT"
+SCRIPT_ROOT="${SOT_ROOT}"
 
 # Shared Libraries laden
 # shellcheck source=../lib/init.sh
 source "$SCRIPT_ROOT/lib/init.sh"
 # shellcheck source=../lib/cli/registry.sh
 source "$SCRIPT_ROOT/lib/cli/registry.sh"
-# shellcheck source=../lib/cli/aliases.sh
-source "$SCRIPT_ROOT/lib/cli/aliases.sh"
-# shellcheck source=../lib/cli/progress.sh
-source "$SCRIPT_ROOT/lib/cli/progress.sh"
 # shellcheck source=../lib/plugins/manager.sh
 source "$SCRIPT_ROOT/lib/plugins/manager.sh"
 
@@ -129,11 +123,6 @@ init_command_registry() {
         "SOT bootstrap [--check] [--tags <tags>]" \
         "SOT bootstrap --tags ssh,firewall"
     
-    register_command "doctor" "$commands_dir/doctor.sh" "system" \
-        "System-Diagnose und Health-Check" \
-        "SOT doctor [--fix] [--summary]" \
-        "SOT doctor --fix"
-    
     # Vault-Befehle
     register_command "vault" "$commands_dir/vault.sh" "vault" \
         "Vault interaktiv bearbeiten" \
@@ -148,40 +137,38 @@ init_command_registry() {
     
     # Maintenance
     register_command "update" "$commands_dir/maintenance/update.sh" "maintenance" \
-        "SOT und Extensions aktualisieren" \
-        "sot update [--force] [--sot-only] [--extensions-only]" \
-        "sot update"
+        "SOT aktualisieren" \
+        "SOT update [--force]" \
+        "SOT update"
     
     register_command "delete" "$commands_dir/maintenance/delete.sh" "maintenance" \
-        "SOT vollständig deinstallieren" \
-        "sot delete [--force] [--keep-extensions] [--no-backup]" \
-        "sot delete"
+        "SOT entfernen" \
+        "SOT delete [--no-backup]" \
+        "SOT delete"
     
-    # Extensions (neues System für AAT, TID, etc.)
-    register_command "extensions" "$commands_dir/extensions.sh" "system" \
-        "Extensions verwalten (AAT, TID, ...)" \
-        "sot ex [list|install|remove|sync|run] [name]" \
-        "sot ex install aat"
+    # Dynamische Sync-Befehle für alle Integrationen
+    local name
+    for name in "${!INTEGRATIONS[@]}"; do
+        local name_upper="${name^^}"
+        local desc="${INTEGRATION_DESCRIPTIONS[$name]:-$name_upper Integration}"
+        
+        register_command "$name sync" "" "sync" \
+            "$name_upper synchronisieren" \
+            "SOT $name sync [--branch <b>]" \
+            "SOT $name sync --branch develop"
+    done
     
-    # Extensions Sub-Commands für bessere Sichtbarkeit
-    register_command "extensions list" "$commands_dir/extensions.sh" "system" \
-        "Alle Extensions auflisten" \
-        "sot ex list" \
-        "sot el"
+    # Meta-Befehle für Integrationen
+    register_command "integrations" "" "sync" \
+        "Integrationen verwalten" \
+        "SOT integrations [list|validate|add]" \
+        "SOT integrations list"
     
-    register_command "extensions install" "$commands_dir/extensions.sh" "system" \
-        "Extension installieren" \
-        "sot ex install <name>" \
-        "sot ex install aat"
+    register_command "validate" "" "sync" \
+        "Alle Integrationen validieren" \
+        "SOT validate" \
+        "SOT validate"
     
-    register_command "extensions sync" "$commands_dir/extensions.sh" "system" \
-        "Alle installierten Extensions aktualisieren" \
-        "sot ex sync" \
-        "sot es"
-    
-    # Legacy-Kompatibilität: alte Integrations-Befehle leiten auf ex um
-    # Diese werden über Aliasse in lib/cli/aliases.sh gehandhabt
-
     # Plugin-Befehle
     register_command "plugins" "" "plugins" \
         "Plugin-System verwalten" \
@@ -223,17 +210,12 @@ init_command_registry() {
     register_command "help" "" "info" \
         "Hilfe anzeigen" \
         "SOT help [<command>]" \
-        "SOT help bootstrap"
+        "SOT help setup"
     
     register_command "version" "" "info" \
         "Version anzeigen" \
         "SOT version" \
         "SOT version"
-    
-    register_command "aliases" "" "info" \
-        "Verfügbare Shortcuts anzeigen" \
-        "SOT aliases" \
-        "SOT aliases"
 }
 
 # =============================================================================
@@ -315,7 +297,7 @@ invoke_integration_runner() {
     local branch_value="${!branch_var:-}"
     local inventory_path_value="${!inventory_path_var:-host.ini}"
     local inventory_vars_value="${!inventory_vars_var:-}"
-    local sync_script="$SCRIPT_ROOT/commands/integrations/${integration}_sync.sh"
+    local sync_script="$SCRIPT_ROOT/scripts/integrations/${integration}_sync.sh"
     
     # Defaults
     case "$integration" in
@@ -366,7 +348,7 @@ invoke_integration_runner() {
     
     # Validierung nach Sync
     if $synced; then
-        local validate_script="$SCRIPT_ROOT/commands/integrations/validate_sync.sh"
+        local validate_script="$SCRIPT_ROOT/scripts/integrations/validate_sync.sh"
         if [[ -x "$validate_script" ]]; then
             "$validate_script" "$CONFIG_FILE" 2>/dev/null || warn "Validierung meldet Probleme."
         fi
@@ -546,12 +528,6 @@ main() {
         return 0
     fi
     
-    # Alias-Auflösung: Prüfe ob erstes Argument ein Alias ist
-    if expand_alias_args "$@"; then
-        # Alias wurde gefunden und erweitert
-        set -- "${EXPANDED_ARGS[@]}"
-    fi
-    
     case "$1" in
         # Meta-Befehle
         -h|--help|help)
@@ -570,17 +546,6 @@ main() {
         --completion)
             shift
             generate_completion "${1:-bash}"
-            ;;
-        
-        # Alias-Hilfe
-        aliases|shortcuts)
-            show_aliases
-            ;;
-        
-        # Doctor-Befehl
-        doctor)
-            shift
-            execute_script "$commands_dir/doctor.sh" "$@"
             ;;
         
         # Integrations-Meta-Befehl

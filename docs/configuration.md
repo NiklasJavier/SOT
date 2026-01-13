@@ -6,10 +6,10 @@ Referenz für alle Konfigurationsoptionen.
 
 | Datei | Beschreibung |
 |-------|--------------|
-| `services/default_config.yml` | Standard-Defaults (v1 Format) |
-| `services/default_config_v2.yml` | Standard-Defaults (v2 Format) |
+| `config/default_config.yml` | Standard-Defaults (v1 Format) |
+| `config/default_config_v2.yml` | Standard-Defaults (v2 Format) |
 | `/etc/DevOpsToolkit/config.yaml` | Generierte Runtime-Config |
-| `services/overrides/*.yml` | Umgebungsspezifische Overrides |
+| `config/overrides/*.yml` | Umgebungsspezifische Overrides |
 
 ## Formate
 
@@ -132,26 +132,26 @@ Platzhalter werden beim Setup automatisch ersetzt:
 
 Werte werden in dieser Reihenfolge aufgelöst:
 
-1. **CLI-Parameter** (`SOT setup -port 22`)
+1. **CLI-Parameter** (`SOT bootstrap -port 22`)
 2. **Environment-Variablen** (`SSH_PORT=22`)
 3. **config.yaml** (generiert)
-4. **Overrides** (`services/overrides/`)
-5. **Defaults** (`services/default_config.yml`)
+4. **Overrides** (`config/overrides/`)
+5. **Defaults** (`config/default_config.yml`)
 
 ---
 
 ## Overrides
 
-Umgebungsspezifische Konfigurationen in `services/overrides/`:
+Umgebungsspezifische Konfigurationen in `config/overrides/`:
 
 ```yaml
-# services/overrides/production.yml
+# config/overrides/production.yml
 system_name: "PROD-SERVER"
 ssh_port: "2222"
 ```
 
 ```yaml
-# services/overrides/staging.yml
+# config/overrides/staging.yml
 system_name: "STAGING-SERVER"
 aat_branch: "develop"
 ```
@@ -178,7 +178,7 @@ echo "${CONFIG[ssh_port]}"
 ```yaml
 - name: Load SOT config
   include_vars:
-    file: "{{ playbook_dir }}/../../../services/default_config.yml"
+    file: "{{ playbook_dir }}/../../../config/default_config.yml"
     name: sot_config
 
 - name: Use config value

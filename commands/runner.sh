@@ -128,7 +128,7 @@ ANSIBLE_LOCAL_PRIORITY=$(get_cfg "ansible_local_priority" "$(get_cfg "ansible.lo
 ANSIBLE_LOCAL_DIR=$(get_cfg "ansible_local_dir" "$(get_cfg "ansible.local_dir" "$modules_dir/ansible")")
 
 # Load paths config
-OVERRIDES_DIR=$(get_cfg "overrides_dir" "$(get_cfg "paths.overrides_dir" "$clone_dir/services/overrides")")
+OVERRIDES_DIR=$(get_cfg "overrides_dir" "$(get_cfg "paths.overrides_dir" "$clone_dir/config/overrides")")
 
 # Load branch config
 AAT_BRANCH=$(get_cfg "aat_branch" "$(get_cfg "aat.branch" "main")")

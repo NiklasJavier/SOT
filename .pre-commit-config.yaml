@@ -56,7 +56,7 @@ repos:
         args: ['--profile', 'moderate']
         exclude: |
           (?x)^(
-            services/.*|
+            config/.*|
             .github/.*
           )$
 

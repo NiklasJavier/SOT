@@ -30,11 +30,11 @@ zentrales Logging, Vault-Management und modulare Ansible/Terraform-Integration.
 
 ```bash
 # Installation (Einzeiler)
-curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/setup_sot.sh" | bash -s -- -branch production
+curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/bootstrap/init.sh" | bash -s -- -branch production
 
 # Nutzung
 SOT help                          # Alle Befehle anzeigen
-SOT setup                         # Server konfigurieren
+SOT bootstrap                     # Server konfigurieren
 SOT vault                         # Secrets bearbeiten
 SOT runner ansible <playbook>     # Playbook ausführen
 ```
@@ -60,7 +60,7 @@ SOT runner ansible <playbook>     # Playbook ausführen
 ### Minimale Installation
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/setup_sot.sh" \
+curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/bootstrap/init.sh" \
   | bash -s -- -branch production -port 22
 ```
 
@@ -73,12 +73,12 @@ export AATBRANCH="main"
 export TIDBRANCH="main"
 
 # Installation
-curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${SOTBRANCH}/setup/setup_sot.sh" \
+curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/${SOTBRANCH}/bootstrap/init.sh" \
   | bash -s -- -branch "$SOTBRANCH" -port 22 && \
   SOT aat sync --branch "$AATBRANCH" && \
   SOT tid sync --branch "$TIDBRANCH" && \
   SOT validate && \
-  SOT setup
+  SOT bootstrap
 ```
 
 ### Was passiert?
@@ -127,7 +127,7 @@ SOT [unterordner] <befehl> [optionen]
 
 | Kategorie | Befehl | Beschreibung |
 |-----------|--------|--------------|
-| 🖥️ **System** | `SOT setup` | Server-Konfiguration ausführen |
+| 🖥️ **System** | `SOT bootstrap` | Server-Konfiguration ausführen |
 | 🔐 **Vault** | `SOT vault [view\|edit\|rekey]` | Vault interaktiv bearbeiten |
 | 🔄 **Sync** | `SOT aat sync` | AAT-Repository synchronisieren |
 | 🔄 **Sync** | `SOT tid sync` | TID-Repository synchronisieren |
@@ -159,7 +159,7 @@ SOT --completion bash > /etc/bash_completion.d/sot
 
 ```bash
 # Hilfe für einen spezifischen Befehl
-SOT help setup
+SOT help bootstrap
 SOT help vault
 SOT help runner
 ```
@@ -181,7 +181,7 @@ SOT unterstützt zwei YAML-Formate mit **automatischer Erkennung**:
 ### Format v1 — Flach (Legacy)
 
 ```yaml
-# services/default_config.yml
+# config/default_config.yml
 system_name: "SRV-EXAMPLE"
 ssh_port: "282"
 aat_enabled: "true"
@@ -191,7 +191,7 @@ aat_dir: "/opt/AAT"
 ### Format v2 — Verschachtelt (Empfohlen)
 
 ```yaml
-# services/default_config_v2.yml
+# config/default_config_v2.yml
 system:
   name: "SRV-EXAMPLE"
   username: "__GENERATE_USERNAME__"
@@ -262,7 +262,7 @@ SOT validate
 
 - `modules/ansible/` ist die erste Anlaufstelle für Playbooks, Inventare und Rollen
 - Der Runner durchsucht dieses Verzeichnis vor jeder AAT-Integration
-- Branch-/kundenbezogene Variablen über `services/overrides/` ablegbar
+- Branch-/kundenbezogene Variablen über `config/overrides/` ablegbar
 
 ### AAT — Ansible Automation Tools
 
@@ -311,7 +311,7 @@ SOT/
 │   │   ├── colors.sh           # Terminal-Farben
 │   │   ├── yaml_parser.sh      # YAML-Parser (v1 & v2)
 │   │   ├── helpers.sh          # Hilfsfunktionen
-│   │   └── setup/              # Setup-Module
+│   │   └── bootstrap/          # Bootstrap-Module
 │   │       ├── args_parser.sh  # CLI-Argumente
 │   │       ├── config_defaults.sh
 │   │       ├── tasks.sh
@@ -324,7 +324,7 @@ SOT/
 │       └── manager.sh          # Plugin-Manager
 │
 ├── commands/                   # 📜 CLI-Befehle
-│   ├── setup.sh                # Host-Setup
+│   ├── bootstrap.sh            # Host-Setup
 │   ├── runner.sh               # Ansible/Terraform-Runner
 │   ├── vault.sh                # Vault-Interaktion
 │   ├── maintenance/            # Wartungs-Skripte
@@ -342,12 +342,12 @@ SOT/
 │   ├── docker/                 # Docker-Templates
 │   └── sdkman/                 # SDKMAN!-Installer
 │
-├── setup/                      # ⚙️ Bootstrap
-│   ├── setup_sot.sh            # Initial-Setup
-│   ├── install_tools.sh        # Tool-Installer
+├── bootstrap/                  # ⚙️ Bootstrap
+│   ├── init.sh                 # Initial-Setup
+│   ├── dependencies.sh         # Dependency-Manager
 │   └── vault_template.j2       # Vault-Template
 │
-├── services/                   # 📋 Konfiguration
+├── config/                     # 📋 Konfiguration
 │   ├── default_config.yml      # Defaults (v1)
 │   ├── default_config_v2.yml   # Defaults (v2)
 │   └── overrides/              # Environment-Overrides
@@ -370,7 +370,7 @@ SOT/
 # Einzelne Suites
 ./ci/run-helpers-tests.sh       # 34 Tests — Hilfsfunktionen
 ./ci/run-yaml-tests.sh          # 5 Tests  — YAML-Parser
-./ci/run-setup-tests.sh         # 15 Tests — Setup-Library
+./ci/run-bootstrap-tests.sh     # 15 Tests — Bootstrap-Library
 ./ci/run-integration-tests.sh   # 15 Tests — Integration
 ./ci/run-cli-tests.sh           # CLI Smoke-Tests
 ./ci/run-vault-tests.sh         # Vault-Workflow
@@ -380,7 +380,7 @@ SOT/
 - ✅ `is_true()`, `is_false()` — Boolean-Parsing
 - ✅ YAML-Parsing — Flach & Verschachtelt
 - ✅ Config-Loading — Smart-Loader
-- ✅ Setup-Module — Argument-Parser, Defaults
+- ✅ Bootstrap-Module — Argument-Parser, Defaults
 - ✅ CLI-Integration — Help, Commands
 - ✅ Library-Idempotenz — Mehrfaches Sourcing
 
@@ -492,7 +492,7 @@ vault_secret: "<neues-60-zeichen-secret>"
 ## 🏆 Best Practices
 
 1. **Branch-Isolation** — `production`, `staging`, `dev` für parallele Profile
-2. **Config-Overrides** — Environment-spezifische Werte in `services/overrides/`
+2. **Config-Overrides** — Environment-spezifische Werte in `config/overrides/`
 3. **Lokale Playbooks** — Eigene Rollen unter `modules/ansible/roles/`
 4. **Regelmäßiger Sync** — `runner_sync_before_run: "true"` aktivieren
 5. **Secret-Rotation** — `vault_secret` regelmäßig erneuern

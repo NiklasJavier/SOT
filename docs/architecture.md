@@ -18,15 +18,15 @@ Dieses Dokument beschreibt die Architektur des Server Operation Toolkits.
 │  │ colors.sh          registry.sh       manager.sh             │   │
 │  │ yaml_parser.sh     integrations.sh                          │   │
 │  │ helpers.sh                                                  │   │
-│  │ setup/*                                                     │   │
+│  │ bootstrap/*                                                 │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                               │
          ┌────────────────────┼────────────────────┐
          ▼                    ▼                    ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   commands/     │  │   modules/      │  │   services/     │
-│   setup.sh      │  │   ansible/      │  │   config.yaml   │
+│   commands/     │  │   modules/      │  │   config/       │
+│   bootstrap.sh  │  │   ansible/      │  │   config.yaml   │
 │   vault.sh      │  │   docker/       │  │   overrides/    │
 │   runner.sh     │  │   sdkman/       │  │                 │
 │   integrations/ │  └─────────────────┘  └─────────────────┘
@@ -58,7 +58,7 @@ Wiederverwendbare Bash-Funktionen:
 | `colors.sh` | Terminal-Farben, semantische Aliase |
 | `yaml_parser.sh` | YAML v1/v2 Parser, `get_yaml_value()`, `load_config()` |
 | `helpers.sh` | `is_true()`, `info()`, `err()`, `run_with_timeout()` |
-| `setup/*` | Modulare Setup-Logik |
+| `bootstrap/*` | Modulare Bootstrap-Logik |
 
 ### 3. Commands (`commands/`)
 
@@ -66,7 +66,7 @@ CLI-Befehle, organisiert nach Funktion:
 
 ```
 commands/
-├── setup.sh           # SOT setup
+├── bootstrap.sh       # SOT bootstrap
 ├── vault.sh           # SOT vault
 ├── runner.sh          # SOT runner ansible/terraform
 ├── integrations/      # SOT aat sync, tid sync
@@ -83,12 +83,12 @@ Installierbare Komponenten:
 | `docker/` | Docker-Installation, Compose-Templates |
 | `sdkman/` | SDKMAN!-Installation |
 
-### 5. Services/Config (`services/`)
+### 5. Services/Config (`config/`)
 
 Konfigurationsdateien:
 
 ```
-services/
+config/
 ├── default_config.yml      # v1 Format (flach)
 ├── default_config_v2.yml   # v2 Format (verschachtelt)
 └── overrides/              # Umgebungsspezifisch
@@ -99,15 +99,15 @@ services/
 ### Setup-Prozess
 
 ```
-1. curl setup_sot.sh | bash
+1. curl init.sh | bash
         │
         ▼
 2. setup_sot.sh
    ├── Clone Repository → /etc/DevOpsToolkit
-   ├── Load defaults    → services/default_config.yml
+   ├── Load defaults    → config/default_config.yml
    ├── Generate config  → config.yaml
    ├── Create symlink   → /usr/sbin/SOT
-   └── Run setup.sh     → Ansible Playbook
+   └── Run bootstrap.sh → Ansible Playbook
 ```
 
 ### CLI-Aufruf

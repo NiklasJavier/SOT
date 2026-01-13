@@ -55,7 +55,7 @@ SOT/
 │   │   ├── colors.sh       # Farben
 │   │   ├── yaml_parser.sh  # YAML-Parser
 │   │   ├── helpers.sh      # Hilfsfunktionen
-│   │   └── setup/          # Setup-Module
+│   │   └── bootstrap/      # Bootstrap-Module
 │   ├── cli/                # CLI-System
 │   │   ├── registry.sh     # Befehlsregistrierung
 │   │   └── integrations.sh # Integrations-Framework
@@ -63,14 +63,14 @@ SOT/
 │       └── manager.sh
 │
 ├── commands/               # CLI-Befehle
-│   ├── setup.sh, vault.sh, runner.sh
+│   ├── bootstrap.sh, vault.sh, runner.sh
 │   ├── integrations/       # AAT/TID Sync
 │   └── maintenance/        # Update/Delete
 │
 ├── completions/            # Shell-Completions
 ├── modules/                # Plugin-Module
-├── services/               # Konfiguration
-├── setup/                  # Bootstrap
+├── config/                 # Konfiguration
+├── bootstrap/              # Bootstrap
 ├── tests/                  # Unit- und Integration-Tests
 └── docs/                   # Dokumentation
 ```
@@ -143,7 +143,7 @@ err "Fehler"
 # Einzelne Suites
 ./ci/run-helpers-tests.sh   # Hilfsfunktionen
 ./ci/run-yaml-tests.sh      # YAML-Parser
-./ci/run-setup-tests.sh     # Setup-Library
+./ci/run-bootstrap-tests.sh # Bootstrap-Library
 ./ci/run-integration-tests.sh # Integration
 ```
 
@@ -263,13 +263,13 @@ refactor(lib): find_config_file_arg in helpers.sh extrahiert
 ### Verbose-Modus
 
 ```bash
-DEBUG=1 SOT setup
+DEBUG=1 SOT bootstrap
 ```
 
 ### Bash-Tracing
 
 ```bash
-bash -x commands/setup.sh
+bash -x commands/bootstrap.sh
 ```
 
 ### ShellCheck lokal

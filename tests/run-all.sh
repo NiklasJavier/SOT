@@ -46,7 +46,7 @@ run_suite() {
 # Run all test suites (neue Struktur)
 run_suite "Helper Functions" "$SCRIPT_DIR/unit/helpers.sh"
 run_suite "YAML Parser" "$SCRIPT_DIR/unit/yaml.sh"
-run_suite "Setup Library" "$SCRIPT_DIR/unit/setup.sh"
+run_suite "Bootstrap Library" "$SCRIPT_DIR/unit/setup.sh"
 run_suite "CLI Tests" "$SCRIPT_DIR/integration/cli.sh"
 run_suite "Integration Tests" "$SCRIPT_DIR/integration/integration.sh"
 run_suite "Config Validation" "$SCRIPT_DIR/integration/config.sh"

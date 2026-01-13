@@ -3,9 +3,9 @@
 # Initializes and configures the Server Operation Toolkit
 #
 # Usage: 
-#   curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/setup_sot.sh" | bash -s -- [options]
+#   curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/init.sh" | bash -s -- [options]
 #   # oder lokal:
-#   sudo ./setup_sot.sh [options]
+#   sudo ./init.sh [options]
 #
 # Options:
 #   -branch <name>          Branch to use (default: production)
@@ -98,7 +98,7 @@ if [[ "$_BOOTSTRAP_MODE" == "true" ]]; then
     echo ""
     
     # Lokales Script ausführen mit allen Argumenten
-    exec bash "$DEFAULT_CLONE_DIR/setup/setup_sot.sh" "$@"
+    exec bash "$DEFAULT_CLONE_DIR/setup/init.sh" "$@"
 fi
 
 # =============================================================================

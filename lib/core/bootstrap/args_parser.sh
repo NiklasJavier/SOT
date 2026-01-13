@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SOT Setup Library: Argument Parser
+# SOT Bootstrap Library: Argument Parser
 # Handles CLI argument parsing for init.sh
 #
 # Usage: source "$SETUP_LIB_DIR/args_parser.sh"

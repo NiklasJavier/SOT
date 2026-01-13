@@ -12,7 +12,7 @@ modules/ansible/
 ├── module.yml                  # Plugin-Metadaten für SOT
 ├── install.sh                  # Ansible-Installationsskript
 ├── commands/
-│   └── trigger.sh              # Wrapper für CLI-Aufrufe aus `SOT setup`
+│   └── trigger.sh              # Wrapper für CLI-Aufrufe aus `SOT bootstrap`
 ├── hooks/                      # Lifecycle-Hooks (pre/post)
 ├── config/                     # Zentrale Include-Tasks (z. B. load_config.yml)
 ├── inventory/
@@ -25,7 +25,7 @@ modules/ansible/
 ## Konfiguration laden
 
 Die Rolle `roles/variables` lädt per `config/load_config.yml` sowohl die Standardwerte
-unter `services/default_config.yml` als auch optionale Overrides. Dadurch stehen alle
+unter `config/default_config.yml` als auch optionale Overrides. Dadurch stehen alle
 Parameter als `sot_config`-Facts in den Playbooks zur Verfügung.
 
 ## Erweiterung

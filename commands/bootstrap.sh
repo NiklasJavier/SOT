@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# @cmd: setup
+# @cmd: bootstrap
 # @category: system
 # @description: Server-Konfiguration mit Ansible ausführen
-# @usage: SOT setup [--check] [--tags <tags>]
-# @example: SOT setup --tags ssh,firewall
+# @usage: SOT bootstrap [--check] [--tags <tags>]
+# @example: SOT bootstrap --tags ssh,firewall
 # =============================================================================
 ## Führt das host_setup.yml Playbook aus um den Server zu konfigurieren.
 ## Unterstützt Ansible Dry-Run (--check) und Tag-Filterung (--tags).

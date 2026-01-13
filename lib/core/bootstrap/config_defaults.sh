@@ -21,7 +21,7 @@ load_default_config() {
     
     if [[ ! -f "$file" ]]; then
         local tmp_file=""
-        local source_url="${SOT_DEFAULT_CONFIG_URL:-https://raw.githubusercontent.com/NiklasJavier/SOT/${DEFAULT_BRANCH_HINT}/services/default_config.yml}"
+        local source_url="${SOT_DEFAULT_CONFIG_URL:-https://raw.githubusercontent.com/NiklasJavier/SOT/${DEFAULT_BRANCH_HINT}/config/default_config.yml}"
         tmp_file="$(mktemp)"
         
         if curl -fsSL "$source_url" -o "$tmp_file"; then
@@ -145,7 +145,7 @@ generate_dynamic_defaults() {
     fi
 
     if [[ -z "$OVERRIDES_DIR" || "$OVERRIDES_DIR" == "__GENERATE_OVERRIDES_DIR__" ]]; then
-        OVERRIDES_DIR="$CLONE_DIR/services/overrides"
+        OVERRIDES_DIR="$CLONE_DIR/config/overrides"
     fi
 
     [[ -z "$ANSIBLE_LOCAL_ENABLED" ]] && ANSIBLE_LOCAL_ENABLED="true"

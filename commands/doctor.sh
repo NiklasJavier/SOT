@@ -128,7 +128,7 @@ check_sot_installation() {
     local required_files=(
         "bin/sot"
         "lib/init.sh"
-        "services/default_config.yml"
+        "config/default_config.yml"
     )
     
     for file in "${required_files[@]}"; do
@@ -203,7 +203,7 @@ check_dependencies() {
 check_configuration() {
     section_header "⚙️  Konfiguration"
     
-    local config_file="$ROOT_DIR/services/default_config.yml"
+    local config_file="$ROOT_DIR/config/default_config.yml"
     
     # Prüfe ob Config existiert
     if [[ -f "$config_file" ]]; then

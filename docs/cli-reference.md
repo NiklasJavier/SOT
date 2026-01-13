@@ -20,12 +20,12 @@ SOT help
 
 ---
 
-### `SOT setup`
+### `SOT bootstrap`
 
 Führt das Host-Setup-Playbook aus.
 
 ```bash
-SOT setup [optionen]
+SOT bootstrap [optionen]
 ```
 
 **Optionen:**
@@ -37,9 +37,9 @@ SOT setup [optionen]
 
 **Beispiele:**
 ```bash
-SOT setup                      # Vollständiges Setup
-SOT setup --tags ssh,firewall  # Nur SSH und Firewall
-SOT setup --check              # Simulation
+SOT bootstrap                      # Vollständiges Bootstrap
+SOT bootstrap --tags ssh,firewall  # Nur SSH und Firewall
+SOT bootstrap --check              # Simulation
 ```
 
 ---
@@ -234,7 +234,7 @@ Alle Befehle werden protokolliert:
 
 Format:
 ```
-2026-01-13 18:30:00 [root] SOT setup
+2026-01-13 18:30:00 [root] SOT bootstrap
 2026-01-13 18:31:00 [root] SOT vault
 ```
 

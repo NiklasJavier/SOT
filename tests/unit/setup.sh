@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SOT Test Suite: Setup Library Functions
+# SOT Test Suite: Bootstrap Library Functions
 # =============================================================================
-# Tests for lib/core/setup/*.sh modules
+# Tests for lib/core/bootstrap/*.sh modules
 # shellcheck disable=SC2015  # Using && || pattern intentionally for test assertions
 set -euo pipefail
 
@@ -12,8 +12,8 @@ ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 # shellcheck source=./setup-env.sh
 [[ -f "$SCRIPT_DIR/../setup-env.sh" ]] && source "$SCRIPT_DIR/../setup-env.sh"
 
-# Load the setup library
-source "$ROOT_DIR/lib/core/setup/init.sh"
+# Load the bootstrap library
+source "$ROOT_DIR/lib/core/bootstrap/init.sh"
 
 # Test counters
 TESTS_RUN=0
@@ -50,7 +50,7 @@ echo "Testing config defaults loading..."
 # Reset CONFIG_DEFAULTS
 declare -A CONFIG_DEFAULTS=()
 
-load_default_config "$ROOT_DIR/services/default_config.yml"
+load_default_config "$ROOT_DIR/config/default_config.yml"
 
 [[ -n "${CONFIG_DEFAULTS[ssh_port]:-}" ]] && \
   run_test "load_default_config loads ssh_port" "pass" || \
@@ -167,7 +167,7 @@ parse_early_args -branch main -config /custom/config.yml
 # =============================================================================
 echo ""
 echo "=============================================="
-echo "Setup Library Test Summary"
+echo "Bootstrap Library Test Summary"
 echo "=============================================="
 echo "Tests run:    $TESTS_RUN"
 echo "Tests passed: $TESTS_PASSED"
@@ -178,4 +178,4 @@ if [[ $TESTS_FAILED -gt 0 ]]; then
   exit 1
 fi
 
-echo "All setup library tests passed!"
+echo "All bootstrap library tests passed!"

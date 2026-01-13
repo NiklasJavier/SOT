@@ -52,17 +52,17 @@ jobs:
       - name: Run ShellCheck on lib/
         run: |
           echo "## ShellCheck Results - lib/" >> $GITHUB_STEP_SUMMARY
-          shellcheck -S warning -f gcc lib/*.sh lib/setup/*.sh 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          shellcheck -S warning -f gcc lib/*.sh lib/core/bootstrap/*.sh 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
 
       - name: Run ShellCheck on scripts/
         run: |
           echo "## ShellCheck Results - scripts/" >> $GITHUB_STEP_SUMMARY
           find scripts -name "*.sh" -exec shellcheck -S warning -f gcc {} \; 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
 
-      - name: Run ShellCheck on setup/
+      - name: Run ShellCheck on bootstrap/
         run: |
-          echo "## ShellCheck Results - setup/" >> $GITHUB_STEP_SUMMARY
-          shellcheck -S warning -f gcc setup/*.sh 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          echo "## ShellCheck Results - bootstrap/" >> $GITHUB_STEP_SUMMARY
+          shellcheck -S warning -f gcc bootstrap/*.sh 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
 
       - name: Run ShellCheck on ci/
         run: |

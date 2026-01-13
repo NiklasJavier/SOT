@@ -16,7 +16,7 @@ ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 # Library laden für YAML-Parser
 source "$ROOT_DIR/lib/init.sh"
 
-DEFAULT_CONFIG="$ROOT_DIR/services/default_config.yml"
+DEFAULT_CONFIG="$ROOT_DIR/config/default_config.yml"
 TEST_PASSED=0
 TEST_FAILED=0
 

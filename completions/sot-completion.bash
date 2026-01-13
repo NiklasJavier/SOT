@@ -17,7 +17,7 @@ _sot_completions() {
     
     # Dynamische Integrationen aus Config laden (falls verfügbar)
     local integrations=""
-    local config_file="${SOT_CONFIG_FILE:-/etc/DevOpsToolkit/services/default_config.yml}"
+    local config_file="${SOT_CONFIG_FILE:-/etc/DevOpsToolkit/config/default_config.yml}"
     if [[ -f "$config_file" ]]; then
         integrations=$(grep -oE '^[a-z]+_enabled:' "$config_file" 2>/dev/null | \
             sed 's/_enabled://' | \

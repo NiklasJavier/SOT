@@ -389,7 +389,7 @@ main() {
     fi
     
     echo "  ${GREY}Zum Neuinstallieren:${NC}"
-    echo "    curl -fsSL \"https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/setup_sot.sh\" | bash"
+    echo "    curl -fsSL \"https://raw.githubusercontent.com/NiklasJavier/SOT/production/bootstrap/init.sh\" | bash"
     echo ""
 }
 

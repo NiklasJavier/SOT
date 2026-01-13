@@ -118,10 +118,10 @@ discover_plugins
 # =============================================================================
 init_command_registry() {
     # System-Befehle
-    register_command "setup" "$commands_dir/setup.sh" "system" \
+    register_command "bootstrap" "$commands_dir/bootstrap.sh" "system" \
         "Server-Konfiguration ausführen" \
-        "SOT setup [--check] [--tags <tags>]" \
-        "SOT setup --tags ssh,firewall"
+        "SOT bootstrap [--check] [--tags <tags>]" \
+        "SOT bootstrap --tags ssh,firewall"
     
     # Vault-Befehle
     register_command "vault" "$commands_dir/vault.sh" "vault" \

@@ -1,4 +1,4 @@
-# SOT Setup Module
+# SOT Bootstrap Module
 
 Dieses Verzeichnis enthält die Bootstrap-Skripte für das Server Operation Toolkit.
 
@@ -6,8 +6,8 @@ Dieses Verzeichnis enthält die Bootstrap-Skripte für das Server Operation Tool
 
 | Datei | Beschreibung |
 |-------|--------------|
-| `setup_sot.sh` | Haupt-Bootstrap-Skript — klont Repository, generiert Config, erstellt Symlinks |
-| `install_tools.sh` | Tool-Installations-Manager — Ansible, Docker, SDKMAN! |
+| `init.sh` | Haupt-Bootstrap-Skript — klont Repository, generiert Config, erstellt Symlinks |
+| `dependencies.sh` | Dependency-Manager — Ansible, Docker, SDKMAN! |
 | `vault_template.j2` | Jinja2-Template für Vault-Initialisierung mit sicheren Defaults |
 
 > **Hinweis:** Die CLI liegt jetzt unter `bin/sot`
@@ -17,14 +17,14 @@ Dieses Verzeichnis enthält die Bootstrap-Skripte für das Server Operation Tool
 ### Bootstrap (Remote)
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/setup_sot.sh" \
+curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/bootstrap/init.sh" \
   | bash -s -- -branch production -port 22
 ```
 
 ### Bootstrap (Lokal)
 
 ```bash
-sudo bash setup/setup_sot.sh -branch dev -port 22
+sudo bash bootstrap/init.sh -branch dev -port 22
 ```
 
 ### Setup-Flags
@@ -68,7 +68,7 @@ Jedes aufgerufene Skript erhält automatisch:
 Alle CLI-Aufrufe werden in `log_file` (Standard: `/var/log/devops_commands.log`) protokolliert:
 
 ```
-2026-01-13 18:30:00 [root] SOT setup
+2026-01-13 18:30:00 [root] SOT bootstrap
 2026-01-13 18:31:00 [root] SOT vault
 ```
 
@@ -77,11 +77,11 @@ Alle CLI-Aufrufe werden in `log_file` (Standard: `/var/log/devops_commands.log`)
 ```
 setup_sot.sh
     │
-    ├── lib/setup/args_parser.sh    → CLI-Argumente parsen
-    ├── lib/setup/config_defaults.sh → Defaults laden
-    ├── lib/setup/tasks.sh          → Einzelne Setup-Tasks
-    ├── lib/setup/config_writer.sh  → config.yaml generieren
-    └── lib/setup/runner.sh         → Task-Runner mit Progress
+    ├── lib/core/bootstrap/args_parser.sh    → CLI-Argumente parsen
+    ├── lib/core/bootstrap/config_defaults.sh → Defaults laden
+    ├── lib/core/bootstrap/tasks.sh          → Einzelne Bootstrap-Tasks
+    ├── lib/core/bootstrap/config_writer.sh  → config.yaml generieren
+    └── lib/core/bootstrap/runner.sh         → Task-Runner mit Progress
 ```
 
 ## Entwicklung
@@ -90,13 +90,13 @@ Zum Testen von Änderungen:
 
 ```bash
 # Lokaler Test ohne Installation
-bash setup/setup_sot.sh -branch dev -port 22
+bash bootstrap/init.sh -branch dev -port 22
 
 # Nur Config generieren (dry-run)
-DEBUG=1 bash setup/setup_sot.sh -branch dev
+DEBUG=1 bash bootstrap/init.sh -branch dev
 ```
 
 ## Siehe auch
 
-- [lib/setup/README.md](../lib/setup/README.md) — Setup-Library Dokumentation
+- [lib/core/bootstrap/README.md](../lib/core/bootstrap/README.md) — Bootstrap-Library Dokumentation
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — Beitragsrichtlinien

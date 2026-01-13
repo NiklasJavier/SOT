@@ -46,7 +46,7 @@ CLI_SCRIPT="$ROOT_DIR/bin/sot"
 # =============================================================================
 echo "Testing CLI help output..."
 
-CONFIG_FILE_PATH="${CONFIG_FILE_PATH:-$ROOT_DIR/services/default_config.yml}"
+CONFIG_FILE_PATH="${CONFIG_FILE_PATH:-$ROOT_DIR/config/default_config.yml}"
 HELP_OUTPUT=$(CONFIG_FILE="$CONFIG_FILE_PATH" "$CLI_SCRIPT" help 2>&1 || true)
 
 [[ "$HELP_OUTPUT" == *"Usage:"* || "$HELP_OUTPUT" == *"SOT"* ]] && \
@@ -54,8 +54,8 @@ HELP_OUTPUT=$(CONFIG_FILE="$CONFIG_FILE_PATH" "$CLI_SCRIPT" help 2>&1 || true)
   run_test "CLI help shows usage information" "fail"
 
 [[ "$HELP_OUTPUT" == *"setup"* ]] && \
-  run_test "CLI help mentions 'setup' command" "pass" || \
-  run_test "CLI help mentions 'setup' command" "fail"
+  run_test "CLI help mentions 'bootstrap' command" "pass" || \
+  run_test "CLI help mentions 'bootstrap' command" "fail"
 
 # =============================================================================
 # Test: Script Discovery
@@ -63,9 +63,9 @@ HELP_OUTPUT=$(CONFIG_FILE="$CONFIG_FILE_PATH" "$CLI_SCRIPT" help 2>&1 || true)
 echo "Testing script discovery..."
 
 # Check that expected scripts exist (neue Struktur: commands/)
-[[ -f "$ROOT_DIR/commands/setup.sh" ]] && \
-  run_test "commands/setup.sh exists" "pass" || \
-  run_test "commands/setup.sh exists" "fail"
+[[ -f "$ROOT_DIR/commands/bootstrap.sh" ]] && \
+  run_test "commands/bootstrap.sh exists" "pass" || \
+  run_test "commands/bootstrap.sh exists" "fail"
 
 [[ -f "$ROOT_DIR/commands/runner.sh" ]] && \
   run_test "commands/runner.sh exists" "pass" || \
@@ -92,10 +92,10 @@ echo "Testing library loading..."
      run_test "lib/init.sh loads successfully" "fail"
 
 (
-  source "$ROOT_DIR/lib/core/setup/init.sh"
+  source "$ROOT_DIR/lib/core/bootstrap/init.sh"
   [[ -n "${_SOT_SETUP_LIB_INIT_LOADED:-}" ]]
-) && run_test "lib/core/setup/init.sh loads successfully" "pass" || \
-     run_test "lib/core/setup/init.sh loads successfully" "fail"
+) && run_test "lib/core/bootstrap/init.sh loads successfully" "pass" || \
+     run_test "lib/core/bootstrap/init.sh loads successfully" "fail"
 
 # =============================================================================
 # Test: Multiple Library Sourcing (idempotency)
