@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Shared Library: Helper Functions
 # Usage: source "$LIB_DIR/helpers.sh"
 #

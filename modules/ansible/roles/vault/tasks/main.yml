@@ -1,4 +1,7 @@
 ---
+# =============================================================================
+# SOT Vault Role - Sichere Vault-Erstellung und -Verwaltung
+# =============================================================================
 
 - name: Sammle Systeminformationen für Vault
   ansible.builtin.setup:
@@ -12,44 +15,138 @@
     path: "{{ sot_config.vault_file }}"
   register: vault_file_stat
 
+# =============================================================================
+# Sichere temporäre Verzeichnisse ermitteln
+# =============================================================================
+- name: Prüfe ob /dev/shm verfügbar ist (RAM-basiert)
+  stat:
+    path: /dev/shm
+  register: dev_shm_stat
+
+- name: Setze sicheres temporäres Verzeichnis
+  set_fact:
+    secure_tmp_dir: "{{ '/dev/shm' if dev_shm_stat.stat.exists else sot_config.opt_data_dir }}"
+
+- name: Erstelle sicheres temporäres Verzeichnis falls nötig
+  file:
+    path: "{{ secure_tmp_dir }}"
+    state: directory
+    mode: '0700'
+    owner: root
+    group: root
+  when: secure_tmp_dir != '/dev/shm'
+
+# =============================================================================
+# Vault-Erstellung mit sicherem Secret-Handling
+# =============================================================================
 - name: Erstellung der Vault-Datei
   block:
-    - name: Schreibe Passwort in eine temporäre Datei
+    - name: Schreibe Passwort in sichere temporäre Datei
       copy:
         content: "{{ sot_config.vault_secret }}"
-        dest: /tmp/vault_pass.txt
+        dest: "{{ secure_tmp_dir }}/.vault_pass_{{ ansible_date_time.epoch }}"
         mode: '0600'
+        owner: root
+        group: root
+      no_log: true  # Verhindert Logging des Secrets
+      register: vault_pass_file
+
+    - name: Speichere Pfad zur Passwortdatei
+      set_fact:
+        vault_pass_path: "{{ secure_tmp_dir }}/.vault_pass_{{ ansible_date_time.epoch }}"
 
     - name: Erstelle eine temporäre Datei für den Vault-Inhalt
       template:
         src: "{{ sot_config.vault_content }}"
-        dest: /tmp/temp_vault_content.yml
+        dest: "{{ secure_tmp_dir }}/.temp_vault_content_{{ ansible_date_time.epoch }}.yml"
+        mode: '0600'
+        owner: root
+        group: root
+      when: not vault_file_stat.stat.exists
+      register: temp_vault_content
+
+    - name: Speichere Pfad zur temporären Vault-Datei
+      set_fact:
+        temp_vault_path: "{{ secure_tmp_dir }}/.temp_vault_content_{{ ansible_date_time.epoch }}.yml"
       when: not vault_file_stat.stat.exists
 
     - name: Prüfe, ob die temporäre Datei erstellt wurde
       stat:
-        path: /tmp/temp_vault_content.yml
+        path: "{{ temp_vault_path }}"
       register: temp_file_stat
       when: not vault_file_stat.stat.exists
 
-    - name: Vault-Datei erstellen und verschlüsseln, falls sie nicht existiert
+    - name: Vault-Datei erstellen und verschlüsseln
+      shell: >
+        ansible-vault encrypt "{{ temp_vault_path }}"
+        --vault-password-file="{{ vault_pass_path }}"
+        --output "{{ sot_config.vault_file }}"
+      args:
+        executable: /bin/bash
       when:
         - not vault_file_stat.stat.exists
         - temp_file_stat.stat.exists
-      shell: >
-        ansible-vault encrypt /tmp/temp_vault_content.yml
-        --vault-password-file=/tmp/vault_pass.txt
-        --output {{ sot_config.vault_file }}
-      args:
-        executable: /bin/bash
+      no_log: true  # Verhindert Logging des Befehls
 
-    - name: Lösche die temporäre Datei nach der Verschlüsselung
+    - name: Setze sichere Berechtigungen für Vault-Datei
       file:
-        path: /tmp/temp_vault_content.yml
-        state: absent
+        path: "{{ sot_config.vault_file }}"
+        mode: '0600'
+        owner: root
+        group: root
       when: not vault_file_stat.stat.exists
 
-    - name: Lösche die temporäre Passwortdatei
-      file:
-        path: /tmp/vault_pass.txt
-        state: absent
+  always:
+    # =============================================================================
+    # Sichere Bereinigung - IMMER ausführen, auch bei Fehlern
+    # =============================================================================
+    - name: Sichere Löschung der temporären Vault-Datei (mit shred)
+      shell: |
+        if command -v shred &>/dev/null; then
+          shred -u -z -n 3 "{{ temp_vault_path }}" 2>/dev/null || rm -f "{{ temp_vault_path }}"
+        else
+          dd if=/dev/zero of="{{ temp_vault_path }}" bs=1k count=1 2>/dev/null || true
+          sync
+          rm -f "{{ temp_vault_path }}"
+        fi
+      args:
+        executable: /bin/bash
+        removes: "{{ temp_vault_path }}"
+      when: 
+        - temp_vault_path is defined
+        - not vault_file_stat.stat.exists
+      ignore_errors: true
+
+    - name: Sichere Löschung der Passwortdatei (mit shred)
+      shell: |
+        if command -v shred &>/dev/null; then
+          shred -u -z -n 3 "{{ vault_pass_path }}" 2>/dev/null || rm -f "{{ vault_pass_path }}"
+        else
+          dd if=/dev/zero of="{{ vault_pass_path }}" bs=1k count=1 2>/dev/null || true
+          sync
+          rm -f "{{ vault_pass_path }}"
+        fi
+      args:
+        executable: /bin/bash
+        removes: "{{ vault_pass_path }}"
+      when: vault_pass_path is defined
+      ignore_errors: true
+      no_log: true
+
+    - name: Verifiziere Löschung der temporären Dateien
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ vault_pass_path | default('/nonexistent') }}"
+        - "{{ temp_vault_path | default('/nonexistent') }}"
+      register: cleanup_check
+      failed_when: cleanup_check.stat.exists
+      ignore_errors: true
+
+    - name: Warnung wenn temporäre Dateien nicht gelöscht wurden
+      debug:
+        msg: "⚠️  Warnung: Temporäre Datei {{ item.item }} existiert noch!"
+      loop: "{{ cleanup_check.results }}"
+      when: 
+        - item.stat is defined
+        - item.stat.exists | default(false)

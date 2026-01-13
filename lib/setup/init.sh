@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Setup Library: Initialization
 # Loads all setup library components
 #

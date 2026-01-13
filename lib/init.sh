@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Shared Library: Initialization
 # Usage: source "$SOT_ROOT/lib/init.sh"
 #

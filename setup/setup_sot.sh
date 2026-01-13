@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Setup Script
 # Initializes and configures the Server Operation Toolkit
 #

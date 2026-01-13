@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Setup Library: Argument Parser
 # Handles CLI argument parsing for setup_sot.sh
 #

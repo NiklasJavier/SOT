@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Validate YAML configuration file
 # Usage: validate_config.sh <config_file>
 

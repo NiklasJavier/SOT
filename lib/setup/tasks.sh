@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Setup Library: Setup Tasks
 # Individual setup tasks that can be run independently
 #

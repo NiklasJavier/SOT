@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Standardkonfigurationsdatei (kann angepasst werden)
 # bspw. festgelegt VAR: CONFIG_FILE

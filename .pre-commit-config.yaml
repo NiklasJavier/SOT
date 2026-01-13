@@ -1,0 +1,122 @@
+# Pre-commit Hooks - https://pre-commit.com
+# Installation: pip install pre-commit && pre-commit install
+# Manuell ausführen: pre-commit run --all-files
+#
+# Diese Hooks werden automatisch vor jedem Commit ausgeführt
+# und stellen Code-Qualität und Sicherheit sicher.
+
+repos:
+  # ===========================================================================
+  # ShellCheck - Statische Analyse für Shell-Skripte
+  # ===========================================================================
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning', '--shell=bash']
+        # Nur wichtige Warnungen, SC1091 (can't follow source) ignorieren
+        exclude: |
+          (?x)^(
+            ci/bin/.*
+          )$
+
+  # ===========================================================================
+  # shfmt - Shell-Formatierung
+  # ===========================================================================
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.8.0-1
+    hooks:
+      - id: shfmt
+        args: ['-i', '4', '-ci', '-bn']
+        # -i 4: 4 Spaces Einrückung
+        # -ci: Case-Einrückung
+        # -bn: Binary Ops auf neuer Zeile
+
+  # ===========================================================================
+  # YAML Lint - YAML-Validierung
+  # ===========================================================================
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        args: ['-c', '.yamllint']
+        exclude: |
+          (?x)^(
+            modules/ansible/vault/.*
+          )$
+
+  # ===========================================================================
+  # Ansible Lint - Ansible Best Practices
+  # ===========================================================================
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v24.7.0
+    hooks:
+      - id: ansible-lint
+        files: \.(yaml|yml)$
+        args: ['--profile', 'moderate']
+        exclude: |
+          (?x)^(
+            services/.*|
+            .github/.*
+          )$
+
+  # ===========================================================================
+  # Standard Pre-commit Hooks
+  # ===========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Dateiformatierung
+      - id: trailing-whitespace
+        args: ['--markdown-linebreak-ext=md']
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+      # Dateiprüfungen
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+        exclude: |
+          (?x)^(
+            modules/ansible/vault/.*
+          )$
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+      # Sicherheit
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  # ===========================================================================
+  # Git Secrets - Verhindert versehentliches Committen von Secrets
+  # ===========================================================================
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  # ===========================================================================
+  # Markdown Lint
+  # ===========================================================================
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix', '--disable', 'MD013', 'MD033', 'MD041', '--']
+        # MD013: Line length (disabled)
+        # MD033: Inline HTML (disabled for badges)
+        # MD041: First line heading (disabled)
+
+# ===========================================================================
+# CI-Konfiguration
+# ===========================================================================
+ci:
+  autofix_prs: true
+  autofix_commit_msg: 'style: auto-fix pre-commit hooks'
+  autoupdate_branch: 'dev'
+  autoupdate_commit_msg: 'chore: update pre-commit hooks'
+  skip: [ansible-lint]  # Skip in CI (separate workflow)

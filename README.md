@@ -7,6 +7,7 @@
 ![Ansible](https://img.shields.io/badge/automation-ansible-EE0000.svg?logo=ansible&logoColor=white)
 ![Docker](https://img.shields.io/badge/containers-docker-2496ED.svg?logo=docker&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-69%2B%20passing-brightgreen.svg)
+![Security](https://img.shields.io/badge/security-scanned-blueviolet.svg)
 
 **Reproduzierbares Setup- und Operations-Framework für Linux-Server**
 
@@ -336,6 +337,25 @@ SOT mycommand
 
 Siehe [ci/README.md](ci/README.md) für Anleitungen zum Erstellen neuer Tests.
 
+### Pre-commit Hooks einrichten
+
+```bash
+# Installation
+pip install pre-commit
+pre-commit install
+
+# Manuell alle Checks ausführen
+pre-commit run --all-files
+```
+
+Enthaltene Hooks:
+- **ShellCheck** — Statische Bash-Analyse
+- **shfmt** — Shell-Formatierung
+- **yamllint** — YAML-Validierung
+- **ansible-lint** — Ansible Best Practices
+- **gitleaks** — Secret-Detection
+- **markdownlint** — Markdown-Formatierung
+
 ---
 
 ## 🔐 Sicherheit
@@ -363,6 +383,8 @@ vault_secret: "<neues-60-zeichen-secret>"
 | [lib/README.md](lib/README.md) | Shared Library Dokumentation |
 | [ci/README.md](ci/README.md) | Test-Suite Dokumentation |
 | [modules/ansible/README.md](modules/ansible/README.md) | Ansible-Module |
+| [.editorconfig](.editorconfig) | Editor-Formatierungsregeln |
+| [.pre-commit-config.yaml](.pre-commit-config.yaml) | Pre-commit Hooks |
 
 ---
 
@@ -374,6 +396,8 @@ vault_secret: "<neues-60-zeichen-secret>"
 4. **Regelmäßiger Sync** — `runner_sync_before_run: "true"` aktivieren
 5. **Secret-Rotation** — `vault_secret` regelmäßig erneuern
 6. **Tests ausführen** — `./ci/run-all-tests.sh` vor Commits
+7. **Pre-commit nutzen** — `pre-commit install` für automatische Checks
+8. **EditorConfig** — Konsistente Formatierung in allen Editoren
 
 ---
 

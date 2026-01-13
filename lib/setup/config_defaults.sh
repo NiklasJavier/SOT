@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Setup Library: Configuration Defaults
 # Handles default configuration loading and generation
 #

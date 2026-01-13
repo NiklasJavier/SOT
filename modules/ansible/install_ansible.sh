@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Farben für die Ausgabe
 GREEN='\033[0;32m'
 GREY='\033[1;90m'

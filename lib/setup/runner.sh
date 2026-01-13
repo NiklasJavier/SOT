@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Setup Library: Task Runner
 # Provides utilities for running setup tasks with progress indication
 #

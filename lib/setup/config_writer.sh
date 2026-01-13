@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Setup Library: Config Writer
 # Generates the config.yaml file in the new structured format
 #

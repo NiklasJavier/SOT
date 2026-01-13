@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # aat sync: Synchronize the AAT repository based on values in config.yaml
 # This script is invoked via: SOT aat sync

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # tid sync: Synchronize the TID (Terraform Infrastructure Deployment) repository
 # Usage via SOT: SOT tid sync

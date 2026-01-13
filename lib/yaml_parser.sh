@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Shared Library: YAML Parser
 # Usage: source "$LIB_DIR/yaml_parser.sh"
 #

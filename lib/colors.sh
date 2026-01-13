@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SOT Shared Library: Color Definitions
 # Usage: source "$LIB_DIR/colors.sh"
 
