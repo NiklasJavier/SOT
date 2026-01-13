@@ -7,31 +7,36 @@ Dieses Dokument beschreibt die Architektur des Server Operation Toolkits.
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         SOT CLI (SOT <cmd>)                        │
-│                        setup/cli_wrapper.sh                         │
+│                              bin/sot                                │
 └─────────────────────────────┬───────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      Shared Library (lib/)                          │
-│  ┌──────────┐  ┌──────────────┐  ┌───────────┐  ┌────────────────┐  │
-│  │ colors   │  │ yaml_parser  │  │  helpers  │  │ setup/*        │  │
-│  │ .sh      │  │    .sh       │  │   .sh     │  │ (5 modules)    │  │
-│  └──────────┘  └──────────────┘  └───────────┘  └────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ core/              cli/              plugins/                │   │
+│  │ colors.sh          registry.sh       manager.sh             │   │
+│  │ yaml_parser.sh     integrations.sh                          │   │
+│  │ helpers.sh                                                  │   │
+│  │ setup/*                                                     │   │
+│  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                               │
          ┌────────────────────┼────────────────────┐
          ▼                    ▼                    ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   scripts/      │  │   modules/      │  │   services/     │
-│   commands/     │  │   ansible/      │  │   config.yaml   │
-│   integrations/ │  │   docker/       │  │   overrides/    │
-│   maintenance/  │  │   sdkman/       │  │                 │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
+│   commands/     │  │   modules/      │  │   services/     │
+│   setup.sh      │  │   ansible/      │  │   config.yaml   │
+│   vault.sh      │  │   docker/       │  │   overrides/    │
+│   runner.sh     │  │   sdkman/       │  │                 │
+│   integrations/ │  └─────────────────┘  └─────────────────┘
+│   maintenance/  │
+└─────────────────┘
 ```
 
 ## Komponenten
 
-### 1. CLI Layer (`setup/cli_wrapper.sh`)
+### 1. CLI Layer (`bin/sot`)
 
 Der Einstiegspunkt für alle `SOT`-Befehle:
 
@@ -55,17 +60,17 @@ Wiederverwendbare Bash-Funktionen:
 | `helpers.sh` | `is_true()`, `info()`, `err()`, `run_with_timeout()` |
 | `setup/*` | Modulare Setup-Logik |
 
-### 3. Scripts (`scripts/`)
+### 3. Commands (`commands/`)
 
 CLI-Befehle, organisiert nach Funktion:
 
 ```
-scripts/
+commands/
 ├── setup.sh           # SOT setup
 ├── vault.sh           # SOT vault
 ├── runner.sh          # SOT runner ansible/terraform
 ├── integrations/      # SOT aat sync, tid sync
-└── maintenance/       # SOT maintenance update/delete
+└── maintenance/       # SOT update, delete
 ```
 
 ### 4. Module (`modules/`)
@@ -111,10 +116,10 @@ services/
 SOT vault
     │
     ▼
-cli_wrapper.sh
+bin/sot
     │
     ├── 1. Parse config.yaml
-    ├── 2. Find scripts/vault.sh
+    ├── 2. Find commands/vault.sh
     ├── 3. Inject parameters
     ├── 4. Log to log_file
     └── 5. Execute script
@@ -164,7 +169,7 @@ get_config_value "ssh_port" "22"  # Funktioniert mit beiden Formaten
 ### Neues Modul hinzufügen
 
 ```bash
-mkdir -p modules/mymodule
+mkdir -p modules/mymodule/{commands,hooks}
 cat > modules/mymodule/install.sh <<'EOF'
 #!/usr/bin/env bash
 source "$(dirname "$0")/../../lib/init.sh"
@@ -176,12 +181,12 @@ chmod +x modules/mymodule/install.sh
 ### Neuen CLI-Befehl hinzufügen
 
 ```bash
-cat > scripts/mycommand.sh <<'EOF'
+cat > commands/mycommand.sh <<'EOF'
 #!/usr/bin/env bash
 source "$(dirname "$0")/../lib/init.sh"
 info "Running mycommand..."
 EOF
-chmod +x scripts/mycommand.sh
+chmod +x commands/mycommand.sh
 # Aufruf: SOT mycommand
 ```
 

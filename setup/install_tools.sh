@@ -53,10 +53,10 @@ if (( ${#unique_sdkman_specs[@]} )); then
 fi
 
 echo -e "${GREY}Ensuring SDKMAN! is installed${NC}"
-if [ -f "$MODULES_DIR/sdkman/install_sdkman.sh" ]; then
-    bash "$MODULES_DIR/sdkman/install_sdkman.sh" "$sdkman_arg"
+if [ -f "$MODULES_DIR/sdkman/install.sh" ]; then
+    bash "$MODULES_DIR/sdkman/install.sh" "$sdkman_arg"
 else
-    echo -e "${RED}SDKMAN! installation script not found: $MODULES_DIR/sdkman/install_sdkman.sh${NC}"
+    echo -e "${RED}SDKMAN! installation script not found: $MODULES_DIR/sdkman/install.sh${NC}"
 fi
 
 # Überprüfen, welche Tools ausgewählt wurden und die entsprechenden Installationsskripte ausführen
@@ -64,19 +64,19 @@ fi
 # Docker Installation
 if [[ "$TOOLS" =~ (^|[[:space:]])docker([[:space:]]|$) ]]; then
     echo -e "${GREY}Installing Docker...${NC}"
-    if [ -f "$MODULES_DIR/docker/install_docker.sh" ]; then
-        bash "$MODULES_DIR/docker/install_docker.sh"
+    if [ -f "$MODULES_DIR/docker/install.sh" ]; then
+        bash "$MODULES_DIR/docker/install.sh"
     else
-        echo -e "${RED}Docker installation script not found: $MODULES_DIR/docker/install_docker.sh${NC}"
+        echo -e "${RED}Docker installation script not found: $MODULES_DIR/docker/install.sh${NC}"
     fi
 fi
 
 # Ansible Installation
 if [[ "$TOOLS" =~ (^|[[:space:]])ansible([[:space:]]|$) ]]; then
     echo -e "${GREY}Installing Ansible...${NC}"
-    if [ -f "$MODULES_DIR/ansible/install_ansible.sh" ]; then
-        bash "$MODULES_DIR/ansible/install_ansible.sh"
+    if [ -f "$MODULES_DIR/ansible/install.sh" ]; then
+        bash "$MODULES_DIR/ansible/install.sh"
     else
-        echo -e "${RED}Ansible installation script not found: $MODULES_DIR/ansible/install_ansible.sh${NC}"
+        echo -e "${RED}Ansible installation script not found: $MODULES_DIR/ansible/install.sh${NC}"
     fi
 fi

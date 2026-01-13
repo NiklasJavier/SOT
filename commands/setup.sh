@@ -23,7 +23,7 @@ playbook_name="host_setup" # Name des Ansible Playbooks -> playbookname bspw. (l
 inventory_key="default"    # Inventarordner (z.B. default, container)
 
 ansibleOpenPlaybook() {
-  bash "$modules_dir/ansible/trigger_playbook.sh" \
+  bash "$modules_dir/ansible/commands/trigger.sh" \
     "$modules_dir" \
     "$config_file" \
     "$playbook_name" \

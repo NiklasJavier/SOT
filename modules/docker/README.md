@@ -6,7 +6,9 @@ Dieses Verzeichnis enthält Docker-bezogene Skripte und Templates für das Serve
 
 | Datei/Ordner | Beschreibung |
 |--------------|--------------|
-| `install_docker.sh` | Docker-Installations-Skript für verschiedene Linux-Distributionen |
+| `plugin.yml` | Plugin-Metadaten für SOT |
+| `install.sh` | Docker-Installations-Skript für verschiedene Linux-Distributionen |
+| `hooks/` | Lifecycle-Hooks (pre/post) |
 | `templates/` | Docker-Compose Templates für häufig verwendete Services |
 
 ## Installation
@@ -20,7 +22,7 @@ SOT setup -tools "docker"
 Oder manuell:
 
 ```bash
-bash modules/docker/install_docker.sh
+bash modules/docker/install.sh
 ```
 
 ## Templates
@@ -61,7 +63,7 @@ docker-compose logs -f
 
 ## Unterstützte Distributionen
 
-Das `install_docker.sh` Skript unterstützt:
+Das `install.sh` Skript unterstützt:
 
 - ✅ Ubuntu (18.04, 20.04, 22.04, 24.04)
 - ✅ Debian (10, 11, 12)

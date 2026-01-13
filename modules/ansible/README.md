@@ -9,13 +9,17 @@ können direkt erweitert oder überschrieben werden.
 ```
 modules/ansible/
 ├── ansible.cfg                 # Globale Ansible-Einstellungen
+├── plugin.yml                  # Plugin-Metadaten für SOT
+├── install.sh                  # Ansible-Installationsskript
+├── commands/
+│   └── trigger.sh              # Wrapper für CLI-Aufrufe aus `SOT setup`
+├── hooks/                      # Lifecycle-Hooks (pre/post)
 ├── config/                     # Zentrale Include-Tasks (z. B. load_config.yml)
 ├── inventory/
 │   ├── hosts.ini               # Standardinventar (localhost)
 │   └── container/              # Optionales Inventar + ansible.cfg für Container-Szenarien
 ├── playbooks/                  # Einstiegspunkte (z. B. host_setup.yml)
-├── roles/                      # Wiederverwendbare Rollen (common, variables, vault, …)
-└── trigger_playbook.sh         # Wrapper für CLI-Aufrufe aus `SOT setup`
+└── roles/                      # Wiederverwendbare Rollen (common, variables, vault, …)
 ```
 
 ## Konfiguration laden
@@ -27,7 +31,7 @@ Parameter als `sot_config`-Facts in den Playbooks zur Verfügung.
 ## Erweiterung
 
 - Zusätzliche Inventare können unter `inventory/<name>/` abgelegt werden. Das CLI akzeptiert
-  sie über den Parameter `<inventory_key>` im `trigger_playbook.sh`.
+  sie über den Parameter `<inventory_key>` im `commands/trigger.sh`.
 - Weitere Rollen folgen den üblichen Ansible-Konventionen und können direkt im Ordner
   `roles/` hinzugefügt werden.
 - Gemeinsame Variablen lassen sich über `group_vars/` oder `host_vars/` ergänzen, falls nötig.

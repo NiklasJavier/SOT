@@ -45,10 +45,10 @@ resolve_inventory() {
 # Sicherstellen, dass ansible-playbook verfügbar ist
 if ! command -v ansible-playbook &> /dev/null; then
     echo -e "${YELLOW}Ansible ist nicht installiert. Führe Installationsskript aus...${NC}"
-    if [ -x "$ANSIBLE_ROOT/install_ansible.sh" ]; then
-        bash "$ANSIBLE_ROOT/install_ansible.sh"
+    if [ -x "$ANSIBLE_ROOT/install.sh" ]; then
+        bash "$ANSIBLE_ROOT/install.sh"
     else
-        echo -e "${RED}Installationsskript für Ansible nicht gefunden: ${YELLOW}$ANSIBLE_ROOT/install_ansible.sh${NC}"
+        echo -e "${RED}Installationsskript für Ansible nicht gefunden: ${YELLOW}$ANSIBLE_ROOT/install.sh${NC}"
         exit 1
     fi
 fi
@@ -56,10 +56,10 @@ fi
 # Überprüfen, ob Docker installiert ist
 if ! command -v docker &> /dev/null; then
     echo -e "${YELLOW}Docker ist nicht installiert. Führe Installationsskript aus...${NC}"
-    if [ -x "$modules_dir/docker/install_docker.sh" ]; then
-        bash "$modules_dir/docker/install_docker.sh"
+    if [ -x "$modules_dir/docker/install.sh" ]; then
+        bash "$modules_dir/docker/install.sh"
     else
-        echo -e "${RED}Docker-Installationsskript nicht gefunden: ${YELLOW}$modules_dir/docker/install_docker.sh${NC}"
+        echo -e "${RED}Docker-Installationsskript nicht gefunden: ${YELLOW}$modules_dir/docker/install.sh${NC}"
         exit 1
     fi
 else

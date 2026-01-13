@@ -7,21 +7,30 @@ Coding-Standards und den Beitragsprozess.
 
 ```
 SOT/
+├── bin/                    # CLI-Einstiegspunkt
+│   └── sot                 # Haupt-CLI
 ├── lib/                    # Gemeinsame Bibliotheken
 │   ├── init.sh             # Hauptlader
-│   ├── colors.sh           # Farbdefinitionen
-│   ├── yaml_parser.sh      # YAML-Parser
-│   ├── helpers.sh          # Hilfsfunktionen
-│   └── setup/              # Setup-spezifische Module
-├── setup/                  # Bootstrap & CLI
-├── scripts/                # Ausführbare Skripte
+│   ├── core/               # Kernfunktionen
+│   │   ├── colors.sh       # Farbdefinitionen
+│   │   ├── yaml_parser.sh  # YAML-Parser
+│   │   ├── helpers.sh      # Hilfsfunktionen
+│   │   └── setup/          # Setup-spezifische Module
+│   ├── cli/                # CLI-System
+│   │   ├── registry.sh     # Befehlsregistrierung
+│   │   └── integrations.sh # Integrations-Framework
+│   └── plugins/            # Plugin-System
+│       └── manager.sh      # Plugin-Manager
+├── commands/               # CLI-Befehle
+│   ├── setup.sh, vault.sh, runner.sh
 │   ├── maintenance/        # Wartung (update, delete)
 │   └── integrations/       # AAT/TID Sync
-├── modules/                # Ansible, Docker, SDKMAN
+├── completions/            # Shell-Completions
+├── modules/                # Plugin-Module (ansible, docker, sdkman)
+├── setup/                  # Bootstrap-Skripte
 ├── services/               # Konfigurationsdateien
+├── tests/                  # Unit- und Integrations-Tests
 ├── docs/                   # Dokumentation
-├── ci/                     # Tests
-├── templates/              # Wiederverwendbare Templates
 └── config/validators/      # Validatoren
 ```
 
@@ -44,7 +53,7 @@ info "Script gestartet"
 
 ### Verfügbare Funktionen
 
-#### Farben (`lib/colors.sh`)
+#### Farben (`lib/core/colors.sh`)
 
 ```bash
 # Grundfarben
@@ -54,7 +63,7 @@ $GREEN, $RED, $YELLOW, $BLUE, $PINK, $CYAN, $GREY, $BOLD, $NC
 $COLOR_SUCCESS, $COLOR_ERROR, $COLOR_WARNING, $COLOR_INFO
 ```
 
-#### Hilfsfunktionen (`lib/helpers.sh`)
+#### Hilfsfunktionen (`lib/core/helpers.sh`)
 
 ```bash
 is_true "yes"              # true für: true, TRUE, 1, yes, YES, on, ON
@@ -68,7 +77,7 @@ resolve_path "relative"    # Pfad zu absolutem Pfad auflösen
 log_command "cmd"          # Befehl mit Timestamp loggen
 ```
 
-#### YAML-Parser (`lib/yaml_parser.sh`)
+#### YAML-Parser (`lib/core/yaml_parser.sh`)
 
 ```bash
 # Flaches YAML (v1)

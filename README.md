@@ -302,57 +302,61 @@ SOT validate
 
 ```
 SOT/
+├── bin/                        # 🚀 CLI-Einstiegspunkt
+│   └── sot                     # SOT CLI
+│
 ├── lib/                        # 📚 Shared Library
 │   ├── init.sh                 # Hauptlader
-│   ├── colors.sh               # Terminal-Farben
-│   ├── yaml_parser.sh          # YAML-Parser (v1 & v2)
-│   ├── helpers.sh              # Hilfsfunktionen
-│   ├── cli_registry.sh         # CLI-Befehlsregistrierung
-│   ├── integrations.sh         # Dynamisches Integrations-Framework
-│   └── setup/                  # Setup-Module
-│       ├── args_parser.sh      # CLI-Argumente
-│       ├── config_defaults.sh  # Defaults
-│       ├── tasks.sh            # Setup-Tasks
-│       ├── config_writer.sh    # Config-Generator
-│       └── runner.sh           # Task-Runner
+│   ├── core/                   # Kernfunktionen
+│   │   ├── colors.sh           # Terminal-Farben
+│   │   ├── yaml_parser.sh      # YAML-Parser (v1 & v2)
+│   │   ├── helpers.sh          # Hilfsfunktionen
+│   │   └── setup/              # Setup-Module
+│   │       ├── args_parser.sh  # CLI-Argumente
+│   │       ├── config_defaults.sh
+│   │       ├── tasks.sh
+│   │       ├── config_writer.sh
+│   │       └── runner.sh
+│   ├── cli/                    # CLI-System
+│   │   ├── registry.sh         # Befehlsregistrierung
+│   │   └── integrations.sh     # Integrations-Framework
+│   └── plugins/                # Plugin-System
+│       └── manager.sh          # Plugin-Manager
 │
-├── setup/                      # 🔧 Bootstrap & CLI
-│   ├── cli_wrapper.sh          # SOT CLI (Haupt-Entrypoint)
-│   ├── setup_sot.sh            # Setup-Script
-│   ├── install_tools.sh        # Tool-Installer
-│   ├── vault_template.j2       # Vault-Template
-│   ├── sot-completion.bash     # Bash Shell-Completion
-│   └── sot-completion.zsh      # Zsh Shell-Completion
-│
-├── scripts/                    # 📜 CLI-Befehle
+├── commands/                   # 📜 CLI-Befehle
 │   ├── setup.sh                # Host-Setup
 │   ├── runner.sh               # Ansible/Terraform-Runner
 │   ├── vault.sh                # Vault-Interaktion
-│   ├── debug/                  # Debug-Skripte
-│   └── integrations/           # Dynamisches Sync-Framework
-│       └── sync.sh             # Generisches Sync-Skript
+│   ├── maintenance/            # Wartungs-Skripte
+│   └── integrations/           # AAT/TID-Sync
 │
-├── modules/                    # 🧩 Module
+├── completions/                # 🔤 Shell-Completions
+│   ├── sot-completion.bash
+│   └── sot-completion.zsh
+│
+├── modules/                    # 🔌 Plugin-Module
 │   ├── ansible/                # Ansible (Playbooks, Rollen)
+│   │   ├── plugin.yml          # Plugin-Metadaten
+│   │   ├── install.sh
+│   │   └── commands/
 │   ├── docker/                 # Docker-Templates
 │   └── sdkman/                 # SDKMAN!-Installer
 │
-├── services/                   # ⚙️ Konfiguration
+├── setup/                      # ⚙️ Bootstrap
+│   ├── setup_sot.sh            # Initial-Setup
+│   ├── install_tools.sh        # Tool-Installer
+│   └── vault_template.j2       # Vault-Template
+│
+├── services/                   # 📋 Konfiguration
 │   ├── default_config.yml      # Defaults (v1)
 │   ├── default_config_v2.yml   # Defaults (v2)
 │   └── overrides/              # Environment-Overrides
 │
-├── docs/                       # 📖 Dokumentation
-│   ├── architecture.md         # Architektur-Übersicht
-│   ├── cli-reference.md        # CLI-Befehlsreferenz
-│   ├── configuration.md        # Config-Referenz
-│   └── development.md          # Entwickler-Guide
+├── tests/                      # 🧪 Tests
+│   ├── unit/                   # Unit-Tests
+│   └── integration/            # Integrations-Tests
 │
-├── ci/                         # ✅ Tests
-│   ├── run-all-tests.sh        # Master Test-Runner
-│   └── ...                     # Test-Suites
-│
-└── templates/                  # 📋 Wiederverwendbare Templates
+└── docs/                       # 📖 Dokumentation
 ```
 
 ---
@@ -412,9 +416,9 @@ echo "${config[system_name]}"
 
 ### Neuen CLI-Befehl erstellen
 
-1. Script unter `scripts/` erstellen:
+1. Script unter `commands/` erstellen:
 ```bash
-# scripts/mycommand.sh
+# commands/mycommand.sh
 #!/usr/bin/env bash
 source "$CLONE_DIR/lib/init.sh"
 info "Mein Befehl läuft"
@@ -422,7 +426,7 @@ info "Mein Befehl läuft"
 
 2. Ausführbar machen:
 ```bash
-chmod +x scripts/mycommand.sh
+chmod +x commands/mycommand.sh
 ```
 
 3. Verwenden:
@@ -432,7 +436,7 @@ SOT mycommand
 
 ### Tests hinzufügen
 
-Siehe [ci/README.md](ci/README.md) für Anleitungen zum Erstellen neuer Tests.
+Siehe [tests/](tests/) für Anleitungen zum Erstellen neuer Tests.
 
 ### Pre-commit Hooks einrichten
 

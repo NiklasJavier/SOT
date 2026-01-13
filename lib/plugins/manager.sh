@@ -566,7 +566,7 @@ show_plugins_help() {
     printf '  %sBeispiele:%s\n' "${YELLOW:-}" "${NC:-}"
     printf '    %s\n' "SOT plugins list"
     printf '    %s\n' "SOT plugins info ansible"
-    printf '    %s\n' "SOT plugins ansible trigger_playbook site.yml"
+    printf '    %s\n' "SOT plugins ansible trigger site.yml"
     printf '    %s\n' "SOT plugins install docker"
     echo
 }
