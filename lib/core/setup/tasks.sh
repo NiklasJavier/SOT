@@ -99,9 +99,7 @@ task_clone_repository() {
         sudo git pull
     else
         info "Cloning the repository into $CLONE_DIR with branch $BRANCH..."
-        sudo git clone -b "$BRANCH" --single-branch "$REPO_URL" "$CLONE_DIR"
-        
-        if [[ $? -ne 0 ]]; then
+        if ! sudo git clone -b "$BRANCH" --single-branch "$REPO_URL" "$CLONE_DIR"; then
             err "Failed to clone the repository. Aborting..."
             exit 1
         fi

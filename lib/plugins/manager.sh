@@ -189,14 +189,16 @@ register_plugin() {
         if [[ -d "${path}commands" ]]; then
             for script in "${path}commands"/*.sh; do
                 [[ ! -f "$script" ]] && continue
-                local script_name=$(basename "$script" .sh)
+                local script_name
+                script_name=$(basename "$script" .sh)
                 cmds+="${script_name} "
             done
         else
             # Fallback: alte Struktur - Scripts im Root
             for script in "${path}"*.sh; do
                 [[ ! -f "$script" ]] && continue
-                local script_name=$(basename "$script" .sh)
+                local script_name
+                script_name=$(basename "$script" .sh)
                 # Install-Scripts überspringen
                 [[ "$script_name" == "install"* ]] && continue
                 cmds+="${script_name} "
