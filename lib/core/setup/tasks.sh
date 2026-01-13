@@ -14,7 +14,7 @@ task_check_settings_dir() {
     if [[ -d "$SETTINGS_DIR" ]]; then
         err "Settings directory exists: ${YELLOW}$SETTINGS_DIR${NC}"
         err "Please use ${YELLOW}'SOT debug update'${RED} to apply the latest changes or ${YELLOW}'SOT debug delete'${RED} to remove the current setup."
-        kill -INT $$
+        exit 1
     else
         info "Settings directory does not exist: ${YELLOW}$SETTINGS_DIR${NC}"
     fi

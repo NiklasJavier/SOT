@@ -40,6 +40,22 @@ get_task_label() {
 # Progress Runner
 # =============================================================================
 
+# Liste von Tasks die bei Fehler das Setup abbrechen sollen
+declare -ga CRITICAL_TASKS=(
+    "checkSettingsDirExist"
+    "checkRootPermissions"
+    "copyAndSetTheRepository"
+)
+
+# Prüft ob ein Task kritisch ist
+is_critical_task() {
+    local task="$1"
+    for critical in "${CRITICAL_TASKS[@]}"; do
+        [[ "$task" == "$critical" ]] && return 0
+    done
+    return 1
+}
+
 # Run a single task with progress indication
 # Arguments:
 #   $1 - Task function name
@@ -58,8 +74,11 @@ run_task() {
     # Task ausführen (Ausgabe in temp Datei für Fehlerbehandlung)
     local output_file
     output_file=$(mktemp)
+    local exit_code=0
     
-    if "$task" > "$output_file" 2>&1; then
+    "$task" > "$output_file" 2>&1 || exit_code=$?
+    
+    if [[ $exit_code -eq 0 ]]; then
         # Erfolg
         progress_bar "$current" "$total" "${GREEN:-}✓${NC:-} $label"
         printf "\n"
@@ -71,6 +90,13 @@ run_task() {
         if [[ -s "$output_file" ]]; then
             printf "    ${RED:-}Fehler:${NC:-}\n"
             sed 's/^/    /' "$output_file"
+        fi
+        
+        # Bei kritischen Tasks abbrechen
+        if is_critical_task "$task"; then
+            rm -f "$output_file"
+            printf "\n  ${RED:-}Setup abgebrochen.${NC:-}\n\n"
+            exit 1
         fi
     fi
     
