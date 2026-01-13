@@ -70,7 +70,7 @@ else
 fi
 
 # Prüfe dass keine vault_* Dateien in /tmp oder /dev/shm zurückbleiben
-LEFTOVER_FILES=$(find /tmp /dev/shm 2>/dev/null -name "vault_*" -mmin -1 2>/dev/null || true)
+LEFTOVER_FILES=$({ find /tmp -name "vault_*" -mmin -1 2>/dev/null; find /dev/shm -name "vault_*" -mmin -1 2>/dev/null; } || true)
 if [[ -z "$LEFTOVER_FILES" ]]; then
     test_pass "Keine temporären Vault-Dateien zurückgeblieben"
 else

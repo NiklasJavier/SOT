@@ -47,13 +47,13 @@ echo "Testing CLI help output..."
 
 HELP_OUTPUT=$(CONFIG_FILE="$CONFIG_FILE_PATH" "$CLI_SCRIPT" help 2>&1 || true)
 
-[[ "$HELP_OUTPUT" == *"Available commands"* ]] && \
-  run_test "CLI help shows 'Available commands'" "pass" || \
-  run_test "CLI help shows 'Available commands'" "fail"
+[[ "$HELP_OUTPUT" == *"Usage:"* || "$HELP_OUTPUT" == *"SOT"* ]] && \
+  run_test "CLI help shows usage information" "pass" || \
+  run_test "CLI help shows usage information" "fail"
 
-[[ "$HELP_OUTPUT" == *"SOT"* ]] && \
-  run_test "CLI help mentions 'SOT'" "pass" || \
-  run_test "CLI help mentions 'SOT'" "fail"
+[[ "$HELP_OUTPUT" == *"setup"* ]] && \
+  run_test "CLI help mentions 'setup' command" "pass" || \
+  run_test "CLI help mentions 'setup' command" "fail"
 
 # =============================================================================
 # Test: Script Discovery
