@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-#
-# SOT Update Script
-# Aktualisiert das lokale SOT-Repository
+# =============================================================================
+# @cmd: maintenance update
+# @category: maintenance
+# @description: SOT auf die neueste Version aktualisieren
+# @usage: SOT maintenance update [--force]
+# @example: SOT maintenance update
+# =============================================================================
+## Führt ein git pull aus um SOT auf die neueste Version zu bringen.
+## Zeigt vorher den aktuellen Branch und eventuelle lokale Änderungen an.
+## Mit --force werden lokale Änderungen überschrieben.
+# =============================================================================
 #
 set -euo pipefail
 

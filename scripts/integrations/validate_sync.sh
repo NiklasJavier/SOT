@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-
-# validate_sync: Validate that AAT and TID integrations are properly synced
-# Usage via SOT: SOT integrations validate
+# =============================================================================
+# @cmd: integrations validate
+# @category: sync
+# @description: AAT/TID Synchronisierungsstatus prüfen
+# @usage: SOT integrations validate
+# @example: SOT integrations validate
+# =============================================================================
+## Prüft ob AAT und TID Repositories korrekt synchronisiert sind.
+## Validiert: Verzeichnis existiert, korrekter Branch, erwartete Dateien.
+## Gibt detaillierte Statusmeldungen für jede Integration aus.
+# =============================================================================
 
 set -euo pipefail
 

@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-#
-# SOT Delete Script
-# Entfernt SOT-Installation und erstellt Backup der Vault-Zugangsdaten
+# =============================================================================
+# @cmd: maintenance delete
+# @category: maintenance
+# @description: SOT-Installation entfernen mit Vault-Backup
+# @usage: SOT maintenance delete [--no-backup]
+# @example: SOT maintenance delete
+# =============================================================================
+## Entfernt die SOT-Installation vollständig vom System.
+## Erstellt vorher ein Backup der Vault-Zugangsdaten.
+## Mit --no-backup wird kein Backup erstellt (nicht empfohlen).
+# =============================================================================
 #
 set -euo pipefail
 

@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+# =============================================================================
+# @cmd: runner
+# @category: run
+# @description: Ansible/Terraform Playbooks & Module ausführen
+# @usage: SOT runner <aat|ansible|tid|terraform> [playbook] [options]
+# @example: SOT runner aat my-playbook --tags setup
+# =============================================================================
+## Zentrale Ausführungs-Engine für Ansible und Terraform.
+## Unterstützt AAT (Ansible Automation Tools) und TID (Terraform Infra Deployment).
+## Automatische Vault-Integration und Rollback-Funktionalität.
+# =============================================================================
 
 set -euo pipefail
 

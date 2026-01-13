@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-#
-# SOT Vault Management
-# Sichere Interaktion mit dem Ansible-Vault
+# =============================================================================
+# @cmd: vault
+# @category: vault
+# @description: Vault interaktiv bearbeiten (view/edit/rekey)
+# @usage: SOT vault [view|edit|rekey]
+# @example: SOT vault edit
+# =============================================================================
+## Sichere Interaktion mit dem Ansible-Vault.
+## Unterstützt view (lesen), edit (bearbeiten) und rekey (Passwort ändern).
+## Verwendet RAM-basierte temporäre Verzeichnisse für maximale Sicherheit.
+# =============================================================================
 #
 set -euo pipefail
 

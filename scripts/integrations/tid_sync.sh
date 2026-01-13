@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-
-# tid sync: Synchronize the TID (Terraform Infrastructure Deployment) repository
-# Usage via SOT: SOT tid sync
+# =============================================================================
+# @cmd: tid sync
+# @category: sync
+# @description: TID-Repository synchronisieren
+# @usage: SOT tid sync [--branch <branch>]
+# @example: SOT tid sync --branch feature/new-module
+# =============================================================================
+## Klont oder aktualisiert das TID (Terraform Infrastructure Deployment) Repository.
+## Kann via tid_enabled in config.yaml deaktiviert werden.
+## Timeout konfigurierbar via SOT_GIT_TIMEOUT (default: 120s).
+# =============================================================================
 
 set -euo pipefail
 

@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+# =============================================================================
+# @cmd: setup
+# @category: system
+# @description: Server-Konfiguration mit Ansible ausführen
+# @usage: SOT setup [--check] [--tags <tags>]
+# @example: SOT setup --tags ssh,firewall
+# =============================================================================
+## Führt das host_setup.yml Playbook aus um den Server zu konfigurieren.
+## Unterstützt Ansible Dry-Run (--check) und Tag-Filterung (--tags).
+## Konfiguration wird aus der YAML-Config geladen.
+# =============================================================================
 
 # Load shared library
 SCRIPT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)

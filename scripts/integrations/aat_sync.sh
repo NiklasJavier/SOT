@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
-
-# aat sync: Synchronize the AAT repository based on values in config.yaml
-# This script is invoked via: SOT aat sync
-# The SOT CLI appends standard arguments including modules_dir, CONFIG_FILE, username, vault_file, vault_secret, opt_data_dir, clone_dir, systemlink_path, log_file, branch
+# =============================================================================
+# @cmd: aat sync
+# @category: sync
+# @description: AAT-Repository synchronisieren
+# @usage: SOT aat sync [--branch <branch>]
+# @example: SOT aat sync --branch develop
+# =============================================================================
+## Klont oder aktualisiert das AAT (Ansible Automation Tools) Repository.
+## Branch kann via --branch überschrieben werden.
+## Timeout konfigurierbar via SOT_GIT_TIMEOUT (default: 120s).
+# =============================================================================
 
 set -euo pipefail
 

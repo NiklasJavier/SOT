@@ -116,18 +116,51 @@ SOT [unterordner] <befehl> [optionen]
 
 ### Wichtigste Befehle
 
-| Befehl | Beschreibung |
-|--------|--------------|
-| `SOT help` | Alle verfügbaren Befehle anzeigen |
-| `SOT setup` | Host-Setup-Playbook ausführen |
-| `SOT vault` | Vault interaktiv bearbeiten |
-| `SOT runner ansible <playbook>` | Ansible-Playbook ausführen |
-| `SOT runner terraform <stack>` | Terraform-Stack ausführen |
-| `SOT integrations aat_sync` | AAT-Repository synchronisieren |
-| `SOT integrations tid_sync` | TID-Repository synchronisieren |
-| `SOT integrations validate_sync` | Sync-Status prüfen |
-| `SOT debug update` | SOT aktualisieren |
-| `SOT debug delete` | SOT entfernen |
+```
+   ███████╗ ██████╗ ████████╗
+   ██╔════╝██╔═══██╗╚══██╔══╝
+   ███████╗██║   ██║   ██║   
+   ╚════██║██║   ██║   ██║   
+   ███████║╚██████╔╝   ██║   
+   ╚══════╝ ╚═════╝    ╚═╝   
+```
+
+| Kategorie | Befehl | Beschreibung |
+|-----------|--------|--------------|
+| 🖥️ **System** | `SOT setup` | Server-Konfiguration ausführen |
+| 🔐 **Vault** | `SOT vault [view\|edit\|rekey]` | Vault interaktiv bearbeiten |
+| 🔄 **Sync** | `SOT aat sync` | AAT-Repository synchronisieren |
+| 🔄 **Sync** | `SOT tid sync` | TID-Repository synchronisieren |
+| 🔄 **Sync** | `SOT validate` | Integration-Status prüfen |
+| ▶️ **Run** | `SOT runner aat <playbook>` | Ansible-Playbook ausführen |
+| ▶️ **Run** | `SOT runner tid <stack>` | Terraform-Stack ausführen |
+| 🔧 **Wartung** | `SOT update` | SOT aktualisieren |
+| 🔧 **Wartung** | `SOT delete` | SOT entfernen |
+| ℹ️ **Info** | `SOT help [command]` | Hilfe anzeigen |
+| ℹ️ **Info** | `SOT version` | Version anzeigen |
+| ℹ️ **Info** | `SOT --interactive` | Interaktives Menü |
+
+### Shell-Completion
+
+```bash
+# Bash
+source <(SOT --completion bash)
+
+# Zsh  
+source <(SOT --completion zsh)
+
+# Permanent (Bash)
+SOT --completion bash > /etc/bash_completion.d/sot
+```
+
+### Detaillierte Befehlshilfe
+
+```bash
+# Hilfe für einen spezifischen Befehl
+SOT help setup
+SOT help vault
+SOT help runner
+```
 
 ### Automatische Parameter
 
