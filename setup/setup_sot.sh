@@ -20,12 +20,13 @@
 #
 # See README.md for full documentation.
 
-set -euo pipefail
+# WICHTIG: set -u erst NACH Bootstrap-Check, da BASH_SOURCE bei curl|bash nicht existiert
+set -eo pipefail
 
 # =============================================================================
 # BOOTSTRAP MODE DETECTION
 # =============================================================================
-# Wenn via curl | bash ausgeführt, ist BASH_SOURCE leer.
+# Wenn via curl | bash ausgeführt, existiert BASH_SOURCE nicht.
 # In diesem Fall: Repository klonen und lokales Script ausführen.
 
 REPO_URL="https://github.com/NiklasJavier/SOT.git"
@@ -33,17 +34,28 @@ DEFAULT_CLONE_DIR="/opt/SOT"
 
 # Parse branch early (für Bootstrap)
 BOOTSTRAP_BRANCH="production"
+shift_next=""
 for arg in "$@"; do
     if [[ "$arg" == "-branch" ]]; then
         shift_next=true
-    elif [[ "${shift_next:-}" == "true" ]]; then
+    elif [[ "$shift_next" == "true" ]]; then
         BOOTSTRAP_BRANCH="$arg"
-        shift_next=false
+        shift_next=""
     fi
 done
 
 # Prüfe ob wir im Bootstrap-Modus sind (curl | bash)
-if [[ -z "${BASH_SOURCE[0]:-}" ]] || [[ "${BASH_SOURCE[0]}" == "bash" ]]; then
+# Bei curl|bash existiert BASH_SOURCE nicht oder ist leer
+_BOOTSTRAP_MODE=false
+if [[ -z "${BASH_SOURCE:-}" ]]; then
+    _BOOTSTRAP_MODE=true
+elif [[ -z "${BASH_SOURCE[0]:-}" ]]; then
+    _BOOTSTRAP_MODE=true
+elif [[ "${BASH_SOURCE[0]}" == "bash" ]] || [[ "${BASH_SOURCE[0]}" == "-bash" ]]; then
+    _BOOTSTRAP_MODE=true
+fi
+
+if [[ "$_BOOTSTRAP_MODE" == "true" ]]; then
     echo ""
     echo "  ╔═══════════════════════════════════════════════════════════╗"
     echo "  ║     SOT Bootstrap - Server Operation Toolkit              ║"
@@ -92,6 +104,9 @@ fi
 # =============================================================================
 # LOKALER MODUS - Normale Ausführung
 # =============================================================================
+
+# Ab hier ist BASH_SOURCE garantiert verfügbar, aktiviere strict mode
+set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
