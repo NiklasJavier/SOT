@@ -92,11 +92,15 @@ task_clone_repository() {
         sudo mkdir -p "$CLONE_DIR"
     fi
 
-    # Clone or pull
+    # Clone or reset
     if [[ -d "$CLONE_DIR/.git" ]]; then
-        info "Repository already exists. Pulling latest changes..."
+        info "Repository already exists. Resetting to latest remote state..."
         cd "$CLONE_DIR" || exit
-        sudo git pull
+        # Fetch und hard reset - überschreibt ALLE lokalen Änderungen
+        sudo git fetch origin "$BRANCH"
+        sudo git reset --hard "origin/$BRANCH"
+        sudo git clean -fd
+        info "Repository auf origin/$BRANCH zurückgesetzt."
     else
         info "Cloning the repository into $CLONE_DIR with branch $BRANCH..."
         if ! sudo git clone -b "$BRANCH" --single-branch "$REPO_URL" "$CLONE_DIR"; then
@@ -152,21 +156,23 @@ task_edit_cli_wrapper() {
 task_create_cli_symlink() {
     _ensure_symlink() {
         local link_path="$1"
+        local target="$2"
 
         if [[ -L "$link_path" ]]; then
-            if [[ "$(readlink "$link_path")" != "$CLI_WRAPPER_FILE" ]]; then
+            if [[ "$(readlink "$link_path")" != "$target" ]]; then
                 info "Symlink $link_path existiert und zeigt auf einen anderen Pfad. Aktualisierung..."
-                sudo ln -sf "$CLI_WRAPPER_FILE" "$link_path"
+                sudo ln -sf "$target" "$link_path"
             else
                 info "Symlink $link_path existiert bereits und zeigt auf das richtige Ziel."
             fi
         else
             info "Symlink $link_path existiert nicht. Erstellen..."
-            sudo ln -s "$CLI_WRAPPER_FILE" "$link_path"
+            sudo ln -sf "$target" "$link_path"
         fi
     }
 
-    _ensure_symlink "$SYSTEMLINK_PATH"
+    # CLI Symlink (SOT/sot command)
+    _ensure_symlink "$SYSTEMLINK_PATH" "$SOT_ROOT/bin/sot"
 
     # Create lowercase variant if different
     local lowercase_link_dir
@@ -175,8 +181,12 @@ task_create_cli_symlink() {
     lowercase_link_path="${lowercase_link_dir}/$(basename "$SYSTEMLINK_PATH" | tr '[:upper:]' '[:lower:]')"
 
     if [[ "$lowercase_link_path" != "$SYSTEMLINK_PATH" ]]; then
-        _ensure_symlink "$lowercase_link_path"
+        _ensure_symlink "$lowercase_link_path" "$SOT_ROOT/bin/sot"
     fi
+
+    # Symlinks für bin/ und lib/ unter /usr/local
+    _ensure_symlink "/usr/local/lib/sot" "$SOT_ROOT/lib"
+    _ensure_symlink "/usr/local/bin/sot-bin" "$SOT_ROOT/bin"
 }
 
 # Make all scripts executable
