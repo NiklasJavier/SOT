@@ -265,6 +265,10 @@ task_show_final_overview() {
     echo -e "${GREY}# log_file: Pfad zur Logdatei + log_level: Log-Level${NC}"
     echo -e "${GREY}log_file: ${YELLOW}\"$LOG_FILE\" ${GREY}log_level: ${YELLOW}\"$LOG_LEVEL\"${NC}\n"
 
+    echo -e "${GREEN}*** Extensions (AAT, TID) installieren ***${NC}"
+    echo -e "${GREY}>>> Verwende '${YELLOW}sot ex list${GREY}' um verfügbare Extensions anzuzeigen${NC}"
+    echo -e "${GREY}>>> Verwende '${YELLOW}sot ex install aat${GREY}' oder '${YELLOW}sot ex install tid${GREY}' zum Installieren${NC}\n"
+
     echo -e "${GREY}*** Playbooks can be started via commands ***${NC}"
     echo -e "${GREY}>>> To do this, use '${RED}SOT${GREY}' to see a list of all possible actions.${NC}\n"
 }

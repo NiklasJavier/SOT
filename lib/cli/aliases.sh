@@ -30,6 +30,12 @@ declare -gA CLI_ALIASES=(
     ["h"]="help"
     
     # Zweibuchstabige Aliasse
+    ["ex"]="extensions"
+    ["el"]="extensions list"
+    ["ei"]="extensions install"
+    ["er"]="extensions remove"
+    ["es"]="extensions sync"
+    
     ["pl"]="plugins list"
     ["pi"]="plugins info"
     ["pe"]="plugins enable"

@@ -22,7 +22,6 @@ declare -gA TASK_LABELS=(
     [editCliWrapperFile]="Konfiguriere CLI-Wrapper"
     [createCliWrapperSbinLink]="Erstelle CLI-Symlink"
     [makeScriptExecutable]="Setze Ausführungsrechte"
-    [syncExtensions]="Synchronisiere Extensions"
     [writeConfigFile]="Schreibe Konfigurationsdatei"
     [installAvailableTools]="Installiere Tools"
     [initalScriptOverview]="Zeige Abschlussübersicht"

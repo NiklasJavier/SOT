@@ -177,7 +177,6 @@ settingsEnvironmentFolder() { task_create_settings_folder; }
 editCliWrapperFile() { task_edit_cli_wrapper; }
 createCliWrapperSbinLink() { task_create_cli_symlink; }
 makeScriptExecutable() { task_make_scripts_executable; }
-syncExtensions() { task_sync_extensions; }
 writeConfigFile() { write_config_file; }
 installAvailableTools() { task_install_tools; }
 initalScriptOverview() { task_show_final_overview; }
@@ -187,6 +186,8 @@ initalScriptOverview() { task_show_final_overview; }
 # =============================================================================
 
 # Define task execution order
+# HINWEIS: Extensions (AAT, TID) werden NICHT automatisch installiert.
+#          Verwende 'sot ex install aat' oder 'sot ex install tid' nach dem Setup.
 SETUP_TASKS=(
     checkSettingsDirExist
     startOverview
@@ -196,7 +197,6 @@ SETUP_TASKS=(
     editCliWrapperFile
     createCliWrapperSbinLink
     makeScriptExecutable
-    syncExtensions
     writeConfigFile
     installAvailableTools
     initalScriptOverview
