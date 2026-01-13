@@ -16,11 +16,11 @@ fi
 
 export SOT_LIB_DIR
 
-# Load all library components
-source "$SOT_LIB_DIR/colors.sh"
-source "$SOT_LIB_DIR/yaml_parser.sh"
-source "$SOT_LIB_DIR/helpers.sh"
-source "$SOT_LIB_DIR/integrations.sh"
+# Load all library components (new structure)
+source "$SOT_LIB_DIR/core/colors.sh"
+source "$SOT_LIB_DIR/core/yaml_parser.sh"
+source "$SOT_LIB_DIR/core/helpers.sh"
+source "$SOT_LIB_DIR/cli/integrations.sh"
 
 # Set SOT_ROOT if not already set
 if [[ -z "${SOT_ROOT:-}" ]]; then

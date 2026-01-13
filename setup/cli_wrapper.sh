@@ -20,10 +20,10 @@ SCRIPT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # Shared Libraries laden
 # shellcheck source=../lib/init.sh
 source "$SCRIPT_ROOT/lib/init.sh"
-# shellcheck source=../lib/cli_registry.sh
-source "$SCRIPT_ROOT/lib/cli_registry.sh"
-# shellcheck source=../lib/plugins.sh
-source "$SCRIPT_ROOT/lib/plugins.sh"
+# shellcheck source=../lib/cli/registry.sh
+source "$SCRIPT_ROOT/lib/cli/registry.sh"
+# shellcheck source=../lib/plugins/manager.sh
+source "$SCRIPT_ROOT/lib/plugins/manager.sh"
 
 # =============================================================================
 # Konfiguration laden
@@ -37,10 +37,10 @@ fi
 # Standardwerte setzen
 DEFAULT_ROOT="$SCRIPT_ROOT"
 modules_dir="${modules_dir:-$DEFAULT_ROOT/modules}"
-scripts_dir="${scripts_dir:-$DEFAULT_ROOT/scripts}"
+commands_dir="${commands_dir:-$DEFAULT_ROOT/commands}"
 clone_dir="${clone_dir:-$DEFAULT_ROOT}"
 opt_data_dir="${opt_data_dir:-$DEFAULT_ROOT/.sot-data}"
-vault_file="${vault_file:-$DEFAULT_ROOT/setup/vault_template.j2}"
+vault_file="${vault_file:-$DEFAULT_ROOT/templates/vault.j2}"
 vault_secret="${vault_secret:-local-secret}"
 username="${username:-${USER:-sot-user}}"
 systemlink_path="${systemlink_path:-/usr/local/bin/SOT}"
@@ -52,7 +52,7 @@ mkdir -p "$opt_data_dir" 2>/dev/null || true
 
 # Placeholder-Werte ersetzen
 [[ "$modules_dir" == *"__GENERATE_"* ]] && modules_dir="$DEFAULT_ROOT/modules"
-[[ "$scripts_dir" == *"__GENERATE_"* ]] && scripts_dir="$DEFAULT_ROOT/scripts"
+[[ "$commands_dir" == *"__GENERATE_"* ]] && commands_dir="$DEFAULT_ROOT/commands"
 [[ "$clone_dir" == *"__GENERATE_"* ]] && clone_dir="$DEFAULT_ROOT"
 
 # CLI Metadata für Skript-Aufrufe
@@ -83,30 +83,30 @@ discover_plugins
 # =============================================================================
 init_command_registry() {
     # System-Befehle
-    register_command "setup" "$scripts_dir/setup.sh" "system" \
+    register_command "setup" "$commands_dir/setup.sh" "system" \
         "Server-Konfiguration ausführen" \
         "SOT setup [--check] [--tags <tags>]" \
         "SOT setup --tags ssh,firewall"
     
     # Vault-Befehle
-    register_command "vault" "$scripts_dir/vault.sh" "vault" \
+    register_command "vault" "$commands_dir/vault.sh" "vault" \
         "Vault interaktiv bearbeiten" \
         "SOT vault [view|edit|rekey]" \
         "SOT vault edit"
     
     # Runner
-    register_command "runner" "$scripts_dir/runner.sh" "run" \
+    register_command "runner" "$commands_dir/runner.sh" "run" \
         "Ansible/Terraform Playbooks ausführen" \
         "SOT runner <integration> <playbook> [options]" \
         "SOT runner aat site.yml --tags setup"
     
     # Maintenance
-    register_command "update" "$scripts_dir/maintenance/update.sh" "maintenance" \
+    register_command "update" "$commands_dir/maintenance/update.sh" "maintenance" \
         "SOT aktualisieren" \
         "SOT update [--force]" \
         "SOT update"
     
-    register_command "delete" "$scripts_dir/maintenance/delete.sh" "maintenance" \
+    register_command "delete" "$commands_dir/maintenance/delete.sh" "maintenance" \
         "SOT entfernen" \
         "SOT delete [--no-backup]" \
         "SOT delete"
@@ -406,7 +406,7 @@ resolve_command_path() {
             joined="$joined/$part"
         done
         
-        local candidate="$scripts_dir/$joined.sh"
+        local candidate="$commands_dir/$joined.sh"
         if [[ -f "$candidate" ]]; then
             _resolved="$candidate"
             _consumed=$i
@@ -533,12 +533,12 @@ main() {
         # Shortcuts
         update)
             shift
-            execute_script "$scripts_dir/maintenance/update.sh" "$@"
+            execute_script "$commands_dir/maintenance/update.sh" "$@"
             ;;
         
         delete)
             shift
-            execute_script "$scripts_dir/maintenance/delete.sh" "$@"
+            execute_script "$commands_dir/maintenance/delete.sh" "$@"
             ;;
         
         # Dynamische Integration-Handler

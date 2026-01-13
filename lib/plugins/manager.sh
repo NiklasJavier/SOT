@@ -177,22 +177,31 @@ register_plugin() {
         PLUGIN_TYPES["$name"]="tool"
         PLUGIN_ENABLED["$name"]="true"
         
-        # Installer-Script automatisch erkennen
-        if [[ -f "${path}install_${name}.sh" ]]; then
-            PLUGIN_INSTALLERS["$name"]="${path}install_${name}.sh"
-        elif [[ -f "${path}install.sh" ]]; then
+        # Installer-Script automatisch erkennen (neue Struktur zuerst)
+        if [[ -f "${path}install.sh" ]]; then
             PLUGIN_INSTALLERS["$name"]="${path}install.sh"
+        elif [[ -f "${path}install_${name}.sh" ]]; then
+            PLUGIN_INSTALLERS["$name"]="${path}install_${name}.sh"
         fi
         
-        # Commands aus Scripts erkennen
+        # Commands aus commands/ Verzeichnis erkennen (neue Struktur)
         local cmds=""
-        for script in "${path}"*.sh; do
-            [[ ! -f "$script" ]] && continue
-            local script_name=$(basename "$script" .sh)
-            # Install-Scripts überspringen
-            [[ "$script_name" == "install"* ]] && continue
-            cmds+="${script_name} "
-        done
+        if [[ -d "${path}commands" ]]; then
+            for script in "${path}commands"/*.sh; do
+                [[ ! -f "$script" ]] && continue
+                local script_name=$(basename "$script" .sh)
+                cmds+="${script_name} "
+            done
+        else
+            # Fallback: alte Struktur - Scripts im Root
+            for script in "${path}"*.sh; do
+                [[ ! -f "$script" ]] && continue
+                local script_name=$(basename "$script" .sh)
+                # Install-Scripts überspringen
+                [[ "$script_name" == "install"* ]] && continue
+                cmds+="${script_name} "
+            done
+        fi
         PLUGIN_COMMANDS["$name"]="${cmds% }"
     fi
     
@@ -366,9 +375,13 @@ run_plugin_command() {
     local plugin_path="${PLUGIN_PATHS[$name]}"
     local script_path=""
     
-    # Script finden
-    for candidate in "${plugin_path}${command}.sh" "${plugin_path}${command}"; do
-        if [[ -f "$candidate" && -x "$candidate" ]]; then
+    # Script finden (neue Struktur: commands/ Verzeichnis zuerst)
+    for candidate in \
+        "${plugin_path}commands/${command}.sh" \
+        "${plugin_path}commands/${command}" \
+        "${plugin_path}${command}.sh" \
+        "${plugin_path}${command}"; do
+        if [[ -f "$candidate" ]]; then
             script_path="$candidate"
             break
         fi
@@ -378,6 +391,9 @@ run_plugin_command() {
         err "Befehl '$command' für Plugin '$name' nicht gefunden"
         return 1
     fi
+    
+    # Ausführbar machen falls nötig
+    [[ ! -x "$script_path" ]] && chmod +x "$script_path"
     
     # Pre-Command Hook
     run_plugin_hook "$name" "pre-${command}"

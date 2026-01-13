@@ -3,13 +3,13 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 # shellcheck source=./setup-env.sh
-source "$SCRIPT_DIR/setup-env.sh"
+[[ -f "$SCRIPT_DIR/../setup-env.sh" ]] && source "$SCRIPT_DIR/../setup-env.sh"
 
 # Load the YAML parser library
-source "$ROOT_DIR/lib/yaml_parser.sh"
+source "$ROOT_DIR/lib/core/yaml_parser.sh"
 
 echo "Testing YAML parser with flat config (v1)..."
 

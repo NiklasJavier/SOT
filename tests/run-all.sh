@@ -26,7 +26,13 @@ run_suite() {
   echo "Running: $name"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   
-  if "$script"; then
+  if [[ ! -f "$script" ]]; then
+    echo "⚠️  Skipped: $script not found"
+    echo ""
+    return 0
+  fi
+  
+  if bash "$script"; then
     PASSED_SUITES=$((PASSED_SUITES + 1))
     echo ""
   else
@@ -37,14 +43,14 @@ run_suite() {
   fi
 }
 
-# Run all test suites
-run_suite "Helper Functions" "$SCRIPT_DIR/run-helpers-tests.sh"
-run_suite "YAML Parser" "$SCRIPT_DIR/run-yaml-tests.sh"
-run_suite "Setup Library" "$SCRIPT_DIR/run-setup-tests.sh"
-run_suite "CLI Tests" "$SCRIPT_DIR/run-cli-tests.sh"
-run_suite "Integration Tests" "$SCRIPT_DIR/run-integration-tests.sh"
-run_suite "Config Validation" "$SCRIPT_DIR/run-config-validation.sh"
-run_suite "Vault Tests" "$SCRIPT_DIR/run-vault-tests.sh"
+# Run all test suites (neue Struktur)
+run_suite "Helper Functions" "$SCRIPT_DIR/unit/helpers.sh"
+run_suite "YAML Parser" "$SCRIPT_DIR/unit/yaml.sh"
+run_suite "Setup Library" "$SCRIPT_DIR/unit/setup.sh"
+run_suite "CLI Tests" "$SCRIPT_DIR/integration/cli.sh"
+run_suite "Integration Tests" "$SCRIPT_DIR/integration/integration.sh"
+run_suite "Config Validation" "$SCRIPT_DIR/integration/config.sh"
+run_suite "Vault Tests" "$SCRIPT_DIR/integration/vault.sh"
 
 # Summary
 echo ""

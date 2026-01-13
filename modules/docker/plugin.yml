@@ -10,8 +10,8 @@ version: 1.0.0
 type: service
 enabled: true
 
-# Haupt-Installer
-installer: install_docker.sh
+# Haupt-Installer (standardisierter Name)
+installer: install.sh
 
 # Keine eigenen Befehle (nutzt docker direkt)
 # commands: (leer)

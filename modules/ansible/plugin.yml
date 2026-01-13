@@ -10,13 +10,12 @@ version: 2.0.0
 type: tool
 enabled: true
 
-# Haupt-Installer
-installer: install_ansible.sh
+# Haupt-Installer (standardisierter Name)
+installer: install.sh
 
-# Verfügbare Befehle
+# Verfügbare Befehle (in commands/ Verzeichnis)
 commands:
-  - trigger_playbook
-  - vault
+  - trigger
 
 # Abhängigkeiten (andere Plugins)
 dependencies:

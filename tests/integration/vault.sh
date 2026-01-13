@@ -6,13 +6,13 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 # shellcheck source=./setup-env.sh
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/setup-env.sh"
+[[ -f "$SCRIPT_DIR/../setup-env.sh" ]] && source "$SCRIPT_DIR/../setup-env.sh"
 
-VAULT_SCRIPT="$ROOT_DIR/scripts/vault.sh"
+VAULT_SCRIPT="$ROOT_DIR/commands/vault.sh"
 
 # =============================================================================
 # Test-Hilfsfunktionen

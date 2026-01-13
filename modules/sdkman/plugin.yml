@@ -10,8 +10,8 @@ version: 1.0.0
 type: tool
 enabled: true
 
-# Haupt-Installer
-installer: install_sdkman.sh
+# Haupt-Installer (standardisierter Name)
+installer: install.sh
 
 # Keine eigenen Befehle (nutzt direkt sdk Befehl nach Installation)
 # commands: (leer)

@@ -2,21 +2,21 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 # shellcheck source=./setup-env.sh
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/setup-env.sh"
+[[ -f "$SCRIPT_DIR/../setup-env.sh" ]] && source "$SCRIPT_DIR/../setup-env.sh"
 
 if ! command -v bash >/dev/null; then
   echo "bash not found" >&2
   exit 1
 fi
 
-CLI_SCRIPT="$ROOT_DIR/setup/cli_wrapper.sh"
+CLI_SCRIPT="$ROOT_DIR/bin/sot"
 
 # Basic help output should show usage information
-HELP_OUTPUT=$(CONFIG_FILE="$CONFIG_FILE" bash "$CLI_SCRIPT" help)
+HELP_OUTPUT=$(CONFIG_FILE="${CONFIG_FILE:-$ROOT_DIR/services/default_config.yml}" bash "$CLI_SCRIPT" help)
 if ! grep -qE "Usage:|SOT" <<<"$HELP_OUTPUT"; then
   echo "CLI help output did not contain expected usage information" >&2
   echo "$HELP_OUTPUT"

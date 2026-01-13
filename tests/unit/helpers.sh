@@ -2,12 +2,12 @@
 # =============================================================================
 # SOT Test Suite: Shared Library Functions
 # =============================================================================
-# Tests for lib/helpers.sh functions
+# Tests for lib/core/helpers.sh functions
 # shellcheck disable=SC2015  # Using && || pattern intentionally for test assertions
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 # Load the library
 source "$ROOT_DIR/lib/init.sh"

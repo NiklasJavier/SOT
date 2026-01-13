@@ -2,18 +2,18 @@
 # =============================================================================
 # SOT Test Suite: Setup Library Functions
 # =============================================================================
-# Tests for lib/setup/*.sh modules
+# Tests for lib/core/setup/*.sh modules
 # shellcheck disable=SC2015  # Using && || pattern intentionally for test assertions
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ROOT_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+ROOT_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 # shellcheck source=./setup-env.sh
-source "$SCRIPT_DIR/setup-env.sh"
+[[ -f "$SCRIPT_DIR/../setup-env.sh" ]] && source "$SCRIPT_DIR/../setup-env.sh"
 
 # Load the setup library
-source "$ROOT_DIR/lib/setup/init.sh"
+source "$ROOT_DIR/lib/core/setup/init.sh"
 
 # Test counters
 TESTS_RUN=0
