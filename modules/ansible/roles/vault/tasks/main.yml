@@ -112,7 +112,7 @@
       args:
         executable: /bin/bash
         removes: "{{ temp_vault_path }}"
-      when: 
+      when:
         - temp_vault_path is defined
         - not vault_file_stat.stat.exists
       ignore_errors: true
@@ -147,6 +147,6 @@
       debug:
         msg: "⚠️  Warnung: Temporäre Datei {{ item.item }} existiert noch!"
       loop: "{{ cleanup_check.results }}"
-      when: 
+      when:
         - item.stat is defined
         - item.stat.exists | default(false)

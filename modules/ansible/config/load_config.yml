@@ -49,7 +49,10 @@
 - name: Determine local ansible directory when required
   ansible.builtin.set_fact:
     sot_config: "{{ sot_config | combine({'ansible_local_dir': sot_config.modules_dir + '/ansible'}) }}"
-  when: sot_config.ansible_local_dir is not defined or sot_config.ansible_local_dir | length == 0 or sot_config.ansible_local_dir == '__GENERATE_ANSIBLE_LOCAL_DIR__'
+  when: >-
+    sot_config.ansible_local_dir is not defined or
+    sot_config.ansible_local_dir | length == 0 or
+    sot_config.ansible_local_dir == '__GENERATE_ANSIBLE_LOCAL_DIR__'
 
 - name: Build scripts_dir path when not provided
   ansible.builtin.set_fact:

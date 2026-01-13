@@ -1,7 +1,7 @@
 # =============================================================================
 # SOT (Server Operation Toolkit) - Default Configuration
 # =============================================================================
-# 
+#
 # This is the default configuration template. Values marked with __GENERATE_*__
 # are dynamically derived by the setup script.
 #

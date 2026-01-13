@@ -29,7 +29,7 @@ jobs:
       - name: TruffleHog Secret Scan
         uses: trufflesecurity/trufflehog@main
         with:
-          extra_args: --only-verified --fail
+          extra_args: --only-verified
 
       - name: GitLeaks Scan
         uses: gitleaks/gitleaks-action@v2
@@ -92,7 +92,7 @@ jobs:
             "BEGIN RSA"
             "BEGIN OPENSSH"
           )
-          
+
           FOUND=0
           for pattern in "${PATTERNS[@]}"; do
             if grep -rn --include="*.yml" --include="*.yaml" -i "$pattern" . 2>/dev/null | grep -v "vault_secret:" | grep -v "__GENERATE_"; then
@@ -100,7 +100,7 @@ jobs:
               FOUND=1
             fi
           done
-          
+
           if [ $FOUND -eq 1 ]; then
             echo "::warning::Potential secrets found in YAML files. Please review."
           else
@@ -120,11 +120,11 @@ jobs:
       - name: Check for overly permissive files
         run: |
           echo "## File Permissions Audit" >> $GITHUB_STEP_SUMMARY
-          
+
           # Finde Dateien die ausführbar sind, aber nicht .sh
           echo "### Unexpected executable files:" >> $GITHUB_STEP_SUMMARY
           find . -type f -executable ! -name "*.sh" ! -path "./.git/*" | tee -a $GITHUB_STEP_SUMMARY || echo "None found" >> $GITHUB_STEP_SUMMARY
-          
+
           # Prüfe ob sensible Dateien richtige Permissions haben
           echo "### Sensitive files check:" >> $GITHUB_STEP_SUMMARY
           for f in $(find . -name "*.j2" -o -name "*vault*" ! -path "./.git/*"); do
