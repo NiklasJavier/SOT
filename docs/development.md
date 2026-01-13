@@ -46,26 +46,33 @@ Empfohlene Extensions (`.vscode/extensions.json`):
 
 ```
 SOT/
-├── lib/                    # Shared Library (Basis)
-│   ├── init.sh             # Hauptlader
-│   ├── colors.sh           # Farben
-│   ├── yaml_parser.sh      # YAML-Parser
-│   ├── helpers.sh          # Hilfsfunktionen
-│   └── setup/              # Setup-Module
+├── bin/                    # CLI-Einstiegspunkt
+│   └── sot                 # Haupt-CLI
 │
-├── scripts/                # CLI-Befehle
-│   ├── setup.sh
-│   ├── vault.sh
-│   ├── runner.sh
+├── lib/                    # Shared Library
+│   ├── init.sh             # Hauptlader
+│   ├── core/               # Kernfunktionen
+│   │   ├── colors.sh       # Farben
+│   │   ├── yaml_parser.sh  # YAML-Parser
+│   │   ├── helpers.sh      # Hilfsfunktionen
+│   │   └── setup/          # Setup-Module
+│   ├── cli/                # CLI-System
+│   │   ├── registry.sh     # Befehlsregistrierung
+│   │   └── integrations.sh # Integrations-Framework
+│   └── plugins/            # Plugin-System
+│       └── manager.sh
+│
+├── commands/               # CLI-Befehle
+│   ├── setup.sh, vault.sh, runner.sh
 │   ├── integrations/       # AAT/TID Sync
 │   └── maintenance/        # Update/Delete
 │
-├── modules/                # Installierbare Module
+├── completions/            # Shell-Completions
+├── modules/                # Plugin-Module
 ├── services/               # Konfiguration
 ├── setup/                  # Bootstrap
-├── ci/                     # Tests
-├── docs/                   # Dokumentation
-└── templates/              # Wiederverwendbare Templates
+├── tests/                  # Unit- und Integration-Tests
+└── docs/                   # Dokumentation
 ```
 
 ---
@@ -116,7 +123,7 @@ main "$@"
 ### Logging
 
 ```bash
-# Verwende lib/helpers.sh Funktionen
+# Verwende lib/core/helpers.sh Funktionen
 info "Informative Nachricht"
 success "Erfolgsmeldung"
 warn "Warnung"
@@ -195,7 +202,7 @@ git checkout -b feature/my-feature
 ### 4. Linting prüfen
 
 ```bash
-shellcheck lib/*.sh scripts/*.sh
+shellcheck lib/**/*.sh commands/*.sh
 yamllint .
 ```
 
@@ -262,13 +269,13 @@ DEBUG=1 SOT setup
 ### Bash-Tracing
 
 ```bash
-bash -x scripts/setup.sh
+bash -x commands/setup.sh
 ```
 
 ### ShellCheck lokal
 
 ```bash
-shellcheck -S warning scripts/myfile.sh
+shellcheck -S warning commands/myfile.sh
 ```
 
 ---

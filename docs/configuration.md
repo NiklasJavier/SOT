@@ -64,7 +64,7 @@ aat:
 | `clone_dir` | string | `/etc/DevOpsToolkit` | Repository-Pfad |
 | `opt_data_dir` | string | `/opt/SRV-$username` | Daten-Verzeichnis |
 | `modules_dir` | string | `$clone_dir/modules` | Module-Pfad |
-| `scripts_dir` | string | `$clone_dir/scripts` | Scripts-Pfad |
+| `scripts_dir` | string | `$clone_dir/commands` | Commands-Pfad |
 
 ### Vault
 
