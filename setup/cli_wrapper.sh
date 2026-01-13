@@ -14,19 +14,36 @@ set -euo pipefail
 # =============================================================================
 # Pfad-Initialisierung
 # =============================================================================
-# Symlink auflösen, falls vorhanden
-_resolve_symlink() {
-    local path="$1"
-    while [[ -L "$path" ]]; do
-        local dir="$(cd "$(dirname "$path")" && pwd)"
-        path="$(readlink "$path")"
-        [[ "$path" != /* ]] && path="$dir/$path"
+# Symlink auflösen und echten Pfad finden
+_get_real_path() {
+    local target="${BASH_SOURCE[0]}"
+    
+    # Versuche realpath (am zuverlässigsten)
+    if command -v realpath &>/dev/null; then
+        realpath "$target"
+        return
+    fi
+    
+    # Versuche readlink -f (Linux)
+    if readlink -f "$target" &>/dev/null; then
+        readlink -f "$target"
+        return
+    fi
+    
+    # Fallback: Manuelle Auflösung
+    local dir
+    while [[ -L "$target" ]]; do
+        dir="$(cd "$(dirname "$target")" && pwd)"
+        target="$(readlink "$target")"
+        [[ "$target" != /* ]] && target="$dir/$target"
     done
-    echo "$path"
+    
+    # Absoluten Pfad zurückgeben
+    cd "$(dirname "$target")" && echo "$(pwd)/$(basename "$target")"
 }
 
-_REAL_SCRIPT="$(_resolve_symlink "${BASH_SOURCE[0]}")"
-SCRIPT_DIR="$(cd "$(dirname "$_REAL_SCRIPT")" && pwd)"
+_REAL_SCRIPT="$(_get_real_path)"
+SCRIPT_DIR="$(dirname "$_REAL_SCRIPT")"
 SCRIPT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Shared Libraries laden
