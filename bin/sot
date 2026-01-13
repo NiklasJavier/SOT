@@ -262,7 +262,7 @@ invoke_integration_runner() {
     local branch_value="${!branch_var:-}"
     local inventory_path_value="${!inventory_path_var:-host.ini}"
     local inventory_vars_value="${!inventory_vars_var:-}"
-    local sync_script="$SCRIPT_ROOT/scripts/integrations/${integration}_sync.sh"
+    local sync_script="$SCRIPT_ROOT/commands/integrations/${integration}_sync.sh"
     
     # Defaults
     case "$integration" in
@@ -313,7 +313,7 @@ invoke_integration_runner() {
     
     # Validierung nach Sync
     if $synced; then
-        local validate_script="$SCRIPT_ROOT/scripts/integrations/validate_sync.sh"
+        local validate_script="$SCRIPT_ROOT/commands/integrations/validate_sync.sh"
         if [[ -x "$validate_script" ]]; then
             "$validate_script" "$CONFIG_FILE" 2>/dev/null || warn "Validierung meldet Probleme."
         fi

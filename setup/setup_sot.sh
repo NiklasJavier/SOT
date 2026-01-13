@@ -27,8 +27,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Load setup library (includes all dependencies)
-# shellcheck source=../lib/setup/init.sh
-source "$SOT_ROOT/lib/setup/init.sh"
+# shellcheck source=../lib/core/setup/init.sh
+source "$SOT_ROOT/lib/core/setup/init.sh"
 
 # =============================================================================
 # DEFAULT VALUES

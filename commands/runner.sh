@@ -206,14 +206,14 @@ sync_repo() {
         echo "AAT-Integration ist deaktiviert und kann nicht synchronisiert werden." >&2
         return 1
       fi
-      bash "$clone_dir/scripts/integrations/aat_sync.sh" --branch "$AAT_BRANCH" "$config_file"
+      bash "$clone_dir/commands/integrations/aat_sync.sh" --branch "$AAT_BRANCH" "$config_file"
       ;;
     tid)
       if ! is_true "$TID_ENABLED"; then
         echo "TID-Integration ist deaktiviert und kann nicht synchronisiert werden." >&2
         return 1
       fi
-      bash "$clone_dir/scripts/integrations/tid_sync.sh" --branch "$TID_BRANCH" "$config_file"
+      bash "$clone_dir/commands/integrations/tid_sync.sh" --branch "$TID_BRANCH" "$config_file"
       ;;
   esac
 }

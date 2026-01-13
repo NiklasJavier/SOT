@@ -1,15 +1,16 @@
 # SOT Setup Module
 
-Dieses Verzeichnis enthält die Bootstrap- und CLI-Skripte für das Server Operation Toolkit.
+Dieses Verzeichnis enthält die Bootstrap-Skripte für das Server Operation Toolkit.
 
 ## Dateien
 
 | Datei | Beschreibung |
 |-------|--------------|
 | `setup_sot.sh` | Haupt-Bootstrap-Skript — klont Repository, generiert Config, erstellt Symlinks |
-| `cli_wrapper.sh` | SOT CLI-Einstiegspunkt — löst Befehle auf, injiziert Parameter, loggt Aufrufe |
 | `install_tools.sh` | Tool-Installations-Manager — Ansible, Docker, SDKMAN! |
 | `vault_template.j2` | Jinja2-Template für Vault-Initialisierung mit sicheren Defaults |
+
+> **Hinweis:** Die CLI liegt jetzt unter `bin/sot`
 
 ## Verwendung
 
@@ -39,9 +40,9 @@ sudo bash setup/setup_sot.sh -branch dev -port 22
 | `-aat_enabled <bool>` | AAT-Integration aktivieren |
 | `-tid_enabled <bool>` | TID-Integration aktivieren |
 
-## CLI-Wrapper
+## CLI-Nutzung
 
-Der `cli_wrapper.sh` ist der Einstiegspunkt für alle `SOT`-Befehle:
+Der Einstiegspunkt für alle `SOT`-Befehle liegt in `bin/sot`:
 
 ```bash
 SOT [unterordner] <befehl> [optionen]

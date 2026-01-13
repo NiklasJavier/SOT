@@ -121,20 +121,21 @@ generate_dynamic_defaults() {
     # Base directories
     [[ -z "$CLONE_DIR" ]] && CLONE_DIR="/etc/DevOpsToolkit"
     
+    BIN_DIR="$CLONE_DIR/bin"
     SETUP_DIR="$CLONE_DIR/setup"
     CONFIG_DIR="$CLONE_DIR/config"
-    CLI_WRAPPER_FILE="$SETUP_DIR/cli_wrapper.sh"
+    CLI_WRAPPER_FILE="$BIN_DIR/sot"
 
     # Module directories
-    if [[ -z "$MODULES_DIR" || "$MODULES_DIR" == "__GENERATE_MODULES_DIR__" ]]; then
+    if [[ -z "${MODULES_DIR:-}" || "$MODULES_DIR" == "__GENERATE_MODULES_DIR__" ]]; then
         MODULES_DIR="$CLONE_DIR/modules"
     fi
 
-    if [[ -z "$SCRIPTS_DIR" || "$SCRIPTS_DIR" == "__GENERATE_SCRIPTS_DIR__" ]]; then
-        SCRIPTS_DIR="$CLONE_DIR/scripts"
+    if [[ -z "${COMMANDS_DIR:-}" || "${COMMANDS_DIR:-}" == "__GENERATE_COMMANDS_DIR__" ]]; then
+        COMMANDS_DIR="$CLONE_DIR/commands"
     fi
 
-    if [[ -z "$PIPELINES_DIR" || "$PIPELINES_DIR" == "__GENERATE_PIPELINES_DIR__" ]]; then
+    if [[ -z "${PIPELINES_DIR:-}" || "${PIPELINES_DIR:-}" == "__GENERATE_PIPELINES_DIR__" ]]; then
         PIPELINES_DIR="$CLONE_DIR/pipelines"
     fi
 
