@@ -45,8 +45,20 @@ declare -gA CLI_ALIASES=(
     ["vv"]="vault view"
     ["vr"]="vault rekey"
     
-    ["il"]="integrations list"
-    ["iv"]="integrations validate"
+    # Legacy: alte Integration-Befehle -> Extensions
+    ["il"]="extensions list"
+    ["iv"]="extensions list"
+    ["integrations"]="extensions"
+    ["integrations list"]="extensions list"
+    ["integrations sync"]="extensions sync"
+    
+    # Legacy: AAT/TID direkte Befehle -> Extensions
+    ["aat"]="extensions"
+    ["aat sync"]="extensions sync"
+    ["aat install"]="extensions install aat"
+    ["tid"]="extensions"
+    ["tid sync"]="extensions sync"
+    ["tid install"]="extensions install tid"
     
     # Dreibuchstabige Aliasse (für Klarheit)
     ["doc"]="doctor"

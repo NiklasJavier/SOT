@@ -32,26 +32,32 @@ show_usage() {
     echo "    sot ex <command> [options]"
     echo ""
     echo "  ${YELLOW}Commands:${NC}"
-    echo "    ${GREEN}list${NC}            Alle konfigurierten Extensions auflisten"
-    echo "    ${GREEN}install${NC} <name>  Extension installieren (klonen)"
-    echo "    ${GREEN}remove${NC} <name>   Extension entfernen (Verzeichnis löschen)"
-    echo "    ${GREEN}sync${NC}            Alle aktivierten Extensions aktualisieren"
-    echo "    ${GREEN}info${NC} <name>     Details zu einer Extension anzeigen"
-    echo "    ${GREEN}enable${NC} <name>   Extension aktivieren (in Config)"
-    echo "    ${GREEN}disable${NC} <name>  Extension deaktivieren (in Config)"
+    echo "    ${GREEN}list${NC}              Alle Extensions auflisten"
+    echo "    ${GREEN}install${NC} <name>    Extension installieren (klonen + aktivieren)"
+    echo "    ${GREEN}remove${NC} <name>     Extension entfernen (löschen + deaktivieren)"
+    echo "    ${GREEN}sync${NC}              Alle installierten Extensions aktualisieren"
+    echo "    ${GREEN}run${NC} <name> [...]  Extension-Runner ausführen"
+    echo "    ${GREEN}info${NC} <name>       Details zu einer Extension anzeigen"
+    echo "    ${GREEN}enable${NC} <name>     Extension aktivieren"
+    echo "    ${GREEN}disable${NC} <name>    Extension deaktivieren"
     echo ""
-    echo "  ${YELLOW}Aliasse:${NC}"
+    echo "  ${YELLOW}Schnellzugriff:${NC}"
     echo "    sot ex       = sot extensions"
     echo "    sot el       = sot ex list"
     echo "    sot ei <n>   = sot ex install <n>"
     echo "    sot er <n>   = sot ex remove <n>"
     echo "    sot es       = sot ex sync"
     echo ""
+    echo "  ${YELLOW}Legacy (Rückwärtskompatibel):${NC}"
+    echo "    sot aat sync      -> sot ex sync"
+    echo "    sot tid sync      -> sot ex sync"
+    echo "    sot integrations  -> sot ex"
+    echo ""
     echo "  ${YELLOW}Beispiele:${NC}"
-    echo "    sot ex install aat     # AAT Extension installieren"
-    echo "    sot ex install tid     # TID Extension installieren"
-    echo "    sot ex remove aat      # AAT Extension entfernen"
-    echo "    sot ex sync            # Alle aktivierten aktualisieren"
+    echo "    sot ex install aat       # AAT installieren"
+    echo "    sot ex install tid       # TID installieren"
+    echo "    sot ex run aat site.yml  # AAT Runner ausführen"
+    echo "    sot ex sync              # Alle aktualisieren"
     echo ""
     echo "  ${YELLOW}Konfigurierte Extensions:${NC}"
     
@@ -246,6 +252,93 @@ cmd_info() {
     echo ""
 }
 
+cmd_run() {
+    local name="$1"
+    shift || true
+    
+    if [[ -z "$name" ]]; then
+        err "Extension-Name erforderlich"
+        echo "  Verwendung: sot ex run <name> [runner-args...]"
+        echo ""
+        echo "  Installierte Extensions mit Runner:"
+        local ext
+        while read -r ext; do
+            local dir runner
+            dir="$(extension_get "$ext" "dir")"
+            runner="$(extension_get "$ext" "runner")"
+            runner="${runner:-runner.sh}"
+            if [[ -f "$dir/$runner" ]]; then
+                echo "    - $ext"
+            fi
+        done < <(extension_list)
+        exit 1
+    fi
+    
+    # Prüfen ob Extension existiert und installiert ist
+    local dir runner
+    dir="$(extension_get "$name" "dir")"
+    runner="$(extension_get "$name" "runner")"
+    runner="${runner:-runner.sh}"
+    
+    if [[ -z "$dir" ]]; then
+        err "Unbekannte Extension: $name"
+        exit 1
+    fi
+    
+    if [[ ! -d "$dir/.git" ]]; then
+        err "Extension '$name' ist nicht installiert."
+        echo "  Verwende: sot ex install $name"
+        exit 1
+    fi
+    
+    local runner_path="$dir/$runner"
+    if [[ ! -f "$runner_path" ]]; then
+        err "Runner nicht gefunden: $runner_path"
+        exit 1
+    fi
+    
+    # Runner ausführbar machen falls nötig
+    [[ ! -x "$runner_path" ]] && chmod +x "$runner_path"
+    
+    echo ""
+    echo "  ${BOLD}Extension Runner: ${YELLOW}$name${NC}"
+    echo "  ${GREY}Pfad: $runner_path${NC}"
+    echo ""
+    
+    # Environment exportieren
+    export SOT_ROOT="${SOT_ROOT:-}"
+    export SOT_CONFIG_FILE="${CONFIG_FILE:-}"
+    export EXTENSION_NAME="$name"
+    export EXTENSION_DIR="$dir"
+    
+    # Runner ausführen
+    exec bash "$runner_path" "$@"
+}
+
+cmd_enable() {
+    local name="$1"
+    
+    if [[ -z "$name" ]]; then
+        err "Extension-Name erforderlich"
+        exit 1
+    fi
+    
+    _update_config_value "${name}_enabled" "true"
+    echo "  ${GREEN}✓${NC} Extension '$name' aktiviert."
+}
+
+cmd_disable() {
+    local name="$1"
+    
+    if [[ -z "$name" ]]; then
+        err "Extension-Name erforderlich"
+        exit 1
+    fi
+    
+    _update_config_value "${name}_enabled" "false"
+    echo "  ${GREEN}✓${NC} Extension '$name' deaktiviert."
+}
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -267,16 +360,33 @@ main() {
         sync|update|up)
             cmd_sync
             ;;
+        run|exec|r)
+            cmd_run "$@"
+            ;;
         info|show)
             cmd_info "$@"
+            ;;
+        enable|on)
+            cmd_enable "$@"
+            ;;
+        disable|off)
+            cmd_disable "$@"
             ;;
         help|--help|-h|"")
             show_usage
             ;;
         *)
-            err "Unbekannter Command: $command"
-            show_usage
-            exit 1
+            # Prüfe ob es ein Extension-Name ist (Legacy-Kompatibilität)
+            # z.B. "sot ex aat" -> zeigt info zu aat
+            local repo_url
+            repo_url="$(extension_get "$command" "repo_url" 2>/dev/null || true)"
+            if [[ -n "$repo_url" ]]; then
+                cmd_info "$command"
+            else
+                err "Unbekannter Command: $command"
+                show_usage
+                exit 1
+            fi
             ;;
     esac
 }

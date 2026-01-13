@@ -160,32 +160,28 @@ init_command_registry() {
     # Extensions (neues System für AAT, TID, etc.)
     register_command "extensions" "$commands_dir/extensions.sh" "system" \
         "Extensions verwalten (AAT, TID, ...)" \
-        "sot ex [list|install|remove|sync] [name]" \
+        "sot ex [list|install|remove|sync|run] [name]" \
         "sot ex install aat"
     
-    # Dynamische Sync-Befehle für alle Integrationen
-    local name
-    for name in "${!INTEGRATIONS[@]}"; do
-        local name_upper="${name^^}"
-        local desc="${INTEGRATION_DESCRIPTIONS[$name]:-$name_upper Integration}"
-        
-        register_command "$name sync" "" "sync" \
-            "$name_upper synchronisieren" \
-            "SOT $name sync [--branch <b>]" \
-            "SOT $name sync --branch develop"
-    done
+    # Extensions Sub-Commands für bessere Sichtbarkeit
+    register_command "extensions list" "$commands_dir/extensions.sh" "system" \
+        "Alle Extensions auflisten" \
+        "sot ex list" \
+        "sot el"
     
-    # Meta-Befehle für Integrationen
-    register_command "integrations" "" "sync" \
-        "Integrationen verwalten" \
-        "SOT integrations [list|validate|add]" \
-        "SOT integrations list"
+    register_command "extensions install" "$commands_dir/extensions.sh" "system" \
+        "Extension installieren" \
+        "sot ex install <name>" \
+        "sot ex install aat"
     
-    register_command "validate" "" "sync" \
-        "Alle Integrationen validieren" \
-        "SOT validate" \
-        "SOT validate"
+    register_command "extensions sync" "$commands_dir/extensions.sh" "system" \
+        "Alle installierten Extensions aktualisieren" \
+        "sot ex sync" \
+        "sot es"
     
+    # Legacy-Kompatibilität: alte Integrations-Befehle leiten auf ex um
+    # Diese werden über Aliasse in lib/cli/aliases.sh gehandhabt
+
     # Plugin-Befehle
     register_command "plugins" "" "plugins" \
         "Plugin-System verwalten" \
