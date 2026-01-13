@@ -38,45 +38,25 @@ branch: "production"
 #   <name>_runner       - Entry-Point Skript (default: runner.sh)
 #   <name>_description  - Beschreibung für CLI
 #
-# Optional für Ansible-Integrationen:
-#   <name>_inventory_path - Pfad zum Inventory
-#   <name>_inventory_vars - Variablen für Inventory
-#
-# HINWEIS: Extensions sind OPTIONAL. Setze <name>_enabled auf "false"
-#          um eine Extension zu deaktivieren. Das Setup überspringt
-#          dann automatisch das Klonen/Aktualisieren dieser Extension.
-#
-# Neue Extension hinzufügen:
-#   1. Kopiere den AAT/TID Block
-#   2. Ersetze den Prefix (<name>_)
-#   3. Passe die Werte an
-#   4. Starte `sot extensions sync` zum Installieren
+# Beispiel-Extensions
 
-# =============================================================================
-# Extension: AAT - Ansible Automation Tools (OPTIONAL)
-# =============================================================================
-aat_enabled: "false"
-aat_repo_url: "https://github.com/NiklasJavier/AAT.git"
-aat_dir: "/opt/AAT"
+# Azure Automation Toolkit
+aat_enabled: "true"
+aat_repo_url: "https://github.com/yourorg/aat.git"
+aat_dir: "/opt/aat"
 aat_branch: "main"
 aat_type: "ansible"
 aat_runner: "runner.sh"
-aat_description: "Ansible Automation Tools"
-aat_inventory_path: "host.ini"
-aat_inventory_vars: "ssh_port system_name"
+aat_description: "Azure Automation Toolkit"
 
-# =============================================================================
-# Extension: TID - Terraform Infrastructure Deployment (OPTIONAL)
-# =============================================================================
-tid_enabled: "false"
-tid_repo_url: "https://github.com/NiklasJavier/TID.git"
-tid_dir: "/opt/TID"
+# Traefik Infrastructure Deployment
+tid_enabled: "true"
+tid_repo_url: "https://github.com/yourorg/tid.git"
+tid_dir: "/opt/tid"
 tid_branch: "main"
-tid_type: "terraform"
+tid_type: "ansible"
 tid_runner: "runner.sh"
-tid_description: "Terraform Infrastructure Deployment"
-tid_inventory_path: "host.ini"
-tid_inventory_vars: "ssh_port system_name"
+tid_description: "Traefik Infrastructure Deployment"
 
 # =============================================================================
 # Beispiel für weitere Extension (auskommentiert)
