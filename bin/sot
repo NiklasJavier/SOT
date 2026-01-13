@@ -24,6 +24,8 @@ source "$SCRIPT_ROOT/lib/init.sh"
 source "$SCRIPT_ROOT/lib/cli/registry.sh"
 # shellcheck source=../lib/cli/aliases.sh
 source "$SCRIPT_ROOT/lib/cli/aliases.sh"
+# shellcheck source=../lib/cli/progress.sh
+source "$SCRIPT_ROOT/lib/cli/progress.sh"
 # shellcheck source=../lib/plugins/manager.sh
 source "$SCRIPT_ROOT/lib/plugins/manager.sh"
 

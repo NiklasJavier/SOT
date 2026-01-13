@@ -2,7 +2,10 @@
 # SOT Setup Script
 # Initializes and configures the Server Operation Toolkit
 #
-# Usage: sudo ./setup_sot.sh [options]
+# Usage: 
+#   curl -fsSL "https://raw.githubusercontent.com/NiklasJavier/SOT/production/setup/setup_sot.sh" | bash -s -- [options]
+#   # oder lokal:
+#   sudo ./setup_sot.sh [options]
 #
 # Options:
 #   -branch <name>          Branch to use (default: production)
@@ -20,7 +23,74 @@
 set -euo pipefail
 
 # =============================================================================
-# INITIALIZATION
+# BOOTSTRAP MODE DETECTION
+# =============================================================================
+# Wenn via curl | bash ausgeführt, ist BASH_SOURCE leer.
+# In diesem Fall: Repository klonen und lokales Script ausführen.
+
+REPO_URL="https://github.com/NiklasJavier/SOT.git"
+DEFAULT_CLONE_DIR="/opt/SOT"
+
+# Parse branch early (für Bootstrap)
+BOOTSTRAP_BRANCH="production"
+for arg in "$@"; do
+    if [[ "$arg" == "-branch" ]]; then
+        shift_next=true
+    elif [[ "${shift_next:-}" == "true" ]]; then
+        BOOTSTRAP_BRANCH="$arg"
+        shift_next=false
+    fi
+done
+
+# Prüfe ob wir im Bootstrap-Modus sind (curl | bash)
+if [[ -z "${BASH_SOURCE[0]:-}" ]] || [[ "${BASH_SOURCE[0]}" == "bash" ]]; then
+    echo ""
+    echo "  ╔═══════════════════════════════════════════════════════════╗"
+    echo "  ║     SOT Bootstrap - Server Operation Toolkit              ║"
+    echo "  ╚═══════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "  → Bootstrap-Modus erkannt (curl | bash)"
+    echo "  → Klone Repository nach $DEFAULT_CLONE_DIR..."
+    echo ""
+    
+    # Git installieren falls nicht vorhanden
+    if ! command -v git &>/dev/null; then
+        echo "  → Installiere Git..."
+        if command -v apt-get &>/dev/null; then
+            apt-get update -qq && apt-get install -y -qq git
+        elif command -v yum &>/dev/null; then
+            yum install -y -q git
+        elif command -v dnf &>/dev/null; then
+            dnf install -y -q git
+        else
+            echo "  ✗ Fehler: Git konnte nicht installiert werden."
+            exit 1
+        fi
+    fi
+    
+    # Repository klonen oder aktualisieren
+    if [[ -d "$DEFAULT_CLONE_DIR/.git" ]]; then
+        echo "  → Repository existiert bereits, aktualisiere..."
+        cd "$DEFAULT_CLONE_DIR"
+        git fetch --all --quiet
+        git checkout "$BOOTSTRAP_BRANCH" --quiet 2>/dev/null || git checkout -b "$BOOTSTRAP_BRANCH" "origin/$BOOTSTRAP_BRANCH" --quiet
+        git pull --quiet
+    else
+        echo "  → Klone Branch: $BOOTSTRAP_BRANCH"
+        git clone -b "$BOOTSTRAP_BRANCH" --single-branch --quiet "$REPO_URL" "$DEFAULT_CLONE_DIR"
+    fi
+    
+    echo "  ✓ Repository bereit"
+    echo ""
+    echo "  → Starte lokales Setup-Script..."
+    echo ""
+    
+    # Lokales Script ausführen mit allen Argumenten
+    exec bash "$DEFAULT_CLONE_DIR/setup/setup_sot.sh" "$@"
+fi
+
+# =============================================================================
+# LOKALER MODUS - Normale Ausführung
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +107,6 @@ source "$SOT_ROOT/lib/core/setup/init.sh"
 DEFAULT_CONFIG_FILE="${SOT_DEFAULT_CONFIG:-$SCRIPT_DIR/../services/default_config.yml}"
 DEFAULT_BRANCH_HINT="production"
 
-REPO_URL="https://github.com/NiklasJavier/DevOpsToolkit.git"
 BRANCH=""
 BRANCH_DIR=""
 USE_DEFAULTS=""
