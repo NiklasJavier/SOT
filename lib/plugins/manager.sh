@@ -6,7 +6,7 @@
 #
 # Features:
 #   - Automatische Plugin-Discovery aus modules/
-#   - Metadaten-basierte Konfiguration (plugin.yml)
+#   - Metadaten-basierte Konfiguration (module.yml)
 #   - Lifecycle-Hooks (install, uninstall, enable, disable)
 #   - CLI-Befehlsregistrierung pro Plugin
 #
@@ -40,12 +40,12 @@ declare -gA PLUGIN_DEPENDENCIES=()    # name -> space-separated dependency list
 declare -ga DISCOVERED_PLUGINS=()
 
 # =============================================================================
-# YAML Parser für plugin.yml
+# YAML Parser für module.yml
 # =============================================================================
 
-# Parst eine einfache plugin.yml Datei
+# Parst eine einfache module.yml/plugin.yml Datei
 # Arguments:
-#   $1 - Pfad zur plugin.yml
+#   $1 - Pfad zur YAML-Datei
 #   $2 - Name des assoziativen Arrays für Ergebnisse
 parse_plugin_yaml() {
     local file="$1"
@@ -139,9 +139,9 @@ register_plugin() {
     local name="$1"
     local path="$2"
     
-    # Metadaten-Datei suchen
+    # Metadaten-Datei suchen (module.yml bevorzugt wegen Schema-Konflikten mit plugin.yml)
     local meta_file=""
-    for candidate in "plugin.yml" "plugin.yaml" "module.yml" "module.yaml"; do
+    for candidate in "module.yml" "module.yaml" "plugin.yml" "plugin.yaml"; do
         if [[ -f "${path}${candidate}" ]]; then
             meta_file="${path}${candidate}"
             break

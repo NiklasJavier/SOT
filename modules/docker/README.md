@@ -6,7 +6,7 @@ Dieses Verzeichnis enthält Docker-bezogene Skripte und Templates für das Serve
 
 | Datei/Ordner | Beschreibung |
 |--------------|--------------|
-| `plugin.yml` | Plugin-Metadaten für SOT |
+| `module.yml` | Plugin-Metadaten für SOT |
 | `install.sh` | Docker-Installations-Skript für verschiedene Linux-Distributionen |
 | `hooks/` | Lifecycle-Hooks (pre/post) |
 | `templates/` | Docker-Compose Templates für häufig verwendete Services |

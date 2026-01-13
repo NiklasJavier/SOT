@@ -336,7 +336,7 @@ SOT/
 │
 ├── modules/                    # 🔌 Plugin-Module
 │   ├── ansible/                # Ansible (Playbooks, Rollen)
-│   │   ├── plugin.yml          # Plugin-Metadaten
+│   │   ├── module.yml          # Plugin-Metadaten
 │   │   ├── install.sh
 │   │   └── commands/
 │   ├── docker/                 # Docker-Templates

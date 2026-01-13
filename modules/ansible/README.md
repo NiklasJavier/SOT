@@ -9,7 +9,7 @@ können direkt erweitert oder überschrieben werden.
 ```
 modules/ansible/
 ├── ansible.cfg                 # Globale Ansible-Einstellungen
-├── plugin.yml                  # Plugin-Metadaten für SOT
+├── module.yml                  # Plugin-Metadaten für SOT
 ├── install.sh                  # Ansible-Installationsskript
 ├── commands/
 │   └── trigger.sh              # Wrapper für CLI-Aufrufe aus `SOT setup`
