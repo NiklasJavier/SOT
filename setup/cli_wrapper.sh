@@ -65,11 +65,7 @@ if [[ -n "${log_file:-}" ]]; then
   fi
 fi
 
-log_command() {
-  # Use shared helper (re-export for backwards compatibility)
-  log_command "$@"
-}
-
+# Note: log_command is now provided by lib/helpers.sh
 # Note: is_true is now provided by lib/helpers.sh
 
 CLI_METADATA_ARGS=(

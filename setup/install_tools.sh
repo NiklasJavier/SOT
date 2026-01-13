@@ -26,7 +26,7 @@ while read -r entry; do
             fi
         done
     fi
-done < <(printf '%s\n' $TOOLS)
+done < <(printf '%s\n' "$TOOLS")
 
 if [[ -n "${SDKMAN_DEFAULT_CANDIDATES:-}" ]]; then
     IFS=',' read -ra default_specs <<< "${SDKMAN_DEFAULT_CANDIDATES}"
