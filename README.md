@@ -240,7 +240,7 @@ SOT/
 │   ├── setup.sh                # Host-Setup
 │   ├── runner.sh               # Ansible/Terraform-Runner
 │   ├── vault.sh                # Vault-Interaktion
-│   ├── debug/                  # Wartung
+│   ├── maintenance/            # Wartung (update, delete)
 │   └── integrations/           # AAT/TID-Sync
 │
 ├── modules/                    # 🧩 Module
@@ -253,11 +253,17 @@ SOT/
 │   ├── default_config_v2.yml   # Defaults (v2)
 │   └── overrides/              # Environment-Overrides
 │
+├── docs/                       # 📖 Dokumentation
+│   ├── architecture.md         # Architektur-Übersicht
+│   ├── cli-reference.md        # CLI-Befehlsreferenz
+│   ├── configuration.md        # Config-Referenz
+│   └── development.md          # Entwickler-Guide
+│
 ├── ci/                         # ✅ Tests
 │   ├── run-all-tests.sh        # Master Test-Runner
 │   └── ...                     # Test-Suites
 │
-└── snippets/                   # 📋 Templates
+└── templates/                  # 📋 Wiederverwendbare Templates
 ```
 
 ---

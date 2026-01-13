@@ -15,11 +15,17 @@ SOT/
 │   └── setup/              # Setup-spezifische Module
 ├── setup/                  # Bootstrap & CLI
 ├── scripts/                # Ausführbare Skripte
+│   ├── maintenance/        # Wartung (update, delete)
+│   └── integrations/       # AAT/TID Sync
 ├── modules/                # Ansible, Docker, SDKMAN
 ├── services/               # Konfigurationsdateien
+├── docs/                   # Dokumentation
 ├── ci/                     # Tests
+├── templates/              # Wiederverwendbare Templates
 └── config/validators/      # Validatoren
 ```
+
+> Detaillierte Dokumentation: [docs/development.md](docs/development.md)
 
 ## Shared Library (`lib/`)
 
