@@ -9,9 +9,12 @@
 [[ -n "${_SOT_SETUP_ARGS_LOADED:-}" ]] && return 0
 _SOT_SETUP_ARGS_LOADED=1
 
+# Global debug flag
+DEBUG_MODE=false
+
 # Parse early arguments that need to be processed before other flags
 # Arguments: "$@" - All command line arguments
-# Sets: DEFAULT_CONFIG_FILE, DEFAULT_BRANCH_HINT
+# Sets: DEFAULT_CONFIG_FILE, DEFAULT_BRANCH_HINT, DEBUG_MODE
 parse_early_args() {
     local args=("$@")
     
@@ -31,6 +34,9 @@ parse_early_args() {
                 if (( next_index < ${#args[@]} )) && [[ -n "${args[$next_index]}" && "${args[$next_index]}" != -* ]]; then
                     DEFAULT_BRANCH_HINT="${args[$next_index]}"
                 fi
+                ;;
+            --debug)
+                DEBUG_MODE=true
                 ;;
         esac
     done
@@ -295,6 +301,9 @@ parse_setup_args() {
                     err "No configuration file specified with -config."
                     exit 1
                 fi
+                ;;
+            --debug)
+                # Already parsed in parse_early_args, skip here
                 ;;
             *)
                 err "Invalid option: $1"

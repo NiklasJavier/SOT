@@ -17,6 +17,7 @@
 #   -aat_enabled true|false Enable AAT integration
 #   -tid_enabled true|false Enable TID integration
 #   -config <path>          Path to config file
+#   --debug                 Enable verbose debug output
 #
 # See README.md for full documentation.
 
@@ -174,7 +175,7 @@ startOverview() { task_show_overview; }
 checkRootPermissions() { task_check_root; }
 copyAndSetTheRepository() { task_clone_repository; }
 settingsEnvironmentFolder() { task_create_settings_folder; }
-editCliWrapperFile() { task_edit_cli_wrapper; }
+editCliFile() { task_edit_cli; }
 createCliWrapperSbinLink() { task_create_cli_symlink; }
 makeScriptExecutable() { task_make_scripts_executable; }
 writeConfigFile() { write_config_file; }
@@ -194,7 +195,7 @@ SETUP_TASKS=(
     checkRootPermissions
     copyAndSetTheRepository
     settingsEnvironmentFolder
-    editCliWrapperFile
+    editCliFile
     createCliWrapperSbinLink
     makeScriptExecutable
     writeConfigFile

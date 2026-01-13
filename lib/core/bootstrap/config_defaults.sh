@@ -124,7 +124,7 @@ generate_dynamic_defaults() {
     BIN_DIR="$CLONE_DIR/bin"
     SETUP_DIR="$CLONE_DIR/setup"
     CONFIG_DIR="$CLONE_DIR/config"
-    CLI_WRAPPER_FILE="$BIN_DIR/sot"
+    CLI_FILE="$BIN_DIR/sot"
 
     # Module directories
     if [[ -z "${MODULES_DIR:-}" || "$MODULES_DIR" == "__GENERATE_MODULES_DIR__" ]]; then

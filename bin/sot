@@ -111,9 +111,8 @@ CLI_METADATA_ARGS=(
 )
 
 # =============================================================================
-# Integrationen & Plugins entdecken
+# Plugins & Extensions entdecken
 # =============================================================================
-discover_integrations
 
 # Plugin-System initialisieren mit korrektem Pfad
 MODULES_DIR="$modules_dir"
@@ -298,139 +297,6 @@ show_legacy_command_help() {
 }
 
 # =============================================================================
-# Integration-Runner (AAT/TID)
-# =============================================================================
-invoke_integration_runner() {
-    local integration="$1"
-    shift || true
-    
-    local enabled_var="${integration}_enabled"
-    local dir_var="${integration}_dir"
-    local branch_var="${integration}_branch"
-    local inventory_path_var="${integration}_inventory_path"
-    local inventory_vars_var="${integration}_inventory_vars"
-    
-    local repo_dir="${!dir_var:-}"
-    local enabled_value="${!enabled_var:-true}"
-    local branch_value="${!branch_var:-}"
-    local inventory_path_value="${!inventory_path_var:-host.ini}"
-    local inventory_vars_value="${!inventory_vars_var:-}"
-    local sync_script="$SCRIPT_ROOT/commands/integrations/${integration}_sync.sh"
-    
-    # Defaults
-    case "$integration" in
-        aat)
-            [[ -z "$repo_dir" || "$repo_dir" == *"__GENERATE_"* ]] && repo_dir="/opt/AAT"
-            [[ -z "$branch_value" || "$branch_value" == *"__GENERATE_"* ]] && branch_value="main"
-            ;;
-        tid)
-            [[ -z "$repo_dir" || "$repo_dir" == *"__GENERATE_"* ]] && repo_dir="/opt/TID"
-            [[ -z "$branch_value" || "$branch_value" == *"__GENERATE_"* ]] && branch_value="main"
-            ;;
-        *)
-            err "Unbekannte Integration: '$integration'"
-            return 1
-            ;;
-    esac
-    
-    if ! is_true "$enabled_value"; then
-        warn "${integration^^} Integration ist in config.yaml deaktiviert."
-        return 1
-    fi
-    
-    local runner_path="$repo_dir/runner.sh"
-    local synced=false
-    
-    # Auto-Sync wenn nötig
-    if [[ ! -x "$runner_path" || ! -d "$repo_dir" ]]; then
-        if [[ -x "$sync_script" ]]; then
-            info "Synchronisiere ${integration^^} Repository..."
-            local -a sync_args=("$sync_script")
-            [[ -n "$branch_value" ]] && sync_args+=("--branch" "$branch_value")
-            sync_args+=("${CLI_METADATA_ARGS[@]}")
-            if ! "${sync_args[@]}"; then
-                err "Synchronisierung von ${integration^^} fehlgeschlagen."
-                return 1
-            fi
-            synced=true
-        fi
-    fi
-    
-    [[ -f "$runner_path" && ! -x "$runner_path" ]] && chmod +x "$runner_path" 2>/dev/null || true
-    
-    if [[ ! -x "$runner_path" ]]; then
-        err "runner.sh nicht gefunden für ${integration^^} unter $repo_dir"
-        info "Führe 'SOT ${integration} sync' aus."
-        return 1
-    fi
-    
-    # Validierung nach Sync
-    if $synced; then
-        local validate_script="$SCRIPT_ROOT/commands/integrations/validate_sync.sh"
-        if [[ -x "$validate_script" ]]; then
-            "$validate_script" "$CONFIG_FILE" 2>/dev/null || warn "Validierung meldet Probleme."
-        fi
-    fi
-    
-    # Environment exportieren
-    export SOT_CONFIG_FILE="$CONFIG_FILE"
-    export SOT_MODULES_DIR="$modules_dir"
-    export SOT_SCRIPTS_DIR="$scripts_dir"
-    export SOT_OPT_DATA_DIR="$opt_data_dir"
-    export SOT_CLONE_DIR="$clone_dir"
-    export SOT_USERNAME="$username"
-    export SOT_BRANCH="${branch:-}"
-    export SOT_INTEGRATION_NAME="$integration"
-    
-    # Inventory-Handling
-    local previous_ansible_inventory="${ANSIBLE_INVENTORY:-}"
-    local temp_inventory=""
-    local inventory_source=""
-    
-    if [[ -n "$inventory_path_value" ]]; then
-        inventory_source="${inventory_path_value##/*}"
-        [[ "$inventory_path_value" != /* ]] && inventory_source="$repo_dir/$inventory_path_value"
-    fi
-    
-    if [[ -f "$inventory_source" ]]; then
-        temp_inventory=$(mktemp "${TMPDIR:-/tmp}/sot_${integration}_inventory_XXXXXX")
-        cp "$inventory_source" "$temp_inventory"
-        
-        local appended_vars=false
-        for var_name in ${inventory_vars_value//,/ }; do
-            [[ -z "$var_name" ]] && continue
-            local var_value="${!var_name:-}"
-            if [[ -n "$var_value" ]]; then
-                [[ $appended_vars == false ]] && { printf '\n[all:vars]\n' >> "$temp_inventory"; appended_vars=true; }
-                printf '%s=%s\n' "$var_name" "$var_value" >> "$temp_inventory"
-            fi
-        done
-        
-        [[ -n "$temp_inventory" ]] && export ANSIBLE_INVENTORY="$temp_inventory"
-    fi
-    
-    # Runner ausführen
-    local -a runner_cmd=("$runner_path")
-    [[ $# -gt 0 ]] && runner_cmd+=("$@") || runner_cmd+=("--help")
-    
-    log_command "${runner_cmd[*]}"
-    local result=0
-    "${runner_cmd[@]}" || result=$?
-    
-    # Cleanup
-    if [[ -n "$temp_inventory" ]]; then
-        rm -f "$temp_inventory"
-        if [[ -n "$previous_ansible_inventory" ]]; then
-            export ANSIBLE_INVENTORY="$previous_ansible_inventory"
-        else
-            unset ANSIBLE_INVENTORY
-        fi
-    fi
-    
-    return "$result"
-}
-
-# =============================================================================
 # Befehlsausführung
 # =============================================================================
 execute_script() {
@@ -583,10 +449,10 @@ main() {
             execute_script "$commands_dir/doctor.sh" "$@"
             ;;
         
-        # Integrations-Meta-Befehl
+        # Legacy: integrations -> extensions redirect
         integrations)
             shift
-            handle_integrations_meta_command "$@"
+            execute_script "$commands_dir/extensions.sh" "$@"
             ;;
         
         # Plugin-Meta-Befehl
@@ -595,9 +461,9 @@ main() {
             handle_plugins_command "$@"
             ;;
         
-        # Validate-Shortcut
+        # Validate-Shortcut -> extensions validate
         validate)
-            validate_all_integrations
+            execute_script "$commands_dir/extensions.sh" validate
             ;;
         
         # Shortcuts
@@ -611,16 +477,12 @@ main() {
             execute_script "$commands_dir/maintenance/delete.sh" "$@"
             ;;
         
-        # Dynamische Integration-Handler
+        # Dynamische Handler
         *)
             local cmd="$1"
             
-            # Prüfen ob es eine registrierte Integration ist
-            if integration_exists "$cmd"; then
-                shift
-                handle_integration_command "$cmd" "$@"
             # Prüfen ob es ein Plugin ist
-            elif plugin_exists "$cmd"; then
+            if plugin_exists "$cmd"; then
                 shift
                 if [[ $# -eq 0 ]]; then
                     show_plugin_info "$cmd"

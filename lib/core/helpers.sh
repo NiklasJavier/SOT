@@ -108,28 +108,49 @@ resolve_path() {
 # Arguments:
 #   $@ - Error message
 err() {
-  echo -e "${RED:-}Error: $*${NC:-}" >&2
+  echo -e "${COLOR_ERROR:-${RED:-}}✗ $*${NC:-}" >&2
 }
 
 # Print a warning message to stderr
 # Arguments:
 #   $@ - Warning message
 warn() {
-  echo -e "${YELLOW:-}Warning: $*${NC:-}" >&2
+  echo -e "${COLOR_WARNING:-${YELLOW:-}}⚠ $*${NC:-}" >&2
 }
 
 # Print an info message
 # Arguments:
 #   $@ - Info message
 info() {
-  echo -e "${GREY:-}$*${NC:-}"
+  echo -e "${COLOR_INFO:-${CYAN:-}}→ $*${NC:-}"
 }
 
 # Print a success message
 # Arguments:
 #   $@ - Success message
 success() {
-  echo -e "${GREEN:-}$*${NC:-}"
+  echo -e "${COLOR_SUCCESS:-${GREEN:-}}✓ $*${NC:-}"
+}
+
+# Print a highlighted message (for important values/paths)
+# Arguments:
+#   $@ - Message with highlight
+highlight() {
+  echo -e "${COLOR_HIGHLIGHT:-${MAGENTA:-}}$*${NC:-}"
+}
+
+# Print a label (for configuration keys)
+# Arguments:
+#   $@ - Label text
+label() {
+  echo -e "${COLOR_LABEL:-${WHITE:-}}$*${NC:-}"
+}
+
+# Print dimmed text (for less important info)
+# Arguments:
+#   $@ - Dimmed text
+dim() {
+  echo -e "${COLOR_DIM:-${DIM:-}}$*${NC:-}"
 }
 
 # Find config.yaml file from command line arguments

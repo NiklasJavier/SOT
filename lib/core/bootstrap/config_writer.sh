@@ -12,7 +12,7 @@ _SOT_SETUP_CONFIG_WRITER_LOADED=1
 # Write configuration to config.yaml (new structured format)
 # Expects all configuration variables to be set
 write_config_file() {
-    info "Writing configuration to $CONFIG_FILE..."
+    info "Schreibe Konfiguration nach $(highlight "$CONFIG_FILE")"
 
     cat <<- EOL > "$CONFIG_FILE"
 # =============================================================================

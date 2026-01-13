@@ -11,16 +11,22 @@ export GREEN=$'\033[0;32m'
 export RED=$'\033[0;31m'
 export YELLOW=$'\033[1;33m'
 export BLUE=$'\033[0;34m'
-export PINK=$'\033[0;35m'
 export CYAN=$'\033[0;36m'
-export GREY=$'\033[1;90m'
+export MAGENTA=$'\033[0;35m'
+export WHITE=$'\033[1;37m'
+export DIM=$'\033[2m'
 export BOLD=$'\033[1m'
 export NC=$'\033[0m'  # No Color / Reset
 
-# Semantic aliases
-export COLOR_SUCCESS="$GREEN"
-export COLOR_ERROR="$RED"
-export COLOR_WARNING="$YELLOW"
-export COLOR_INFO="$BLUE"
-export COLOR_HIGHLIGHT="$PINK"
-export COLOR_MUTED="$GREY"
+# Legacy aliases (deprecated - kept for compatibility)
+export PINK="$MAGENTA"
+export GREY="$DIM"
+
+# Semantic color scheme for consistent output
+export COLOR_SUCCESS="$GREEN"      # Success messages, checkmarks
+export COLOR_ERROR="$RED"          # Errors, failures
+export COLOR_WARNING="$YELLOW"     # Warnings, important notes
+export COLOR_INFO="$CYAN"          # Info messages, progress
+export COLOR_HIGHLIGHT="$MAGENTA"  # Highlighted text, values
+export COLOR_LABEL="$WHITE"        # Labels, section headers
+export COLOR_DIM="$DIM"            # Dimmed text, less important info
